@@ -10,7 +10,7 @@ const HERO_IMAGE =
 
 const GALLERY = [
   {
-    title: "Tesla Model S",
+    title: "Tesla Model Y",
     category: "Full Tint · Audio",
     image:
       "https://static.wixstatic.com/media/24f460_356c10ff347148ab9335e8d86ada4040~mv2.jpg/v1/fit/w_960,h_1360,q_90,enc_avif,quality_auto/24f460_356c10ff347148ab9335e8d86ada4040~mv2.jpg",
