@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 const services = [
   "Window Tint",
   "Remote Starters",
@@ -10,7 +8,7 @@ const services = [
 ];
 
 const builds = [
-  "autodv8ions-tesla.jpg",
+  "autodv8ions-model-y.jpg",
   "autodv8ions-bay.jpg",
   "autodv8ions-charger.jpg",
 ];
@@ -21,30 +19,20 @@ export default function Home() {
       <section className="relative min-h-screen border-b border-white/10">
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-[url('/images/auto-dv8ions/hero-custom-car.jpg')] bg-cover bg-center opacity-40" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-black/35" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(170,0,0,0.24),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.05),transparent_25%)]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/30" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(170,0,0,0.22),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.05),transparent_25%)]" />
         </div>
 
         <div className="relative z-10 px-6 md:px-12 lg:px-20">
-          <nav className="flex items-center justify-between border-b border-white/10 py-6">
-            <a href="/" className="flex items-center gap-4">
-              <Image
-                src="/images/logos/dv8-logo.png"
-                alt="AutoDV8ions"
-                width={150}
-                height={58}
-                priority
-                className="h-auto w-[115px] md:w-[150px]"
-              />
-              <div className="hidden sm:block">
-                <p className="text-[10px] uppercase tracking-[0.5em] text-red-500">
-                  AutoDV8ions
-                </p>
-                <p className="mt-2 text-xs uppercase tracking-[0.28em] text-white/40">
-                  Tint · Starters · Security · Styling
-                </p>
-              </div>
-            </a>
+          <nav className="flex items-center justify-between border-b border-white/10 py-7">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.55em] text-red-500">
+                // AUTODV8IONS
+              </p>
+              <p className="mt-2 text-sm uppercase tracking-[0.32em] text-white/45">
+                Tint · Starters · Security · Styling
+              </p>
+            </div>
 
             <div className="hidden items-center gap-8 text-[11px] uppercase tracking-[0.28em] text-white/55 md:flex">
               <a href="#services" className="transition hover:text-white">
@@ -85,8 +73,8 @@ export default function Home() {
 
               <p className="mt-8 max-w-2xl text-lg leading-8 text-white/62">
                 Premium window tint, remote starters, vehicle security,
-                lighting upgrades, and custom styling for drivers who want more
-                comfort, more presence, and a sharper identity.
+                lighting upgrades, and custom styling for drivers who want
+                more comfort, more presence, and a sharper identity.
               </p>
 
               <div className="mt-12 flex flex-col gap-4 sm:flex-row">
@@ -107,16 +95,6 @@ export default function Home() {
             </div>
 
             <div className="relative hidden lg:block">
-              <div className="absolute -top-14 right-8 z-20 opacity-95">
-                <Image
-                  src="/images/logos/dv8-logo.png"
-                  alt="DV8"
-                  width={280}
-                  height={110}
-                  className="h-auto w-[240px]"
-                />
-              </div>
-
               <div className="border border-white/10 bg-black/40 p-5 backdrop-blur">
                 <div className="aspect-[4/5] overflow-hidden">
                   <div className="h-full w-full bg-[linear-gradient(180deg,rgba(0,0,0,0.05),rgba(0,0,0,0.88)),url('/images/auto-dv8ions/hero-custom-car.jpg')] bg-cover bg-center transition duration-[2500ms] hover:scale-105" />
@@ -180,9 +158,9 @@ export default function Home() {
             </div>
 
             <p className="max-w-md text-sm leading-7 text-white/52">
-              AutoDV8ions focuses on clean installs, elevated styling, comfort
-              upgrades, and detail-focused execution designed to make your
-              vehicle feel sharper everywhere it goes.
+              AutoDV8ions focuses on clean installs, elevated styling,
+              comfort upgrades, and detail-focused execution designed to
+              make your vehicle feel sharper everywhere it goes.
             </p>
           </div>
 
@@ -199,8 +177,8 @@ export default function Home() {
                 </h3>
 
                 <p className="mt-5 text-sm leading-7 text-white/50">
-                  Precision-focused installs designed for comfort, protection,
-                  style, and long-term daily use.
+                  Precision-focused installs designed for comfort,
+                  protection, style, and long-term daily use.
                 </p>
               </div>
             ))}
@@ -228,8 +206,8 @@ export default function Home() {
           </div>
 
           <p className="hidden max-w-sm text-sm leading-7 text-white/50 lg:block">
-            Designed for drivers who want their vehicle to feel elevated before
-            the engine even starts.
+            Designed for drivers who want their vehicle to feel elevated
+            before the engine even starts.
           </p>
         </div>
 
@@ -313,13 +291,7 @@ export default function Home() {
           </div>
 
           <div className="border border-white/10 bg-white/[0.03] p-8 backdrop-blur">
-            <Image
-              src="/images/logos/dv8-logo.png"
-              alt="AutoDV8ions"
-              width={180}
-              height={72}
-              className="h-auto w-[150px]"
-            />
+            <p className="text-2xl font-black uppercase">AutoDV8ions</p>
 
             <div className="mt-8 space-y-5 text-sm leading-7 text-white/60">
               <p>
