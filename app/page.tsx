@@ -79,15 +79,15 @@ export default function Home() {
     <>
       <ScrollIndicator />
 
-      <header className="fixed left-0 right-0 top-0 z-40 border-b border-white/[0.06] bg-black/60 backdrop-blur-md">
+      <header className="fixed left-0 right-0 top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
-          <Link href="/" className="relative z-10">
+          <Link href="/" className="relative z-10 flex items-center">
             <Image
               src={LOGO}
               alt="AutoDV8ions"
-              width={150}
-              height={60}
-              className="h-9 w-auto opacity-95 transition-opacity duration-500 hover:opacity-100 sm:h-10"
+              width={220}
+              height={90}
+              className="h-14 w-auto object-contain opacity-95 drop-shadow-[0_0_18px_rgba(220,0,0,0.22)] transition-opacity duration-500 hover:opacity-100 sm:h-16"
               priority
             />
           </Link>
@@ -102,6 +102,7 @@ export default function Home() {
                 {item}
               </a>
             ))}
+
             <Link
               href="/tint-quote"
               className="label-mono link-underline text-white/50 hover:text-white"
@@ -172,6 +173,7 @@ export default function Home() {
               </a>
 
               <span className="accent-line" />
+
               <span className="label-mono text-white/30">
                 Central PA&apos;s Premier Shop
               </span>
@@ -187,11 +189,13 @@ export default function Home() {
             <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
               <div className="lg:col-span-5">
                 <span className="label-mono mb-6 block">About</span>
+
                 <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-light leading-tight tracking-[-0.02em]">
                   Welcome to
                   <br />
                   AutoDV8ions
                 </h2>
+
                 <span className="accent-line mt-6" />
               </div>
 
@@ -229,6 +233,7 @@ export default function Home() {
             <div className="mb-12 flex flex-col gap-4 sm:mb-16 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <span className="label-mono mb-4 block">Services</span>
+
                 <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-light tracking-[-0.02em]">
                   What we do
                 </h2>
@@ -244,7 +249,7 @@ export default function Home() {
               {SERVICES.map((service) => (
                 <article
                   key={service.num}
-                  className="panel group p-6 sm:p-7 lg:hover:-translate-y-1"
+                  className="panel group p-6 transition-all duration-700 sm:p-7 lg:hover:-translate-y-1"
                 >
                   <span className="label-mono text-[var(--accent)] opacity-60 transition-opacity duration-500 group-hover:opacity-100">
                     {service.num}
@@ -273,6 +278,7 @@ export default function Home() {
             <div className="mb-12 flex flex-col gap-4 sm:mb-20 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <span className="label-mono mb-4 block">Featured Builds</span>
+
                 <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-light tracking-[-0.02em]">
                   Real builds.
                   <br className="hidden sm:block" />
@@ -281,8 +287,8 @@ export default function Home() {
               </div>
 
               <p className="max-w-sm text-sm leading-relaxed text-white/35">
-                A selection of recent work from the bay — daily upgrades,
-                clean installs, and automotive craftsmanship with presence.
+                A selection of recent work from the bay — daily upgrades, clean
+                installs, and automotive craftsmanship with presence.
               </p>
             </div>
 
@@ -376,9 +382,9 @@ export default function Home() {
               <Image
                 src={LOGO}
                 alt="AutoDV8ions"
-                width={120}
-                height={48}
-                className="mx-auto h-8 w-auto opacity-70 sm:mx-0"
+                width={180}
+                height={72}
+                className="mx-auto h-12 w-auto object-contain opacity-80 drop-shadow-[0_0_18px_rgba(220,0,0,0.18)] sm:mx-0"
               />
 
               <p className="label-mono mt-4 text-white/25">
