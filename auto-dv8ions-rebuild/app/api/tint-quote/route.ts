@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
-import { createClient } from "@supabase/supabase-js";
 
 function buildEmailHtml(body: Record<string, any>) {
   const rows = Object.entries(body)
@@ -29,46 +28,11 @@ function buildEmailHtml(body: Record<string, any>) {
   `;
 }
 
-function getSupabaseClient() {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return null;
-  }
-
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
     console.log("[tint-quote] Submission:", body);
-
-    const supabase = getSupabaseClient();
-
-    if (supabase) {
-      const { error: dbError } = await supabase.from("tint_quote_leads").insert({
-        name: body.name || null,
-        email: body.email || null,
-        phone: body.phone || null,
-        vehicle_year: body.year || null,
-        vehicle_make: body.make || null,
-        vehicle_model: body.model || null,
-        service: body.service || null,
-        preferred_date: body.preferredDate || null,
-        message: body.message || null,
-        source: "autodv8ions.com",
-        raw_submission: body,
-      });
-
-      if (dbError) {
-        console.error("[tint-quote] Supabase error:", dbError);
-      }
-    } else {
-      console.warn("[tint-quote] Supabase not configured. Skipping database save.");
-    }
 
     const apiKey = process.env.RESEND_API_KEY;
 
