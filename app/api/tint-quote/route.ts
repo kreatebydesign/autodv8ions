@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     const resend = new Resend(apiKey);
 
     const { error } = await resend.emails.send({
-      from: "AutoDV8ions <onboarding@resend.dev>",
+      from: "AutoDV8ions <quotes@autodv8ions.com>",
       to: "sales@autodv8ions.com",
       subject: "New AutoDV8ions Tint Quote Request",
       html: buildEmailHtml(body),
