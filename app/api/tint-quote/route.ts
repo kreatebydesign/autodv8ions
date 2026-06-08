@@ -49,25 +49,29 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient();
 
     if (supabase) {
-      const { error: dbError } = await supabase.from("tint_quote_leads").insert({
-        name: body.name || null,
-        email: body.email || null,
-        phone: body.phone || null,
-        vehicle_year: body.year || null,
-        vehicle_make: body.make || null,
-        vehicle_model: body.model || null,
-        service: body.service || null,
-        preferred_date: body.preferredDate || null,
-        message: body.message || null,
-        source: "autodv8ions.com",
-        raw_submission: body,
-      });
+      const { error: dbError } = await supabase
+        .from("tint_quote_leads")
+        .insert({
+          name: body.name || null,
+          email: body.email || null,
+          phone: body.phone || null,
+          vehicle_year: body.year || null,
+          vehicle_make: body.make || null,
+          vehicle_model: body.model || null,
+          service: body.service || null,
+          preferred_date: body.preferredDate || null,
+          message: body.message || null,
+          source: "autodv8ions.com",
+          raw_submission: body,
+        });
 
       if (dbError) {
         console.error("[tint-quote] Supabase error:", dbError);
       }
     } else {
-      console.warn("[tint-quote] Supabase not configured. Skipping database save.");
+      console.warn(
+        "[tint-quote] Supabase not configured. Skipping database save."
+      );
     }
 
     const apiKey = process.env.RESEND_API_KEY;
@@ -83,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     const { error } = await resend.emails.send({
       from: "AutoDV8ions <onboarding@resend.dev>",
-      to: "matt@kreatebydesign.com",
+      to: "sales@autodv8ions.com",
       subject: "New AutoDV8ions Tint Quote Request",
       html: buildEmailHtml(body),
       replyTo: body.email || undefined,
