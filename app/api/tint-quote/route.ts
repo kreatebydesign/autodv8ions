@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createClient } from "@supabase/supabase-js";
+import { createJobFromTintQuote } from "@/lib/jobs/service";
 
-function buildEmailHtml(body: Record<string, any>) {
+function buildEmailHtml(body: Record<string, unknown>) {
   const rows = Object.entries(body)
     .map(([key, value]) => {
       const cleanValue = Array.isArray(value)
@@ -47,30 +48,42 @@ export async function POST(request: NextRequest) {
     console.log("[tint-quote] Submission:", body);
 
     const supabase = getSupabaseClient();
+    let leadId: string | undefined;
 
     if (supabase) {
-      const { error: dbError } = await supabase
+      const customerName = [body.firstName, body.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      const { data: lead, error: dbError } = await supabase
         .from("tint_quote_leads")
         .insert({
-          name: body.name || null,
+          name: customerName || body.name || null,
           email: body.email || null,
           phone: body.phone || null,
           vehicle_year: body.year || null,
           vehicle_make: body.make || null,
           vehicle_model: body.model || null,
-          service: body.service || null,
-          preferred_date: body.preferredDate || null,
-          message: body.message || null,
+          service: body.tintScope || body.service || "Window Tint",
+          preferred_date: body.timeline || body.preferredDate || null,
+          message: body.tintNotes || body.message || null,
           source: "autodv8ions.com",
           raw_submission: body,
-        });
+        })
+        .select("id")
+        .single();
 
       if (dbError) {
         console.error("[tint-quote] Supabase error:", dbError);
+      } else {
+        leadId = lead?.id;
       }
+
+      await createJobFromTintQuote(body, leadId);
     } else {
       console.warn(
-        "[tint-quote] Supabase not configured. Skipping database save."
+        "[tint-quote] Supabase not configured. Skipping database save.",
       );
     }
 
@@ -79,7 +92,7 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json(
         { success: false, error: "Email service is not configured." },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -90,7 +103,7 @@ export async function POST(request: NextRequest) {
       to: "sales@autodv8ions.com",
       subject: "New AutoDV8ions Tint Quote Request",
       html: buildEmailHtml(body),
-      replyTo: body.email || undefined,
+      replyTo: typeof body.email === "string" ? body.email : undefined,
     });
 
     if (error) {
@@ -98,7 +111,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         { success: false, error: "Email failed to send." },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -108,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { success: false, error: "Something went wrong." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

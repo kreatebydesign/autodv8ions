@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+.admin-theme {
+  --dv8-red: #d30b0b;
+  --dv8-red-bright: #ff2a2a;
+  --dv8-red-soft: rgba(211, 11, 11, 0.15);
+  --dv8-black: #050505;
+  --dv8-charcoal: #101010;
+  --dv8-surface: #181818;
+  --dv8-white: #f8f8f8;
+  --dv8-muted: #a1a1aa;
+  --dv8-border: rgba(255, 255, 255, 0.08);
+  background: var(--dv8-black);
+  color: var(--dv8-white);
+  min-height: 100vh;
+}
+
+.admin-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--dv8-border);
+  backdrop-filter: blur(10px);
+}
+
+.admin-input {
+  width: 100%;
+  border: 1px solid var(--dv8-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--dv8-white);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.admin-input:focus {
+  border-color: rgba(211, 11, 11, 0.45);
+  box-shadow: 0 0 0 1px rgba(211, 11, 11, 0.15);
+}
+
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--dv8-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--dv8-white);
+  padding: 0.65rem 1rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+}
+
+.admin-btn:hover {
+  border-color: rgba(211, 11, 11, 0.45);
+  background: rgba(211, 11, 11, 0.08);
+}
+
+.admin-btn-primary {
+  border-color: rgba(211, 11, 11, 0.55);
+  background: rgba(211, 11, 11, 0.18);
+}
+
+.admin-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dv8-muted);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid var(--dv8-border);
+  padding: 0.85rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.admin-table th {
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dv8-muted);
+}
+
+@media print {
+  .admin-no-print {
+    display: none !important;
+  }
+
+  .invoice-print {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .invoice-print * {
+    color: #000 !important;
+    border-color: #ddd !important;
+  }
+}
