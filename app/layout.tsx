@@ -1,15 +1,42 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const siteUrl = "https://autodv8ions.com";
+const ogImageUrl = `${siteUrl}/images/autodv8ions-og.jpg`;
+
+const defaultTitle =
+  "AutoDV8ions | Window Tint, Remote Starters & Vehicle Upgrades in Altoona, PA";
+const defaultDescription =
+  "AutoDV8ions is Altoona, PA's trusted shop for window tint, remote starters, car audio, security systems, and custom vehicle upgrades — over 27 years of expert craftsmanship.";
+
 export const metadata: Metadata = {
-  title: "AutoDV8ions | Custom Car Upgrades, Tint, Audio & More in Altoona PA",
-  description:
-    "AutoDV8ions has been Altoona's go-to for custom car upgrades for over 27 years—offering expert window tinting, audio systems, remote starters, and security installs.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: defaultTitle,
+    template: "%s | AutoDV8ions",
+  },
+  description: defaultDescription,
   openGraph: {
-    title: "AutoDV8ions | Premier Car Customization in Altoona, PA",
-    description:
-      "27 years of trusted craftsmanship — window tinting, car audio, remote starters, and security systems.",
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
     siteName: "AutoDV8ions",
+    title: defaultTitle,
+    description: defaultDescription,
+    images: [
+      {
+        url: ogImageUrl,
+        width: 1200,
+        height: 630,
+        alt: "AutoDV8ions — Window Tint, Remote Starters & Vehicle Upgrades in Altoona, PA",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: defaultTitle,
+    description: defaultDescription,
+    images: [ogImageUrl],
   },
 };
 
