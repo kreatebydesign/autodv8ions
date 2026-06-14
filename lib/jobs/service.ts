@@ -58,6 +58,12 @@ export async function createJobFromTintQuote(body: TintQuoteBody, leadId?: strin
     .filter(Boolean)
     .join("\n");
 
+  const leadRefString = leadId ? String(leadId) : null;
+  const leadUuid =
+    leadRefString && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(leadRefString)
+      ? leadRefString
+      : null;
+
   const { data: job, error: jobError } = await supabase
     .from("jobs")
     .insert({
@@ -67,8 +73,9 @@ export async function createJobFromTintQuote(body: TintQuoteBody, leadId?: strin
       status: "New",
       tint_percentage: body.tintLevel || body.tintScope || null,
       customer_notes: customerNotes || null,
-      source: "website-tint-quote",
-      tint_quote_lead_id: leadId || null,
+      source: "website_quote",
+      tint_quote_lead_id: leadUuid,
+      tint_quote_lead_ref: leadRefString,
     })
     .select("*")
     .single();

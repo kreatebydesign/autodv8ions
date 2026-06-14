@@ -32,6 +32,7 @@ export type Job = {
   internal_notes: string | null;
   source: string | null;
   tint_quote_lead_id: string | null;
+  tint_quote_lead_ref: string | null;
   google_calendar_event_id: string | null;
   google_calendar_event_url: string | null;
   scheduled_at: string | null;

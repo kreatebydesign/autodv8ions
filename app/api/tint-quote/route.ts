@@ -13,6 +13,14 @@ type JobCreationResult = {
   details?: unknown;
 };
 
+function debugLog(message: string, data?: unknown) {
+  if (data === undefined) {
+    console.log(`[tint-quote][job-debug] ${message}`);
+    return;
+  }
+  console.log(`[tint-quote][job-debug] ${message}`, data);
+}
+
 function buildEmailHtml(body: TintQuoteBody) {
   const rows = Object.entries(body)
     .map(([key, value]) => {
@@ -100,6 +108,7 @@ async function findOrCreateCustomer(
   const email = asNullableString(body.email);
 
   if (phone) {
+    debugLog("customer lookup by phone starting", { phone });
     const { data, error } = await supabase
       .from("customers")
       .select("*")
@@ -107,14 +116,24 @@ async function findOrCreateCustomer(
       .maybeSingle();
 
     if (error) {
+      debugLog("customer lookup by phone error", error);
       return { customer: null, error };
     }
+
+    debugLog("customer lookup by phone result", {
+      found: Boolean(data),
+      customerId: data?.id ?? null,
+    });
+
     if (data) {
       return { customer: data, error: null };
     }
+  } else {
+    debugLog("customer lookup by phone skipped (no phone provided)");
   }
 
   if (email) {
+    debugLog("customer lookup by email starting", { email });
     const { data, error } = await supabase
       .from("customers")
       .select("*")
@@ -122,23 +141,46 @@ async function findOrCreateCustomer(
       .maybeSingle();
 
     if (error) {
+      debugLog("customer lookup by email error", error);
       return { customer: null, error };
     }
+
+    debugLog("customer lookup by email result", {
+      found: Boolean(data),
+      customerId: data?.id ?? null,
+    });
+
     if (data) {
       return { customer: data, error: null };
     }
+  } else {
+    debugLog("customer lookup by email skipped (no email provided)");
   }
+
+  const customerInsertPayload = {
+    first_name: firstName,
+    last_name: lastName,
+    phone,
+    email,
+  };
+
+  debugLog("customer insert payload", customerInsertPayload);
 
   const { data, error } = await supabase
     .from("customers")
-    .insert({
-      first_name: firstName,
-      last_name: lastName,
-      phone,
-      email,
-    })
+    .insert(customerInsertPayload)
     .select("*")
     .single();
+
+  if (error) {
+    debugLog("customer insert error", error);
+    return { customer: null, error };
+  }
+
+  debugLog("customer insert result", {
+    customerId: data?.id ?? null,
+    customer: data,
+  });
 
   return { customer: data, error };
 }
@@ -148,20 +190,34 @@ async function createVehicleForCustomer(
   customerId: string,
   body: TintQuoteBody,
 ) {
+  const vehicleInsertPayload = {
+    customer_id: customerId,
+    year: asNullableString(body.year),
+    make: asNullableString(body.make),
+    model: asNullableString(body.model),
+    color: asNullableString(body.vehicleColor),
+    vehicle_type: asNullableString(body.vehicleType),
+  };
+
+  debugLog("vehicle insert payload", vehicleInsertPayload);
+
   const { data, error } = await supabase
     .from("vehicles")
-    .insert({
-      customer_id: customerId,
-      year: asNullableString(body.year),
-      make: asNullableString(body.make),
-      model: asNullableString(body.model),
-      color: asNullableString(body.vehicleColor),
-      vehicle_type: asNullableString(body.vehicleType),
-    })
+    .insert(vehicleInsertPayload)
     .select("*")
     .single();
 
-  return { vehicle: data, error };
+  if (error) {
+    debugLog("vehicle insert error", error);
+    return { vehicle: null, error };
+  }
+
+  debugLog("vehicle insert result", {
+    vehicleId: data?.id ?? null,
+    vehicle: data,
+  });
+
+  return { vehicle: data, error: null };
 }
 
 async function createJobFromLead(
@@ -171,38 +227,51 @@ async function createJobFromLead(
   customerId: string,
   vehicleId: string | null,
 ): Promise<JobCreationResult> {
-  const leadRef = isUuid(leadId) ? leadId : null;
+  const leadRefString = String(leadId);
+  const leadUuid = isUuid(leadRefString) ? leadRefString : null;
 
-  if (!leadRef) {
-    console.warn(
-      "[tint-quote][job] Lead id is not a UUID; creating job without tint_quote_lead_id link:",
-      leadId,
+  debugLog("lead id reference check", {
+    leadId,
+    typeofLeadId: typeof leadId,
+    leadRefString,
+    leadUuid,
+    isUuid: Boolean(leadUuid),
+  });
+
+  debugLog("job duplicate check starting", {
+    tint_quote_lead_ref: leadRefString,
+  });
+
+  const { data: existingJob, error: existingError } = await supabase
+    .from("jobs")
+    .select("id")
+    .eq("tint_quote_lead_ref", leadRefString)
+    .maybeSingle();
+
+  if (existingError) {
+    debugLog("job duplicate check error", existingError);
+    console.error(
+      "[tint-quote][job] Existing job lookup failed:",
+      existingError,
     );
   } else {
-    const { data: existingJob, error: existingError } = await supabase
-      .from("jobs")
-      .select("id")
-      .eq("tint_quote_lead_id", leadRef)
-      .maybeSingle();
+    debugLog("job duplicate check result", {
+      duplicateFound: Boolean(existingJob),
+      existingJobId: existingJob?.id ?? null,
+    });
+  }
 
-    if (existingError) {
-      console.error(
-        "[tint-quote][job] Existing job lookup failed:",
-        existingError,
-      );
-    } else if (existingJob) {
-      console.log(
-        "[tint-quote][job] Job already exists for lead:",
-        leadRef,
-        existingJob.id,
-      );
-      return {
-        ok: true,
-        jobId: existingJob.id,
-        customerId,
-        vehicleId: vehicleId || undefined,
-      };
-    }
+  if (existingJob) {
+    debugLog("job duplicate found, skipping insert", {
+      existingJobId: existingJob.id,
+      tint_quote_lead_ref: leadRefString,
+    });
+    return {
+      ok: true,
+      jobId: existingJob.id,
+      customerId,
+      vehicleId: vehicleId || undefined,
+    };
   }
 
   const jobPayload: Record<string, unknown> = {
@@ -210,14 +279,15 @@ async function createJobFromLead(
     vehicle_id: vehicleId,
     service_type: "Window Tint",
     status: "New",
-    tint_percentage: asNullableString(body.tintLevel) || asNullableString(body.tintScope),
+    tint_percentage:
+      asNullableString(body.tintLevel) || asNullableString(body.tintScope),
     customer_notes: buildCustomerNotes(body) || null,
     source: "website_quote",
+    tint_quote_lead_id: leadUuid,
+    tint_quote_lead_ref: leadRefString,
   };
 
-  if (leadRef) {
-    jobPayload.tint_quote_lead_id = leadRef;
-  }
+  debugLog("job insert payload", jobPayload);
 
   const { data: job, error } = await supabase
     .from("jobs")
@@ -225,11 +295,29 @@ async function createJobFromLead(
     .select("id")
     .single();
 
-  if (error || !job) {
+  if (error) {
+    debugLog("job insert error", error);
     return {
       ok: false,
-      error: error?.message || "Job insert failed",
+      error: error.message || "Job insert failed",
       details: error,
+    };
+  }
+
+  debugLog("job insert result", {
+    jobId: job?.id ?? null,
+    job,
+  });
+
+  if (!job) {
+    debugLog("job insert error", {
+      message: "Insert returned no row",
+      job,
+    });
+    return {
+      ok: false,
+      error: "Job insert failed",
+      details: { message: "Insert returned no row" },
     };
   }
 
@@ -246,12 +334,22 @@ async function syncQuoteToJob(
   body: TintQuoteBody,
   leadId: string,
 ): Promise<JobCreationResult> {
+  debugLog("syncQuoteToJob starting", {
+    leadId,
+    typeofLeadId: typeof leadId,
+    hasVehicleData: hasVehicleData(body),
+  });
+
   const { customer, error: customerError } = await findOrCreateCustomer(
     supabase,
     body,
   );
 
   if (customerError || !customer) {
+    debugLog("syncQuoteToJob stopped at customer step", {
+      customerError,
+      customer,
+    });
     console.error("[tint-quote][job] Customer create/find failed:", customerError);
     return {
       ok: false,
@@ -270,6 +368,11 @@ async function syncQuoteToJob(
     );
 
     if (vehicleError || !vehicle) {
+      debugLog("syncQuoteToJob stopped at vehicle step", {
+        vehicleError,
+        vehicle,
+        customerId: customer.id,
+      });
       console.error("[tint-quote][job] Vehicle create failed:", vehicleError);
       return {
         ok: false,
@@ -280,9 +383,20 @@ async function syncQuoteToJob(
     }
 
     vehicleId = vehicle.id;
+  } else {
+    debugLog("vehicle insert skipped (no vehicle data in submission)");
   }
 
-  return createJobFromLead(supabase, body, leadId, customer.id, vehicleId);
+  const jobResult = await createJobFromLead(
+    supabase,
+    body,
+    leadId,
+    customer.id,
+    vehicleId,
+  );
+
+  debugLog("syncQuoteToJob finished", jobResult);
+  return jobResult;
 }
 
 export async function POST(request: NextRequest) {
@@ -312,9 +426,15 @@ export async function POST(request: NextRequest) {
           vehicle_year: asNullableString(body.year),
           vehicle_make: asNullableString(body.make),
           vehicle_model: asNullableString(body.model),
-          service: asNullableString(body.tintScope) || asNullableString(body.service) || "Window Tint",
-          preferred_date: asNullableString(body.timeline) || asNullableString(body.preferredDate),
-          message: asNullableString(body.tintNotes) || asNullableString(body.message),
+          service:
+            asNullableString(body.tintScope) ||
+            asNullableString(body.service) ||
+            "Window Tint",
+          preferred_date:
+            asNullableString(body.timeline) ||
+            asNullableString(body.preferredDate),
+          message:
+            asNullableString(body.tintNotes) || asNullableString(body.message),
           source: "autodv8ions.com",
           raw_submission: body,
         })
@@ -323,22 +443,39 @@ export async function POST(request: NextRequest) {
 
       if (dbError) {
         console.error("[tint-quote] tint_quote_leads insert failed:", dbError);
+        debugLog("tint_quote_leads insert error (job sync will not run)", dbError);
       } else if (lead?.id) {
         leadId = String(lead.id);
-        console.log("[tint-quote] Lead created:", leadId);
+        debugLog("inserted tint_quote_leads id", {
+          id: lead.id,
+          typeofId: typeof lead.id,
+          stringifiedId: leadId,
+          typeofStringifiedId: typeof leadId,
+        });
 
         jobResult = await syncQuoteToJob(supabase, body, leadId);
 
         if (jobResult.ok) {
+          debugLog("job sync success", {
+            jobId: jobResult.jobId,
+            customerId: jobResult.customerId,
+            vehicleId: jobResult.vehicleId ?? null,
+          });
           console.log("[tint-quote][job] Job created:", jobResult.jobId);
         } else {
+          debugLog("job sync failed", jobResult);
           console.error("[tint-quote][job] Job creation failed:", jobResult);
         }
+      } else {
+        debugLog("tint_quote_leads insert returned no id (job sync will not run)", {
+          lead,
+        });
       }
     } else {
       console.warn(
         "[tint-quote] Supabase not configured. Skipping database save.",
       );
+      debugLog("supabase client unavailable (job sync skipped)");
     }
 
     const apiKey = process.env.RESEND_API_KEY;
@@ -378,6 +515,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(responseBody);
   } catch (error) {
     console.error("[tint-quote] API error:", error);
+    debugLog("unhandled API error", error);
 
     return NextResponse.json(
       { success: false, error: "Something went wrong." },
