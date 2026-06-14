@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth/require-admin";
+import { JOB_STATUSES } from "@/lib/constants/jobs";
 import { createCalendarEventForJob } from "@/lib/google/calendar";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
@@ -15,20 +16,52 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const { id } = await context.params;
-  const body = await request.json();
+
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
   const updates: Record<string, unknown> = {};
 
   if (body.status !== undefined) {
-    updates.status = body.status;
-    if (body.status === "Completed") {
-      updates.completed_at = new Date().toISOString();
+    const status = String(body.status);
+    if (!JOB_STATUSES.includes(status as (typeof JOB_STATUSES)[number])) {
+      return NextResponse.json({ error: "Invalid job status" }, { status: 400 });
     }
+    updates.status = status;
+    updates.completed_at =
+      status === "Completed" ? new Date().toISOString() : null;
   }
-  if (body.internalNotes !== undefined) updates.internal_notes = body.internalNotes;
-  if (body.customerNotes !== undefined) updates.customer_notes = body.customerNotes;
-  if (body.scheduledAt !== undefined) updates.scheduled_at = body.scheduledAt;
-  if (body.serviceType !== undefined) updates.service_type = body.serviceType;
-  if (body.tintPercentage !== undefined) updates.tint_percentage = body.tintPercentage;
+
+  if (body.internalNotes !== undefined) {
+    updates.internal_notes =
+      body.internalNotes === null ? null : String(body.internalNotes);
+  }
+
+  if (body.customerNotes !== undefined) {
+    updates.customer_notes =
+      body.customerNotes === null ? null : String(body.customerNotes);
+  }
+
+  if (body.scheduledAt !== undefined) {
+    updates.scheduled_at = body.scheduledAt || null;
+  }
+
+  if (body.serviceType !== undefined) {
+    updates.service_type = String(body.serviceType);
+  }
+
+  if (body.tintPercentage !== undefined) {
+    updates.tint_percentage =
+      body.tintPercentage === null ? null : String(body.tintPercentage);
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+  }
 
   const { data: job, error: updateError } = await supabase
     .from("jobs")
@@ -38,7 +71,12 @@ export async function PATCH(request: Request, context: RouteContext) {
     .single();
 
   if (updateError) {
+    console.error("[jobs][patch]", id, updateError);
     return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
+
+  if (!job) {
+    return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
   return NextResponse.json({ job });
