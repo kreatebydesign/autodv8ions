@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const LOGO =
   "https://static.wixstatic.com/media/24f460_b5d38d3540ae4048bacb5100c4adbac4f000.jpg/v1/fill/w_596,h_209,al_c,lg_1,q_80,usm_0.33_1.00_0.00,enc_avif,quality_auto/24f460_b5d38d3540ae4048bacb5100c4adbac4f000.jpg";
@@ -237,6 +237,8 @@ function VehicleConfiguratorStrip({
 
 export default function TintQuotePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formTopRef = useRef<HTMLDivElement>(null);
+  const hasMountedRef = useRef(false);
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -269,6 +271,25 @@ export default function TintQuotePage() {
   const update = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  const scrollToFormTop = () => {
+    requestAnimationFrame(() => {
+      formTopRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    scrollToFormTop();
+  }, [step, submitted]);
+
 
   const canContinue = () => {
     switch (step) {
@@ -445,6 +466,8 @@ export default function TintQuotePage() {
               })}
             </div>
           </div>
+
+          <div ref={formTopRef} className="scroll-mt-28" />
 
           {submitted ? (
             <div className="panel relative overflow-hidden p-8 text-center sm:p-12">
