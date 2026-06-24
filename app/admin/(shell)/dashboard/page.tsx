@@ -13,6 +13,9 @@ import {
 import { listContentUploadsFromDb } from "@/lib/google/drive";
 import { formatCustomerName, formatDate, formatVehicleShort } from "@/lib/utils/format";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminDashboardPage() {
   const [stats, recentJobs, recentContent, calendarEvents] = await Promise.all([
     getDashboardStats(),
@@ -64,7 +67,10 @@ export default async function AdminDashboardPage() {
               <p className="text-sm text-[var(--dv8-muted)]">No jobs yet.</p>
             ) : (
               recentJobs.map((job) => (
-                <div key={job.id} className="flex items-center justify-between gap-4 border-b border-[var(--dv8-border)] pb-3 last:border-0">
+                <div
+                  key={job.id}
+                  className="flex items-center justify-between gap-4 border-b border-[var(--dv8-border)] pb-3 last:border-0"
+                >
                   <div>
                     <p>{formatCustomerName(job.customers)}</p>
                     <p className="text-sm text-[var(--dv8-muted)]">
@@ -85,14 +91,19 @@ export default async function AdminDashboardPage() {
               <p className="text-sm text-[var(--dv8-muted)]">No content synced yet.</p>
             ) : (
               recentContent.slice(0, 6).map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-4 border-b border-[var(--dv8-border)] pb-3 last:border-0">
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-4 border-b border-[var(--dv8-border)] pb-3 last:border-0"
+                >
                   <div>
                     <p>{item.vehicle_name}</p>
                     <p className="text-sm text-[var(--dv8-muted)]">
                       {item.service_type} · {item.photos_count} photos · {item.videos_count} videos
                     </p>
                   </div>
-                  <span className="text-xs text-[var(--dv8-muted)]">{formatDate(item.upload_date)}</span>
+                  <span className="text-xs text-[var(--dv8-muted)]">
+                    {formatDate(item.upload_date)}
+                  </span>
                 </div>
               ))
             )}
@@ -103,10 +114,16 @@ export default async function AdminDashboardPage() {
       <section className="admin-panel p-5">
         <div className="mb-4 flex items-center justify-between gap-4">
           <h2 className="text-lg font-light">Google Calendar Overview</h2>
-          <a href={getGoogleCalendarUrl()} target="_blank" rel="noopener noreferrer" className="admin-btn">
+          <a
+            href={getGoogleCalendarUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="admin-btn"
+          >
             Open Calendar
           </a>
         </div>
+
         {!calendarConnected ? (
           <p className="text-sm text-[var(--dv8-muted)]">
             Google Calendar is not connected yet.
@@ -116,13 +133,22 @@ export default async function AdminDashboardPage() {
         ) : (
           <div className="space-y-3">
             {calendarEvents.map((event) => (
-              <div key={event.id} className="flex items-center justify-between gap-4 border-b border-[var(--dv8-border)] pb-3 last:border-0">
+              <div
+                key={event.id}
+                className="flex items-center justify-between gap-4 border-b border-[var(--dv8-border)] pb-3 last:border-0"
+              >
                 <div>
                   <p>{event.title}</p>
                   <p className="text-sm text-[var(--dv8-muted)]">{event.start}</p>
                 </div>
+
                 {event.htmlLink && (
-                  <a href={event.htmlLink} target="_blank" rel="noopener noreferrer" className="admin-btn">
+                  <a
+                    href={event.htmlLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="admin-btn"
+                  >
                     Open Event
                   </a>
                 )}
