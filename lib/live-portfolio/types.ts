@@ -31,6 +31,8 @@ export type ParsedMonthFolder = {
   ok: boolean;
   year: number | null;
   month: number | null;
+  /** Sortable YYYY-MM when parse succeeds */
+  sortKey: string | null;
   warnings: ValidationWarning[];
 };
 

@@ -22,7 +22,15 @@ describe("parseMonthFolder", () => {
     assert.equal(parsed.ok, true);
     assert.equal(parsed.year, 2026);
     assert.equal(parsed.month, 7);
+    assert.equal(parsed.sortKey, "2026-07");
     assert.equal(parsed.rawName, "2026-07 JULY");
+  });
+
+  it("parses single-digit month 2026-2 FEB", () => {
+    const parsed = parseMonthFolder("2026-2 FEB");
+    assert.equal(parsed.ok, true);
+    assert.equal(parsed.month, 2);
+    assert.equal(parsed.sortKey, "2026-02");
   });
 
   it("rejects malformed parent month", () => {

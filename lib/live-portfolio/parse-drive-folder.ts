@@ -17,8 +17,14 @@ function pad2(n: number) {
 }
 
 /**
- * Parse a parent month folder such as "2026-07 JULY".
- * Only accepts a clear YYYY-MM prefix. Does not invent months from prose alone.
+ * Parse a parent month folder such as:
+ * - "2026-07 JULY"
+ * - "2026-06 JUNE"
+ * - "2026-2 FEB"   (single-digit month)
+ * - "2026-04 APRIL"
+ *
+ * Accepts YYYY-M or YYYY-MM prefix. Does not invent months from prose alone.
+ * Does not rename Drive folders.
  */
 export function parseMonthFolder(rawName: string): ParsedMonthFolder {
   const trimmed = (rawName || "").trim();
@@ -30,21 +36,23 @@ export function parseMonthFolder(rawName: string): ParsedMonthFolder {
       ok: false,
       year: null,
       month: null,
+      sortKey: null,
       warnings: [warn("month_empty", "Month folder name is empty.")],
     };
   }
 
-  const match = trimmed.match(/^(\d{4})-(\d{2})\b/);
+  const match = trimmed.match(/^(\d{4})-(\d{1,2})\b/);
   if (!match) {
     return {
       rawName: trimmed,
       ok: false,
       year: null,
       month: null,
+      sortKey: null,
       warnings: [
         warn(
           "month_unrecognized",
-          `Month folder "${trimmed}" does not start with YYYY-MM.`,
+          `Month folder "${trimmed}" does not start with YYYY-M or YYYY-MM.`,
         ),
       ],
     };
@@ -59,6 +67,7 @@ export function parseMonthFolder(rawName: string): ParsedMonthFolder {
       ok: false,
       year,
       month: null,
+      sortKey: null,
       warnings: [
         warn(
           "month_invalid",
@@ -82,8 +91,13 @@ export function parseMonthFolder(rawName: string): ParsedMonthFolder {
     ok: true,
     year,
     month,
+    sortKey: buildMonthSortKey(year, month),
     warnings,
   };
+}
+
+export function buildMonthSortKey(year: number, month: number): string {
+  return `${year}-${pad2(month)}`;
 }
 
 /**

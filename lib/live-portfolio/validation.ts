@@ -317,6 +317,9 @@ export function compareMonthFoldersNewestFirst(
   a: ParsedMonthFolder,
   b: ParsedMonthFolder,
 ): number {
+  if (a.ok && b.ok && a.sortKey && b.sortKey) {
+    return b.sortKey.localeCompare(a.sortKey);
+  }
   if (a.ok && b.ok && a.year != null && b.year != null && a.month != null && b.month != null) {
     if (a.year !== b.year) return b.year - a.year;
     return b.month - a.month;

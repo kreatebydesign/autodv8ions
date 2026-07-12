@@ -17,6 +17,7 @@ export default function ContentClient({
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [discovering, setDiscovering] = useState(false);
 
   async function checkDriveConnection() {
     setChecking(true);
@@ -48,6 +49,57 @@ export default function ContentClient({
     }
   }
 
+  async function previewDriveDiscovery() {
+    setDiscovering(true);
+    setStatus("");
+    try {
+      const res = await fetch("/api/content/drive-discovery-preview", {
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        const detail =
+          data.error?.message || data.error || "Drive discovery preview failed.";
+        setStatus(`Discovery preview failed: ${detail}`);
+        return;
+      }
+
+      const monthSamples = Array.isArray(data.months)
+        ? data.months
+            .slice(0, 3)
+            .map(
+              (month: {
+                folderName?: string;
+                jobCount?: number;
+                mediaCount?: number;
+                parseOk?: boolean;
+              }) =>
+                `${month.folderName || "?"} (${month.jobCount ?? 0} jobs, ${month.mediaCount ?? 0} media${month.parseOk === false ? ", unparsed" : ""})`,
+            )
+            .join("; ")
+        : "";
+
+      const trunc = data.truncated
+        ? [
+            data.truncated.months ? "months" : null,
+            data.truncated.jobs ? "jobs" : null,
+            data.truncated.media ? "media" : null,
+          ]
+            .filter(Boolean)
+            .join(", ")
+        : "";
+
+      setStatus(
+        `Discovery preview (read-only${data.authMode === "wif" ? ", OIDC/WIF" : ""}): ${data.rootFolder?.name || "Tint Jobs"} · months ${data.monthFolderCount ?? 0} · jobs ${data.jobFolderCount ?? 0} · media ${data.mediaFileCount ?? 0} · ignored ${data.ignoredCount ?? 0} · warnings ${data.warningCount ?? 0}.${trunc ? ` Truncated: ${trunc}.` : ""}${monthSamples ? ` Samples: ${monthSamples}.` : ""} Nothing was imported or published.`,
+      );
+    } catch {
+      setStatus("Discovery preview failed: network or server error.");
+    } finally {
+      setDiscovering(false);
+    }
+  }
+
   async function syncDrive(mode?: string) {
     setLoading(true);
     setStatus("");
@@ -72,7 +124,7 @@ export default function ContentClient({
     setItems(data.items || []);
   }
 
-  const busy = loading || checking;
+  const busy = loading || checking || discovering;
 
   return (
     <div className="space-y-6">
@@ -95,6 +147,14 @@ export default function ContentClient({
           onClick={checkDriveConnection}
         >
           {checking ? "Checking..." : "Check Drive Connection"}
+        </button>
+        <button
+          type="button"
+          className="admin-btn"
+          disabled={busy || !connected}
+          onClick={previewDriveDiscovery}
+        >
+          {discovering ? "Discovering..." : "Preview Drive Discovery"}
         </button>
         <button
           type="button"

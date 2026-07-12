@@ -213,7 +213,35 @@ In Command Center → **Content** → **Check Drive Connection**.
 This authenticates and lists the Tint Jobs folder name + a few child folder names only.
 It does **not** sync, import, download media, write to the database, or publish.
 
-### Sync behavior (unchanged from Phase 0; not part of auth verification)
+### Phase 1B — Read-only Drive discovery preview
+
+In Command Center → **Content** → **Preview Drive Discovery**.
+
+Readonly guarantee:
+- Uses the same WIF Drive auth as the connection check
+- Walks Tint Jobs → month folders → job folders → media metadata only
+- **No** database writes, downloads, Blob uploads, imports, or publishing
+
+Discovery assumptions:
+- Month folders live directly under Tint Jobs
+- Job/customer folders live directly under each month folder
+- Nested folders inside a job folder are noted/ignored (not traversed deeper in Phase 1B)
+- Loose files directly under a month folder are ignored as non-job items
+- Folder names are never renamed in Drive
+
+Supported discovery media MIME types:
+- `image/jpeg`, `image/png`, `image/webp`, `image/heic`, `image/heif`
+- `video/mp4`, `video/quicktime`
+
+Ignored with reasons:
+- Google Workspace files, PDFs, archives, hidden/system files, thumbnail-like names, unsupported MIME types
+
+Known naming irregularities handled:
+- `2026-07 JULY`, `2026-06 JUNE`, `2026-04 APRIL`
+- `2026-2 FEB` (single-digit month → sort key `2026-02`)
+- Unparseable month folders are still inventoried with warnings (not invented)
+
+### Sync behavior (unchanged from Phase 0; not part of auth/discovery verification)
 
 Real production structure:
 
