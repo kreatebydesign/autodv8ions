@@ -1,3 +1,4 @@
+import { makeRoomInLiveShowcase } from "@/lib/portfolio-engine/rotation";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { slugify } from "@/lib/utils/format";
 
@@ -12,7 +13,7 @@ export type PublishEditorialFields = {
   featuredMediaId?: string | null;
 };
 
-export type PublishAction = "publish" | "unpublish" | "save";
+export type PublishAction = "publish" | "unpublish" | "save" | "archive";
 
 function isReadyForPublish(media: {
   media_type: string;
@@ -96,14 +97,17 @@ export async function updateGalleryPublishState(options: {
   action: PublishAction;
   fields?: PublishEditorialFields;
   approvedBy?: string | null;
-}): Promise<{ ok: true; published: boolean } | { ok: false; error: string }> {
+}): Promise<
+  | { ok: true; published: boolean; archivedIds?: string[] }
+  | { ok: false; error: string }
+> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, error: "Database unavailable." };
 
   const { data: item, error: itemError } = await supabase
     .from("gallery_items")
     .select(
-      "id, slug, vehicle, work_date, published, status, shade_percentage, seo_title, seo_description, description",
+      "id, slug, vehicle, work_date, published, status, shade_percentage, seo_title, seo_description, description, pinned, published_at",
     )
     .eq("id", options.id)
     .maybeSingle();
@@ -122,11 +126,11 @@ export async function updateGalleryPublishState(options: {
   const rows = media || [];
   const fields = options.fields || {};
 
-  if (options.action === "publish" && !isReadyForPublish(rows)) {
+  if (options.action === "publish" && !item.published && !isReadyForPublish(rows)) {
     return {
       ok: false,
       error:
-        "Item is not ready for publish. Finish Media Processing with no failed or pending files.",
+        "Item is not ready for publish. Finish Media Workspace with no failed or pending files.",
     };
   }
 
@@ -169,17 +173,39 @@ export async function updateGalleryPublishState(options: {
     slug: slugResult,
   };
 
+  let archivedIds: string[] = [];
+
   if (options.action === "publish") {
+    if (!item.published) {
+      const room = await makeRoomInLiveShowcase({ slotsNeeded: 1 });
+      if (!room.ok) return { ok: false, error: room.error };
+      archivedIds = room.archivedIds;
+    }
+
+    const now = new Date().toISOString();
     patch.published = true;
-    patch.status = "approved";
+    patch.status = "published";
     patch.provisional_vehicle = false;
-    patch.approved_at = new Date().toISOString();
+    patch.approved_at = now;
+    patch.published_at = item.published_at || now;
+    patch.archived_at = null;
     if (options.approvedBy) patch.approved_by = options.approvedBy;
   } else if (options.action === "unpublish") {
     patch.published = false;
-    patch.status = "pending";
-    patch.approved_at = null;
-    patch.approved_by = null;
+    patch.status = "draft";
+    patch.pinned = false;
+    // Retain published_at for history
+  } else if (options.action === "archive") {
+    patch.published = false;
+    patch.status = "archived";
+    patch.archived_at = new Date().toISOString();
+    patch.pinned = false;
+  } else if (options.action === "save") {
+    if (!item.published && item.status !== "archived" && item.status !== "archived_review") {
+      if (item.status === "pending" || item.status === "pending_review") {
+        patch.status = "draft";
+      }
+    }
   }
 
   const { error: updateError } = await supabase
@@ -194,8 +220,16 @@ export async function updateGalleryPublishState(options: {
 
   await applyFeaturedMedia(options.id, fields.featuredMediaId);
 
+  const published =
+    options.action === "publish"
+      ? true
+      : options.action === "unpublish" || options.action === "archive"
+        ? false
+        : Boolean(item.published);
+
   return {
     ok: true,
-    published: options.action === "publish" ? true : options.action === "unpublish" ? false : Boolean(item.published),
+    published,
+    archivedIds,
   };
 }

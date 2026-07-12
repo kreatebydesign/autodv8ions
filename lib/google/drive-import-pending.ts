@@ -416,7 +416,7 @@ export async function runPendingDriveImport(
         id: galleryItemId,
         driveFolderId: item.driveFolderId,
         vehicle: row.vehicle,
-        status: "pending",
+        status: "pending_review",
         published: false,
       });
 

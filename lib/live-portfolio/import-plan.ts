@@ -26,7 +26,7 @@ import { PORTFOLIO_SERVICE_TYPE } from "./constants";
 import { slugify } from "@/lib/utils/format";
 
 const PENDING_DEFAULTS: PlannedGalleryDefaults = {
-  status: "pending",
+  status: "pending_review",
   published: false,
   featured: false,
   homepageVisible: false,
@@ -35,7 +35,14 @@ const PENDING_DEFAULTS: PlannedGalleryDefaults = {
 
 function isHumanEdited(item: ExistingGalleryItemSnapshot): boolean {
   if (item.provisional_vehicle === false) return true;
-  if (item.status === "approved" || item.status === "rejected" || item.status === "archived") {
+  if (
+    item.status === "published" ||
+    item.status === "approved" ||
+    item.status === "failed" ||
+    item.status === "rejected" ||
+    item.status === "archived" ||
+    item.status === "archived_review"
+  ) {
     return true;
   }
   return false;

@@ -211,7 +211,7 @@ export function buildGalleryItemWriteRow(input: {
     seo_title: null,
     seo_description: null,
     published: false,
-    status: "pending",
+    status: "pending_review",
     shade_percentage: null,
     drive_folder_id: input.driveFolderId,
     drive_parent_folder_id: input.driveParentFolderId,
@@ -329,7 +329,7 @@ export function executePendingImportPlan(
       });
 
       // Pending-only safety invariants
-      if (row.published !== false || row.status !== "pending") {
+      if (row.published !== false || row.status !== "pending_review") {
         throw new Error("pending_defaults_violated");
       }
 
@@ -348,7 +348,7 @@ export function executePendingImportPlan(
         id: created.id,
         driveFolderId: item.driveFolderId,
         vehicle: row.vehicle,
-        status: "pending",
+        status: "pending_review",
         published: false,
       });
 

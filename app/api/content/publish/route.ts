@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!["publish", "unpublish", "save"].includes(body.action)) {
+  if (!["publish", "unpublish", "save", "archive"].includes(body.action)) {
     return NextResponse.json({ error: "Invalid action." }, { status: 400 });
   }
 
@@ -51,5 +51,6 @@ export async function POST(request: Request) {
     ok: true,
     published: result.published,
     action: body.action,
+    archivedIds: result.archivedIds || [],
   });
 }

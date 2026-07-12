@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 import { runPendingDriveImport } from "@/lib/google/drive-import-pending";
+import { trimReviewQueue } from "@/lib/portfolio-engine/rotation";
 
 /**
- * Admin-only controlled pending import (Phase 1D).
- * POST only. Requires { confirmPendingImport: true }.
- * Writes pending gallery_items + gallery_media metadata only.
- * No downloads, Blob, publishing, or GET mutations.
+ * Admin-only controlled pending import.
+ * After successful writes, trims Review Queue to portfolio engine limits.
  */
 export async function POST(request: Request) {
   const { error } = await requireAdminSession();
@@ -51,7 +50,17 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status });
   }
 
-  return NextResponse.json(result);
+  const trim = await trimReviewQueue();
+
+  return NextResponse.json({
+    ...result,
+    reviewQueueTrim: trim.ok
+      ? {
+          archivedIds: trim.archivedIds,
+          queueSize: trim.queueSize,
+        }
+      : { error: trim.error },
+  });
 }
 
 /** Explicitly reject GET mutations. */

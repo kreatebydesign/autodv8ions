@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import ScrollIndicator from "./components/ScrollIndicator";
-import { PortfolioCard } from "@/components/portfolio/PortfolioCard";
-import { listPublishedPortfolio } from "@/lib/live-portfolio/public-portfolio";
+import HomeShowcaseSlider from "@/components/portfolio/HomeShowcaseSlider";
+import { listHomepagePortfolio } from "@/lib/live-portfolio/public-portfolio";
 
 const LOGO = "/images/logos/dv8-logo.png";
 
@@ -35,8 +35,7 @@ const SERVICES = [
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const published = await listPublishedPortfolio(7);
-  const [featured, ...rest] = published;
+  const published = await listHomepagePortfolio();
 
   return (
     <>
@@ -242,28 +241,27 @@ export default async function Home() {
 
         <section
           id="gallery"
-          className="atmosphere atmosphere-dark relative border-t border-white/[0.04] py-20 sm:py-28 lg:py-36"
+          className="atmosphere atmosphere-dark relative border-t border-white/[0.04] py-24 sm:py-32 lg:py-40"
         >
           <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-            <div className="mb-12 flex flex-col gap-4 sm:mb-16 lg:flex-row lg:items-end lg:justify-between">
+            <div className="mb-14 flex flex-col gap-5 sm:mb-20 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <span className="label-mono mb-4 block">Recent Tint Work</span>
 
                 <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-light tracking-[-0.02em]">
-                  Published installs.
+                  Craft on display.
                   <br className="hidden sm:block" />
-                  <span className="text-white/40"> Fresh from review.</span>
+                  <span className="text-white/40"> Tint. Finish. Presence.</span>
                 </h2>
               </div>
 
-              <div className="flex flex-col items-start gap-4 lg:items-end">
+              <div className="flex flex-col items-start gap-5 lg:items-end">
                 <p className="max-w-sm text-sm leading-relaxed text-white/35">
-                  Newest published window tint projects from the Command Center
-                  review pipeline.
+                  The latest tint installs from the AutoDV8ions team.
                 </p>
                 <Link
                   href="/recent-work"
-                  className="label-mono text-white/50 transition-colors hover:text-white"
+                  className="label-mono text-white/50 transition-colors duration-500 hover:text-white"
                 >
                   View all projects →
                 </Link>
@@ -272,22 +270,13 @@ export default async function Home() {
 
             {published.length === 0 ? (
               <div className="portfolio-empty">
-                <p>New tint work will appear here after publishing.</p>
+                <p>New tint work will appear here soon.</p>
                 <Link href="/tint-quote" className="portfolio-inline-cta mt-6">
                   Get a Tint Quote →
                 </Link>
               </div>
             ) : (
-              <div className="space-y-7">
-                {featured && <PortfolioCard item={featured} featured />}
-                {rest.length > 0 && (
-                  <div className="portfolio-grid">
-                    {rest.map((item) => (
-                      <PortfolioCard key={item.id} item={item} />
-                    ))}
-                  </div>
-                )}
-              </div>
+              <HomeShowcaseSlider items={published} />
             )}
           </div>
         </section>

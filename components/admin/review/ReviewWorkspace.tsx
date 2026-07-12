@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ReviewCardItem } from "@/lib/live-portfolio/review-data";
+import { isReviewQueueStatus } from "@/lib/portfolio-engine/types";
 import ReviewCard from "./ReviewCard";
 
 type SortMode = "newest" | "oldest";
@@ -11,7 +12,9 @@ type StatusFilter =
   | "ready"
   | "processing"
   | "failed"
-  | "published";
+  | "published"
+  | "archived"
+  | "pinned";
 
 export default function ReviewWorkspace({
   initialItems,
@@ -33,8 +36,9 @@ export default function ReviewWorkspace({
 
   const pendingCount = useMemo(
     () =>
-      initialItems.filter((item) => !item.published && item.status === "pending")
-        .length,
+      initialItems.filter(
+        (item) => !item.published && isReviewQueueStatus(item.status),
+      ).length,
     [initialItems],
   );
 
@@ -58,8 +62,13 @@ export default function ReviewWorkspace({
     if (status !== "all") {
       list = list.filter((item) => {
         if (status === "published") return item.published;
+        if (status === "pinned") return item.pinned;
+        if (status === "archived")
+          return (
+            item.status === "archived" || item.status === "archived_review"
+          );
         if (status === "pending")
-          return !item.published && item.status === "pending";
+          return !item.published && isReviewQueueStatus(item.status);
         if (status === "ready")
           return (
             !item.published &&
@@ -68,7 +77,10 @@ export default function ReviewWorkspace({
             item.processingFailedCount === 0
           );
         if (status === "processing") return item.processingPendingCount > 0;
-        if (status === "failed") return item.processingFailedCount > 0;
+        if (status === "failed")
+          return (
+            item.processingFailedCount > 0 || item.status === "failed"
+          );
         return true;
       });
     }
@@ -83,35 +95,31 @@ export default function ReviewWorkspace({
   }, [initialItems, query, month, status, sort]);
 
   return (
-    <div className="review-workspace space-y-8">
+    <div className="review-workspace">
       <header className="review-workspace-header">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--dv8-muted)]">
-            Portfolio
-          </p>
-          <h1 className="mt-2 text-[clamp(2rem,4vw,3.25rem)] font-light tracking-tight">
-            Review Workspace
-          </h1>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--dv8-muted)]">
-            A photography-first queue for pending window tint work. Nothing
-            publishes from this screen.
+        <div className="review-workspace-intro">
+          <p className="review-eyebrow">Portfolio</p>
+          <h1 className="review-workspace-title">Review Workspace</h1>
+          <p className="review-workspace-lede">
+            Curate a rolling showcase. Publish rotates the live set; Drive
+            remains the permanent archive.
           </p>
         </div>
         <div className="review-count-pill">
           <span className="review-count-number">{pendingCount}</span>
-          <span className="review-count-label">Pending review</span>
+          <span className="review-count-label">In queue</span>
         </div>
       </header>
 
       <div className="review-toolbar">
         <input
-          className="admin-input review-search"
-          placeholder="Search vehicle, slug, folder…"
+          className="review-field review-search"
+          placeholder="Search vehicle…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <select
-          className="admin-input"
+          className="review-field"
           value={month}
           onChange={(e) => setMonth(e.target.value)}
           aria-label="Filter by month"
@@ -124,32 +132,34 @@ export default function ReviewWorkspace({
           ))}
         </select>
         <select
-          className="admin-input"
+          className="review-field"
           value={status}
           onChange={(e) => setStatus(e.target.value as StatusFilter)}
           aria-label="Filter by status"
         >
           <option value="all">All statuses</option>
-          <option value="pending">Pending</option>
-          <option value="ready">Ready for review</option>
+          <option value="pending">Review queue</option>
+          <option value="ready">Ready</option>
           <option value="processing">Processing</option>
-          <option value="failed">Failed media</option>
+          <option value="failed">Needs attention</option>
           <option value="published">Published</option>
+          <option value="pinned">Pinned</option>
+          <option value="archived">Archived</option>
         </select>
         <select
-          className="admin-input"
+          className="review-field"
           value={sort}
           onChange={(e) => setSort(e.target.value as SortMode)}
           aria-label="Sort order"
         >
-          <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
         </select>
         <button
           type="button"
-          className="admin-btn"
+          className="review-btn review-btn-ghost"
           disabled
-          title="Available in a later publishing phase"
+          title="Batch publish arrives in a later phase"
         >
           Publish Selected
         </button>
@@ -157,10 +167,9 @@ export default function ReviewWorkspace({
 
       {filtered.length === 0 ? (
         <div className="review-empty">
-          <p>No gallery items match these filters.</p>
-          <p className="mt-2 text-sm text-[var(--dv8-muted)]">
-            Import pending jobs from Content, then process media to populate
-            covers.
+          <p className="review-empty-title">Nothing matches</p>
+          <p className="review-empty-copy">
+            Adjust filters, or import and process new work to fill this space.
           </p>
         </div>
       ) : (

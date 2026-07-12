@@ -10,8 +10,9 @@ const NAV = [
   { href: "/admin/customers", label: "Customers" },
   { href: "/admin/invoices", label: "Invoices" },
   { href: "/admin/content", label: "Content" },
-  { href: "/admin/media", label: "Media Processing" },
+  { href: "/admin/media", label: "Media" },
   { href: "/admin/review", label: "Review" },
+  { href: "/admin/portfolio", label: "Portfolio" },
   { href: "/admin/settings", label: "Settings" },
 ];
 
@@ -37,7 +38,7 @@ export default function AdminSidebar() {
         />
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--dv8-muted)]">
-            Command Center
+            Workspace
           </p>
           <p className="text-sm font-light">AutoDV8ions</p>
         </div>

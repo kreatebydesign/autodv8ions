@@ -105,7 +105,7 @@ describe("import plan matching", () => {
     assert.equal(plan.totals.newGalleryItemCount, 1);
     assert.equal(plan.totals.newGalleryMediaCount, 1);
     const item = plan.planned.newGalleryItems[0];
-    assert.equal(item.defaults.status, "pending");
+    assert.equal(item.defaults.status, "pending_review");
     assert.equal(item.defaults.published, false);
     assert.equal(item.defaults.featured, false);
     assert.equal(item.defaults.homepageVisible, false);
@@ -192,7 +192,7 @@ describe("import plan matching", () => {
       slug: "slug-old",
       vehicle: "ZR2",
       work_date: null,
-      status: "pending",
+      status: "pending_review",
       published: false,
       provisional_vehicle: true,
       drive_folder_id: "job-old-id",

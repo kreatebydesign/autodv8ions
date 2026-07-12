@@ -47,24 +47,23 @@ export default async function RecentWorkIndexPage() {
           <h1 className="max-w-3xl text-[clamp(2.25rem,5vw,4rem)] font-light tracking-[-0.02em]">
             Recent Tint Work
           </h1>
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/45 sm:text-base">
-            Published window tint installs from the bay — vehicle, tint package,
-            and photography as they appear after review.
+          <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/45 sm:mt-6 sm:text-base">
+            Window tint installs from the AutoDV8ions bay — vehicle, package,
+            and photography with a clean finish.
           </p>
 
           {items.length === 0 ? (
-            <div className="portfolio-empty mt-16">
-              <p>No published tint projects yet.</p>
+            <div className="portfolio-empty mt-20">
+              <p>New tint projects will appear here soon.</p>
               <p className="mt-2 text-sm text-white/40">
-                Approved work from Review Workspace will appear here
-                automatically.
+                Check back for the latest installs from the shop.
               </p>
               <Link href="/tint-quote" className="portfolio-inline-cta mt-8">
                 Get a Tint Quote →
               </Link>
             </div>
           ) : (
-            <div className="mt-14 space-y-8 sm:mt-20 sm:space-y-10">
+            <div className="mt-16 space-y-10 sm:mt-24 sm:space-y-12">
               {featured && <PortfolioCard item={featured} featured />}
               {rest.length > 0 && (
                 <div className="portfolio-grid">

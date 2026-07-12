@@ -82,7 +82,7 @@ export type GalleryItemWriteRow = {
   seo_title: null;
   seo_description: null;
   published: false;
-  status: "pending";
+  status: "pending_review";
   shade_percentage: null;
   drive_folder_id: string;
   drive_parent_folder_id: string | null;

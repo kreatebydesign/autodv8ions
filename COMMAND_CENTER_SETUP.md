@@ -1,6 +1,8 @@
-# AutoDV8ions Command Center — Setup Guide
+# AutoDV8ions Workspace — Setup Guide
 
 Premium shop operating system for Chris and Lisa. Built around the existing Google Voice → Google Calendar → Google Drive workflow.
+
+> Note: Historical filenames may still say `command_center` (e.g. migration `001_command_center.sql`). Product language is **Workspace**.
 
 ---
 
@@ -166,7 +168,7 @@ Calendar continues to use the separate OAuth refresh-token variables above.
 7. Set `GOOGLE_CALENDAR_ID` to the calendar used by Lisa (`sales@autodv8ions.com`)
 8. Add all four Google env vars to Vercel
 
-If not configured, the Command Center shows:
+If not configured, the admin Workspace shows:
 **"Google Calendar is not connected yet."**
 
 Jobs still work. Manual calendar workflow unchanged.
@@ -211,14 +213,14 @@ Copying `GCP_*` into `.env.local` is **not** enough. Local OIDC requires a linke
 
 ### Verify connection
 
-In Command Center → **Content** → **Check Drive Connection**.
+In the admin Workspace → **Content** → **Check Drive Connection**.
 
 This authenticates and lists the Tint Jobs folder name + a few child folder names only.
 It does **not** sync, import, download media, write to the database, or publish.
 
 ### Phase 1B — Read-only Drive discovery preview
 
-In Command Center → **Content** → **Preview Drive Discovery**.
+In the admin Workspace → **Content** → **Preview Drive Discovery**.
 
 Readonly guarantee:
 - Uses the same WIF Drive auth as the connection check
@@ -246,7 +248,7 @@ Known naming irregularities handled:
 
 ### Phase 1C — Pending-only import plan dry run
 
-In Command Center → **Content** → **Preview Import Plan**.
+In the admin Workspace → **Content** → **Preview Import Plan**.
 
 Dry-run guarantee:
 - Discovers Drive inventory (readonly)
@@ -277,7 +279,7 @@ Still prohibited after Phase 1C:
 
 ### Phase 1D — Controlled pending-only database import (first write boundary)
 
-In Command Center → **Content** → **Import Recent as Pending**.
+In the admin Workspace → **Content** → **Import Recent as Pending**.
 
 This is the **first phase allowed to write** to the database for the Live Portfolio Engine.
 
@@ -334,7 +336,7 @@ This is the **first phase allowed to write** to the database for the Live Portfo
 
 See also: [`docs/KXD_ASSET_ENGINE.md`](./docs/KXD_ASSET_ENGINE.md).
 
-In Command Center → **Media Processing**.
+In the admin Workspace → **Media Processing**.
 
 This is the **first phase allowed to download media** and write private Blob objects.
 
@@ -418,7 +420,7 @@ AutoDV8ions Content Vault (Main Shared )
 5. Visit:
    - Public site: `http://localhost:3000`
    - Tint quote: `http://localhost:3000/tint-quote`
-   - Command Center login: `http://localhost:3000/admin/login`
+   - Admin login: `http://localhost:3000/admin/login`
 
 6. Sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`
 7. Submit a tint quote → verify:
@@ -447,7 +449,7 @@ AutoDV8ions Content Vault (Main Shared )
 
 ## Workflow Alignment
 
-| Step | Who | Command Center Support |
+| Step | Who | Admin Workspace Support |
 |------|-----|------------------------|
 | Quote / call comes in | Customer | Auto job from website quote |
 | Contact customer | Chris | Click-to-call, click-to-email on Jobs |

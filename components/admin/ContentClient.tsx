@@ -343,7 +343,13 @@ export default function ContentClient({
             Review queue
           </p>
           <p className="mt-2 text-2xl font-light tracking-tight">
-            {items.filter((item) => item.status === "pending").length} pending
+            {items.filter(
+              (item) =>
+                item.status === "pending" ||
+                item.status === "pending_review" ||
+                item.status === "draft",
+            ).length}{" "}
+            pending
             <span className="text-[var(--dv8-muted)]">
               {" "}
               · {items.length} total

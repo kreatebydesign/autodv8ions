@@ -453,7 +453,7 @@ export async function syncDriveContentUploads(
           driveFolderName: vehicleParsed.rawName,
           vehicle: vehicleLabel || vehicleParsed.rawName,
           workDate: vehicleParsed.workDate,
-          status: "pending",
+          status: "pending_review",
           importScope,
           imageCount: inventory.imageCount,
           videoCount: inventory.videoCount,

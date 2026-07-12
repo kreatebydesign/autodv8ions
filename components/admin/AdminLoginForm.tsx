@@ -47,7 +47,7 @@ export default function AdminLoginForm() {
             className="mx-auto mb-4 h-24 w-24 object-contain"
           />
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--dv8-muted)]">
-            Command Center
+            AutoDV8ions Workspace
           </p>
           <h1 className="mt-2 text-2xl font-light">Sign in</h1>
         </div>

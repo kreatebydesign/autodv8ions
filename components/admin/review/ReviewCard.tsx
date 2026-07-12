@@ -5,13 +5,19 @@ import type { ReviewCardItem } from "@/lib/live-portfolio/review-data";
 import { formatDate } from "@/lib/utils/format";
 
 function statusLabel(item: ReviewCardItem) {
+  if (item.pinned && item.published) return "Pinned";
   if (item.published) return "Published";
+  if (item.status === "archived" || item.status === "archived_review") {
+    return "Archived";
+  }
+  if (item.status === "failed") return "Failed";
   if (item.processingFailedCount > 0) return "Needs attention";
   if (item.processingReadyCount > 0 && item.processingPendingCount === 0) {
-    return "Ready for review";
+    return "Ready";
   }
   if (item.processingPendingCount > 0) return "Processing";
-  return item.status === "pending" ? "Pending" : item.status;
+  if (item.status === "draft") return "Draft";
+  return "Pending";
 }
 
 function statusTone(item: ReviewCardItem) {
@@ -44,6 +50,7 @@ export default function ReviewCard({ item }: { item: ReviewCardItem }) {
             </div>
           )}
           <div className="review-card-veil" />
+          <div className="review-card-glow" />
           <span className={`review-badge ${statusTone(item)}`}>
             {statusLabel(item)}
           </span>
@@ -54,9 +61,6 @@ export default function ReviewCard({ item }: { item: ReviewCardItem }) {
             <h2 className="review-card-title">{item.vehicle}</h2>
             <p className="review-card-meta">
               {item.workDate ? formatDate(item.workDate) : "Date needs review"}
-              {item.sourceMonthFolderName
-                ? ` · ${item.sourceMonthFolderName}`
-                : ""}
             </p>
             <p className="review-card-counts">
               {item.imageCount} image{item.imageCount === 1 ? "" : "s"}
@@ -66,9 +70,7 @@ export default function ReviewCard({ item }: { item: ReviewCardItem }) {
               {item.provisionalVehicle ? " · Provisional" : ""}
             </p>
           </div>
-          <span className="admin-btn admin-btn-primary review-card-cta">
-            Review
-          </span>
+          <span className="review-card-cta">Review</span>
         </div>
       </Link>
     </article>

@@ -30,6 +30,7 @@ export type ReviewCardItem = {
   workDate: string | null;
   status: GalleryItemStatus;
   published: boolean;
+  pinned: boolean;
   provisionalVehicle: boolean;
   shadePercentage: string | null;
   sourceMonthFolderName: string | null;
@@ -66,7 +67,7 @@ export async function listReviewWorkspaceItems(): Promise<ReviewCardItem[]> {
   const { data: items, error } = await supabase
     .from("gallery_items")
     .select(
-      "id, slug, vehicle, service_type, work_date, status, published, provisional_vehicle, validation_errors, drive_folder_name, source_month_folder_name, import_scope, shade_percentage, created_at, updated_at",
+      "id, slug, vehicle, service_type, work_date, status, published, pinned, provisional_vehicle, validation_errors, drive_folder_name, source_month_folder_name, import_scope, shade_percentage, created_at, updated_at",
     )
     .eq("service_type", "Window Tint")
     .order("work_date", { ascending: false, nullsFirst: false })
@@ -110,6 +111,11 @@ export async function listReviewWorkspaceItems(): Promise<ReviewCardItem[]> {
         workDate: item.work_date,
         status: item.status as GalleryItemStatus,
         published: item.published,
+        pinned: Boolean(
+          "pinned" in item
+            ? (item as { pinned?: boolean | null }).pinned
+            : false,
+        ),
         provisionalVehicle: item.provisional_vehicle,
         shadePercentage: item.shade_percentage,
         sourceMonthFolderName: item.source_month_folder_name,
@@ -149,7 +155,7 @@ export async function getReviewDetailItem(
   const { data: item, error } = await supabase
     .from("gallery_items")
     .select(
-      "id, slug, vehicle, service_type, work_date, status, published, provisional_vehicle, validation_errors, drive_folder_name, source_month_folder_name, import_scope, shade_percentage, description, seo_title, seo_description, created_at, updated_at",
+      "id, slug, vehicle, service_type, work_date, status, published, pinned, provisional_vehicle, validation_errors, drive_folder_name, source_month_folder_name, import_scope, shade_percentage, description, seo_title, seo_description, created_at, updated_at",
     )
     .eq("id", id)
     .maybeSingle();
@@ -190,6 +196,9 @@ export async function getReviewDetailItem(
     workDate: item.work_date,
     status: item.status as GalleryItemStatus,
     published: item.published,
+    pinned: Boolean(
+      "pinned" in item ? (item as { pinned?: boolean | null }).pinned : false,
+    ),
     provisionalVehicle: item.provisional_vehicle,
     shadePercentage: item.shade_percentage,
     sourceMonthFolderName: item.source_month_folder_name,

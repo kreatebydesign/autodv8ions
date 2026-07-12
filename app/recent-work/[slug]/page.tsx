@@ -75,16 +75,16 @@ export default async function RecentWorkDetailPage({ params }: PageProps) {
         </div>
       </header>
 
-      <article className="atmosphere atmosphere-dark relative py-14 sm:py-20">
+      <article className="atmosphere atmosphere-dark relative py-16 sm:py-24 lg:py-28">
         <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
           <Link
             href="/recent-work"
-            className="label-mono text-white/40 transition-colors hover:text-white"
+            className="label-mono text-white/40 transition-colors duration-500 hover:text-white"
           >
             ← Recent Tint Work
           </Link>
 
-          <div className="mt-8 grid gap-10 lg:grid-cols-12 lg:gap-14">
+          <div className="mt-10 grid gap-12 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-7">
               <PortfolioLightboxGallery
                 vehicle={item.vehicle}
@@ -92,44 +92,44 @@ export default async function RecentWorkDetailPage({ params }: PageProps) {
               />
             </div>
 
-            <aside className="lg:col-span-5">
-              <p className="label-mono mb-4 text-white/40">Window Tint</p>
-              <h1 className="text-[clamp(2rem,4vw,3.25rem)] font-light tracking-[-0.02em]">
+            <aside className="lg:col-span-5 lg:pt-2">
+              <p className="label-mono mb-5 text-white/40">Window Tint</p>
+              <h1 className="text-[clamp(2.1rem,4vw,3.4rem)] font-light tracking-[-0.03em]">
                 {item.vehicle}
               </h1>
-              <p className="mt-4 text-sm text-white/45 sm:text-base">
+              <p className="mt-5 text-sm leading-relaxed text-white/45 sm:text-base">
                 {item.serviceType} · Altoona, PA
                 {item.workDate ? ` · ${formatDate(item.workDate)}` : ""}
               </p>
 
               {item.shadePercentage && (
-                <div className="mt-8 border-t border-white/[0.08] pt-6">
-                  <p className="label-mono mb-2 text-white/35">Tint package</p>
-                  <p className="text-lg font-light text-white/85">
+                <div className="mt-10 border-t border-white/[0.05] pt-7">
+                  <p className="label-mono mb-3 text-white/35">Tint package</p>
+                  <p className="text-xl font-light tracking-tight text-white/88">
                     {item.shadePercentage}
                   </p>
                 </div>
               )}
 
               {(item.description || item.seoDescription) && (
-                <div className="mt-8 border-t border-white/[0.08] pt-6">
-                  <p className="label-mono mb-3 text-white/35">About this job</p>
-                  <p className="text-sm leading-relaxed text-white/55 sm:text-base">
+                <div className="mt-10 border-t border-white/[0.05] pt-7">
+                  <p className="label-mono mb-4 text-white/35">About this job</p>
+                  <p className="text-sm leading-[1.8] text-white/55 sm:text-base">
                     {item.description || item.seoDescription}
                   </p>
                 </div>
               )}
 
-              <div className="mt-10 flex flex-wrap gap-4">
+              <div className="mt-12 flex flex-wrap gap-5">
                 <Link
                   href="/tint-quote"
-                  className="inline-flex items-center gap-3 border border-white/15 bg-white/[0.05] px-6 py-3 text-xs uppercase tracking-[0.15em] text-white transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.08]"
+                  className="inline-flex items-center gap-3 border border-white/12 bg-white/[0.04] px-6 py-3 text-xs uppercase tracking-[0.15em] text-white transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.07]"
                 >
                   Get Tint Quote
                 </Link>
                 <Link
                   href="/recent-work"
-                  className="label-mono self-center text-white/40 hover:text-white"
+                  className="label-mono self-center text-white/40 transition-colors duration-500 hover:text-white"
                 >
                   More projects
                 </Link>
@@ -138,12 +138,12 @@ export default async function RecentWorkDetailPage({ params }: PageProps) {
           </div>
 
           {related.length > 0 && (
-            <section className="mt-20 border-t border-white/[0.06] pt-14 sm:mt-28">
-              <p className="label-mono mb-4 text-white/40">Related</p>
-              <h2 className="text-[clamp(1.5rem,3vw,2.25rem)] font-light tracking-tight">
+            <section className="mt-24 border-t border-white/[0.05] pt-16 sm:mt-32 sm:pt-20">
+              <p className="label-mono mb-5 text-white/40">Related</p>
+              <h2 className="text-[clamp(1.6rem,3vw,2.4rem)] font-light tracking-[-0.02em]">
                 More recent tint work
               </h2>
-              <div className="portfolio-grid mt-10">
+              <div className="portfolio-grid mt-12">
                 {related.map((rel) => (
                   <PortfolioCard key={rel.id} item={rel} />
                 ))}

@@ -10,7 +10,7 @@ export type GalleryMediaMatchReason =
   | "none";
 
 export type PlannedGalleryDefaults = {
-  status: "pending";
+  status: "pending_review";
   published: false;
   featured: false;
   homepageVisible: false;

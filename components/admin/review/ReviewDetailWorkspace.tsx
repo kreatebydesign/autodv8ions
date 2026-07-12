@@ -40,10 +40,14 @@ export default function ReviewDetailWorkspace({
   );
   const [slug, setSlug] = useState(item.slug);
   const [published, setPublished] = useState(item.published);
+  const [pinned, setPinned] = useState(item.pinned);
+  const [lifecycleStatus, setLifecycleStatus] = useState(item.status);
   const [busy, setBusy] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
 
   const ready = itemIsReadyForPublish(item);
+  const isArchived =
+    lifecycleStatus === "archived" || lifecycleStatus === "archived_review";
 
   const activeIndex = Math.max(
     0,
@@ -94,7 +98,7 @@ export default function ReviewDetailWorkspace({
       ? `/api/content/media-file/${active.id}?variant=large`
       : null;
 
-  async function runAction(action: "publish" | "unpublish" | "save") {
+  async function runAction(action: "publish" | "unpublish" | "save" | "archive") {
     setBusy(true);
     setStatusMessage("");
     try {
@@ -125,9 +129,20 @@ export default function ReviewDetailWorkspace({
 
       setPublished(Boolean(data.published));
       if (action === "publish") {
-        setStatusMessage("Published. Live on /recent-work.");
+        setLifecycleStatus("published");
+        const rotated = data.archivedIds?.length
+          ? ` Rotated ${data.archivedIds.length} older project(s) out of the live showcase.`
+          : "";
+        setStatusMessage(`Published to the live showcase.${rotated}`);
       } else if (action === "unpublish") {
-        setStatusMessage("Unpublished. Hidden from the public site.");
+        setLifecycleStatus("draft");
+        setPinned(false);
+        setStatusMessage("Moved to draft. Hidden from the public site.");
+      } else if (action === "archive") {
+        setLifecycleStatus("archived");
+        setPublished(false);
+        setPinned(false);
+        setStatusMessage("Archived. Eligible for Blob cleanup after retention.");
       } else {
         setStatusMessage("Draft fields saved.");
       }
@@ -139,25 +154,89 @@ export default function ReviewDetailWorkspace({
     }
   }
 
+  async function togglePin() {
+    setBusy(true);
+    setStatusMessage("");
+    try {
+      const res = await fetch("/api/portfolio/lifecycle", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          action: pinned ? "unpin" : "pin",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatusMessage(data.error || "Unable to update pin state.");
+        return;
+      }
+      setPinned(Boolean(data.pinned));
+      setStatusMessage(data.pinned ? "Pinned in the live showcase." : "Unpinned.");
+      router.refresh();
+    } catch {
+      setStatusMessage("Network error while updating pin.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function restoreToReview() {
+    setBusy(true);
+    setStatusMessage("");
+    try {
+      const res = await fetch("/api/portfolio/lifecycle", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          action: "restore",
+          reprocess: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatusMessage(data.error || "Unable to restore project.");
+        return;
+      }
+      setLifecycleStatus("pending_review");
+      setPublished(false);
+      setStatusMessage(
+        data.restored?.needsReprocess
+          ? "Restored to Review. Media reprocessing queued from Drive."
+          : "Restored to Review Queue.",
+      );
+      router.refresh();
+    } catch {
+      setStatusMessage("Network error while restoring.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="review-detail">
       <div className="review-detail-top">
         <div>
-          <Link
-            href="/admin/review"
-            className="text-xs uppercase tracking-[0.18em] text-[var(--dv8-muted)] transition-colors hover:text-white"
-          >
+          <Link href="/admin/review" className="review-back-link">
             ← Review Workspace
           </Link>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <h1 className="text-[clamp(1.75rem,3vw,2.75rem)] font-light tracking-tight">
-              {item.vehicle}
-            </h1>
+          <div className="review-detail-heading">
+            <h1 className="review-detail-title">{item.vehicle}</h1>
             {published && (
-              <span className="review-badge review-badge-ready">Published</span>
+              <span className="review-badge review-badge-ready review-badge-inline">
+                {pinned ? "Pinned" : "Published"}
+              </span>
+            )}
+            {isArchived && (
+              <span className="review-badge review-badge-muted review-badge-inline">
+                Archived
+              </span>
             )}
           </div>
-          <p className="mt-2 text-sm text-[var(--dv8-muted)]">
+          <p className="review-detail-sub">
             {item.serviceType} ·{" "}
             {item.workDate ? formatDate(item.workDate) : "Date needs review"}
             {item.provisionalVehicle ? " · Provisional title" : ""}
@@ -166,7 +245,7 @@ export default function ReviewDetailWorkspace({
                 {" · "}
                 <Link
                   href={`/recent-work/${slug}`}
-                  className="text-white/80 underline-offset-4 hover:underline"
+                  className="review-live-link"
                   target="_blank"
                 >
                   View live
@@ -218,14 +297,14 @@ export default function ReviewDetailWorkspace({
                 />
               ) : (
                 <div className="review-viewer-empty">
-                  Media not processed yet. Run Media Processing to load private
-                  previews.
+                  Photography previews appear once Media Workspace finishes
+                  processing this job.
                 </div>
               )}
               <div className="review-viewer-controls">
                 <button
                   type="button"
-                  className="admin-btn"
+                  className="review-btn review-btn-soft"
                   onClick={() => go(-1)}
                   disabled={images.length < 2}
                 >
@@ -233,7 +312,7 @@ export default function ReviewDetailWorkspace({
                 </button>
                 <button
                   type="button"
-                  className="admin-btn"
+                  className="review-btn review-btn-soft"
                   onClick={() => go(1)}
                   disabled={images.length < 2}
                 >
@@ -241,7 +320,7 @@ export default function ReviewDetailWorkspace({
                 </button>
                 <button
                   type="button"
-                  className="admin-btn"
+                  className="review-btn review-btn-soft"
                   onClick={() => setFullscreen((v) => !v)}
                 >
                   {fullscreen ? "Exit" : "Fullscreen"}
@@ -284,134 +363,166 @@ export default function ReviewDetailWorkspace({
           </section>
 
           <aside className="review-meta-panel">
-            <p className="review-panel-kicker">Editorial fields</p>
-            <p className="mb-5 text-sm text-[var(--dv8-muted)]">
-              Publishing updates review state only. Drive, Blob, and Asset
-              Engine stay untouched.
-            </p>
+            <div className="review-field-group">
+              <p className="review-panel-kicker">Vehicle</p>
+              <label className="review-label">Name</label>
+              <input
+                className="review-field mb-4"
+                value={vehicle}
+                onChange={(e) => setVehicle(e.target.value)}
+              />
+              <label className="review-label">Work date</label>
+              <input
+                className="review-field mb-4"
+                type="date"
+                value={workDate}
+                onChange={(e) => setWorkDate(e.target.value)}
+              />
+              <label className="review-label">Tint package</label>
+              <input
+                className="review-field"
+                value={shade}
+                onChange={(e) => setShade(e.target.value)}
+                placeholder="e.g. 15% ceramic"
+              />
+            </div>
 
-            <label className="admin-label">Vehicle</label>
-            <input
-              className="admin-input mb-4"
-              value={vehicle}
-              onChange={(e) => setVehicle(e.target.value)}
-            />
+            <div className="review-field-group">
+              <p className="review-panel-kicker">Story</p>
+              <label className="review-label">Description</label>
+              <textarea
+                className="review-field min-h-28"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Short editorial description for the public page…"
+              />
+            </div>
 
-            <label className="admin-label">Work date</label>
-            <input
-              className="admin-input mb-4"
-              type="date"
-              value={workDate}
-              onChange={(e) => setWorkDate(e.target.value)}
-            />
+            <div className="review-field-group">
+              <p className="review-panel-kicker">Discovery</p>
+              <label className="review-label">SEO title</label>
+              <input
+                className="review-field mb-4"
+                value={seoTitle}
+                onChange={(e) => setSeoTitle(e.target.value)}
+              />
+              <label className="review-label">Meta description</label>
+              <textarea
+                className="review-field mb-4 min-h-20"
+                value={seoDescription}
+                onChange={(e) => setSeoDescription(e.target.value)}
+              />
+              <label className="review-label">Slug</label>
+              <input
+                className="review-field"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+              />
+            </div>
 
-            <label className="admin-label">Description</label>
-            <textarea
-              className="admin-input mb-4 min-h-24"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Short editorial description for the public page…"
-            />
-
-            <label className="admin-label">Tint details</label>
-            <input
-              className="admin-input mb-4"
-              value={shade}
-              onChange={(e) => setShade(e.target.value)}
-              placeholder="e.g. 15% ceramic — confirmation required"
-            />
-
-            <label className="admin-label">SEO title</label>
-            <input
-              className="admin-input mb-4"
-              value={seoTitle}
-              onChange={(e) => setSeoTitle(e.target.value)}
-            />
-
-            <label className="admin-label">Meta description</label>
-            <textarea
-              className="admin-input mb-4 min-h-20"
-              value={seoDescription}
-              onChange={(e) => setSeoDescription(e.target.value)}
-            />
-
-            <label className="admin-label">Slug</label>
-            <input
-              className="admin-input mb-6"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-            />
-
-            <label className="admin-label">Featured image</label>
-            <div className="space-y-2">
-              {images.map((media) => (
-                <label
-                  key={media.id}
-                  className="flex cursor-pointer items-center gap-3 text-sm text-[var(--dv8-muted)]"
-                >
-                  <input
-                    type="radio"
-                    name="featured"
-                    checked={featuredId === media.id}
-                    onChange={() => {
-                      setFeaturedId(media.id);
-                      setActiveId(media.id);
-                    }}
-                  />
-                  <span className="truncate text-[var(--dv8-white)]">
-                    {media.filename}
-                  </span>
-                </label>
-              ))}
-              {images.length === 0 && (
-                <p className="text-sm text-[var(--dv8-muted)]">No images yet.</p>
-              )}
+            <div className="review-field-group">
+              <p className="review-panel-kicker">Featured image</p>
+              <div className="review-featured-list">
+                {images.map((media) => (
+                  <label key={media.id} className="review-featured-option">
+                    <input
+                      type="radio"
+                      name="featured"
+                      checked={featuredId === media.id}
+                      onChange={() => {
+                        setFeaturedId(media.id);
+                        setActiveId(media.id);
+                      }}
+                    />
+                    <span className="truncate">{media.filename}</span>
+                  </label>
+                ))}
+                {images.length === 0 && (
+                  <p className="review-help">No images yet.</p>
+                )}
+              </div>
             </div>
 
             {statusMessage && (
-              <p className="mt-6 text-sm text-[var(--dv8-muted)]">
-                {statusMessage}
-              </p>
+              <p className="review-status-message">{statusMessage}</p>
             )}
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="review-actions">
               <button
                 type="button"
-                className="admin-btn"
+                className="review-btn review-btn-ghost"
                 disabled={busy}
                 onClick={() => runAction("save")}
               >
                 {busy ? "Saving…" : "Save draft"}
               </button>
-              {published ? (
+              {isArchived ? (
                 <button
                   type="button"
-                  className="admin-btn"
+                  className="review-btn review-btn-primary"
                   disabled={busy}
-                  onClick={() => runAction("unpublish")}
+                  onClick={restoreToReview}
                 >
-                  Unpublish
+                  Restore to Review
                 </button>
+              ) : published ? (
+                <>
+                  <button
+                    type="button"
+                    className="review-btn review-btn-ghost"
+                    disabled={busy}
+                    onClick={togglePin}
+                  >
+                    {pinned ? "Unpin" : "Pin"}
+                  </button>
+                  <button
+                    type="button"
+                    className="review-btn review-btn-ghost"
+                    disabled={busy}
+                    onClick={() => runAction("unpublish")}
+                  >
+                    Unpublish
+                  </button>
+                  <button
+                    type="button"
+                    className="review-btn review-btn-ghost"
+                    disabled={busy}
+                    onClick={() => runAction("archive")}
+                  >
+                    Archive
+                  </button>
+                </>
               ) : (
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-primary"
-                  disabled={busy || !ready}
-                  title={
-                    ready
-                      ? "Publish to the public portfolio"
-                      : "Requires ready-for-review media with no pending or failed files"
-                  }
-                  onClick={() => runAction("publish")}
-                >
-                  Publish
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="review-btn review-btn-primary"
+                    disabled={busy || !ready}
+                    title={
+                      ready
+                        ? "Publish to the live showcase"
+                        : "Requires ready media with no pending or failed files"
+                    }
+                    onClick={() => runAction("publish")}
+                  >
+                    Publish
+                  </button>
+                  <button
+                    type="button"
+                    className="review-btn review-btn-ghost"
+                    disabled={busy}
+                    onClick={() => runAction("archive")}
+                  >
+                    Archive
+                  </button>
+                </>
               )}
             </div>
-            {!published && !ready && (
-              <p className="mt-3 text-xs text-[var(--dv8-muted)]">
-                Publish unlocks when Media Processing finishes with at least one
-                ready image and no pending or failed files.
+            {!published && !ready && !isArchived && (
+              <p className="review-help">
+                Publish unlocks when Media Workspace finishes with at least one
+                ready image and no pending or failed files. A full showcase
+                automatically archives the oldest non-pinned project.
               </p>
             )}
           </aside>
@@ -446,28 +557,32 @@ function WebsitePreview({
 
   return (
     <div className="website-preview">
+      <div className="website-preview-chrome">
+        <span className="website-preview-dot" />
+        <span className="website-preview-dot" />
+        <span className="website-preview-dot" />
+        <span className="website-preview-chrome-label">
+          Public page preview
+        </span>
+      </div>
       <div className="website-preview-frame">
-        <p className="text-xs uppercase tracking-[0.2em] text-[#a1a1aa]">
-          Recent Work · Preview
-        </p>
-        <h2 className="mt-4 text-[clamp(2rem,5vw,3.5rem)] font-light tracking-tight text-[#f8f8f8]">
+        <p className="website-preview-kicker">Recent Work</p>
+        <h2 className="website-preview-title">
           {vehicle || "Untitled vehicle"}
         </h2>
-        <p className="mt-3 text-[#a1a1aa]">
+        <p className="website-preview-meta">
           Window Tint · Altoona, PA
           {workDate ? ` · ${formatDate(workDate)}` : ""}
           {shade ? ` · ${shade}` : ""}
         </p>
         {(seoTitle || description) && (
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-[#d4d4d8]">
-            {description || seoTitle}
-          </p>
+          <p className="website-preview-copy">{description || seoTitle}</p>
         )}
 
         <div className="website-preview-grid">
           {ordered.length === 0 ? (
             <div className="website-preview-empty">
-              Processed gallery media will appear here after Media Processing.
+              Gallery photography will appear here once media is ready.
             </div>
           ) : (
             ordered.map((media, index) => {

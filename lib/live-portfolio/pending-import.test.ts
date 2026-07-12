@@ -227,7 +227,7 @@ describe("pending-only write rows", () => {
       sourceMonthFolderName: "2026-07 JULY",
     });
 
-    assert.equal(row.status, "pending");
+    assert.equal(row.status, "pending_review");
     assert.equal(row.published, false);
     assert.equal(row.provisional_vehicle, true);
     assert.equal(row.import_scope, "recent");
@@ -291,7 +291,7 @@ describe("pending import execution", () => {
     assert.equal(result.writesPerformed, true);
     assert.equal(result.counts.createdGalleryItems, 1);
     assert.equal(result.counts.createdMedia, 1);
-    assert.equal(result.samples?.createdItems[0]?.status, "pending");
+    assert.equal(result.samples?.createdItems[0]?.status, "pending_review");
     assert.equal(result.samples?.createdItems[0]?.published, false);
     assert.equal(result.samples?.createdMedia[0]?.storageUrl, null);
     assert.equal(store.snapshot().itemIds.length, 1);
@@ -336,7 +336,7 @@ describe("pending import execution", () => {
         slug: "kept-slug",
         vehicle: "ZR2",
         work_date: "2026-07-26",
-        status: "pending",
+        status: "pending_review",
         published: false,
         provisional_vehicle: true,
         drive_folder_id: "job-a",
@@ -383,7 +383,7 @@ describe("pending import execution", () => {
       slug: "old",
       vehicle: "ZR2",
       work_date: null,
-      status: "pending",
+      status: "pending_review",
       published: false,
       provisional_vehicle: true,
       drive_folder_id: "job-old",

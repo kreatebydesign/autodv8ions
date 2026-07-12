@@ -1,8 +1,15 @@
 export type GalleryItemStatus =
+  | "pending_review"
+  | "draft"
+  | "published"
+  | "archived"
+  | "archived_review"
+  | "failed"
+  // Legacy values still accepted until migration fully applied
   | "pending"
   | "approved"
-  | "rejected"
-  | "archived";
+  | "rejected";
+
 
 export type ImportScope = "recent" | "historical";
 

@@ -32,7 +32,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-8">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-[var(--dv8-muted)]">
-          Command Center
+          Operations Workspace
         </p>
         <h1 className="mt-2 text-3xl font-light tracking-tight">Dashboard</h1>
       </div>

@@ -99,6 +99,10 @@ export type GalleryItem = {
   description: string | null;
   published: boolean;
   status: GalleryItemStatus;
+  pinned: boolean;
+  published_at: string | null;
+  archived_at: string | null;
+  blob_purged_at: string | null;
   shade_percentage: string | null;
   drive_folder_id: string | null;
   drive_parent_folder_id: string | null;
