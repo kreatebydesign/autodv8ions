@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test lib/live-portfolio/parse-drive-folder.test.ts lib/live-portfolio/discovery.test.ts lib/google/auth-drive.test.ts"
+    "test": "node --import tsx --test lib/live-portfolio/parse-drive-folder.test.ts lib/live-portfolio/discovery.test.ts lib/live-portfolio/import-plan.test.ts lib/google/auth-drive.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",

@@ -18,6 +18,7 @@ export default function ContentClient({
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [discovering, setDiscovering] = useState(false);
+  const [planning, setPlanning] = useState(false);
 
   async function checkDriveConnection() {
     setChecking(true);
@@ -100,6 +101,62 @@ export default function ContentClient({
     }
   }
 
+  async function previewImportPlan() {
+    setPlanning(true);
+    setStatus("");
+    try {
+      const res = await fetch("/api/content/drive-import-plan", {
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        const detail =
+          data.error?.message || data.error || "Import plan preview failed.";
+        setStatus(`Import plan failed: ${detail}`);
+        return;
+      }
+
+      const creates = Array.isArray(data.samples?.newGalleryItems)
+        ? data.samples.newGalleryItems
+            .slice(0, 3)
+            .map(
+              (item: {
+                displayTitleCandidate?: string;
+                mediaCount?: number;
+              }) =>
+                `${item.displayTitleCandidate || "?"} (${item.mediaCount ?? 0} media)`,
+            )
+            .join("; ")
+        : "";
+
+      const matches = Array.isArray(data.samples?.existingMatches)
+        ? data.samples.existingMatches
+            .slice(0, 2)
+            .map(
+              (item: {
+                existingVehicle?: string;
+                preserveHumanEditedMetadata?: boolean;
+              }) =>
+                `${item.existingVehicle || "?"}${item.preserveHumanEditedMetadata ? " [preserve]" : ""}`,
+            )
+            .join("; ")
+        : "";
+
+      const conflicts = data.totals?.conflictCount
+        ? ` Conflicts: ${data.totals.conflictCount}.`
+        : "";
+
+      setStatus(
+        `Import plan dry-run (writesPerformed=${String(data.writesPerformed)}): new items ${data.totals?.newGalleryItemCount ?? 0} · matches ${data.totals?.existingGalleryItemMatchCount ?? 0} · new media ${data.totals?.newGalleryMediaCount ?? 0} · media matches ${data.totals?.existingGalleryMediaMatchCount ?? 0} · skips ${data.totals?.skipCount ?? 0} · warnings ${data.totals?.warningCount ?? 0}.${conflicts}${creates ? ` Create samples: ${creates}.` : ""}${matches ? ` Match samples: ${matches}.` : ""} No records were written.`,
+      );
+    } catch {
+      setStatus("Import plan failed: network or server error.");
+    } finally {
+      setPlanning(false);
+    }
+  }
+
   async function syncDrive(mode?: string) {
     setLoading(true);
     setStatus("");
@@ -124,7 +181,7 @@ export default function ContentClient({
     setItems(data.items || []);
   }
 
-  const busy = loading || checking || discovering;
+  const busy = loading || checking || discovering || planning;
 
   return (
     <div className="space-y-6">
@@ -155,6 +212,14 @@ export default function ContentClient({
           onClick={previewDriveDiscovery}
         >
           {discovering ? "Discovering..." : "Preview Drive Discovery"}
+        </button>
+        <button
+          type="button"
+          className="admin-btn"
+          disabled={busy || !connected}
+          onClick={previewImportPlan}
+        >
+          {planning ? "Planning..." : "Preview Import Plan"}
         </button>
         <button
           type="button"

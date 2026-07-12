@@ -241,7 +241,38 @@ Known naming irregularities handled:
 - `2026-2 FEB` (single-digit month → sort key `2026-02`)
 - Unparseable month folders are still inventoried with warnings (not invented)
 
-### Sync behavior (unchanged from Phase 0; not part of auth/discovery verification)
+### Phase 1C — Pending-only import plan dry run
+
+In Command Center → **Content** → **Preview Import Plan**.
+
+Dry-run guarantee:
+- Discovers Drive inventory (readonly)
+- SELECT-only reads of `gallery_items` / `gallery_media`
+- Builds a deterministic create/match/skip/conflict plan
+- **`writesPerformed=false` always**
+- No downloads, Blob uploads, publishing, or homepage changes
+
+Matching rules (Drive IDs are canonical):
+- Gallery item match: `gallery_items.drive_folder_id === job folder Drive ID`
+- Gallery media match: `gallery_media.drive_file_id === media Drive file ID`
+- Same folder/file **name** with a different Drive ID → conflict (not a silent match)
+- Human-edited / locked items (`provisional_vehicle=false` or approved/rejected/archived) → match preserves metadata; no overwrite planned
+
+Pending-only defaults for any future create candidates:
+- `status: pending`
+- `published: false`
+- `featured: false`
+- homepage visibility false
+- no public media URL / no storage URL
+
+Still prohibited after Phase 1C:
+- Actual import writes
+- Media downloads
+- Vercel Blob uploads
+- Auto-publish / homepage wiring
+- Changing Sync button behavior
+
+### Sync behavior (unchanged from Phase 0; not part of auth/discovery/plan verification)
 
 Real production structure:
 
