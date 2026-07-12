@@ -6,6 +6,12 @@ import type { AssetStorageProviderId } from "../types";
 export type { StorageProvider, StoragePutInput, StorageHeadResult } from "./types";
 export { VercelBlobStorageProvider } from "./vercel-blob";
 export { MemoryStorageProvider } from "./memory";
+export {
+  resolveVercelBlobAuthOptions,
+  toBlobSdkAuthFields,
+  isVercelBlobOidcConfigured,
+} from "./vercel-blob-auth";
+export type { VercelBlobAuthOptions } from "./vercel-blob-auth";
 
 export function createStorageProvider(
   id: AssetStorageProviderId = "vercel_blob",

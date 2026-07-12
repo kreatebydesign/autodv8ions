@@ -40,12 +40,18 @@ SourceConnector.downloadObject()
    checksum (sha256)
         ↓
 StorageProvider.put({ access: "private" })
+  Vercel Blob auth (preferred):
+    BLOB_STORE_ID + VERCEL_OIDC_TOKEN / getVercelOidcToken()
+  Optional fallback (local/off-Vercel only):
+    BLOB_READ_WRITE_TOKEN
         ↓
  image: variants + optional web-safe master
  video: original only
         ↓
  consumer adapter persists keys/metadata (still unpublished)
 ```
+
+Do **not** require a long-lived Blob RW token on Vercel when the store is connected via OIDC.
 
 ## Processing limits (defaults)
 

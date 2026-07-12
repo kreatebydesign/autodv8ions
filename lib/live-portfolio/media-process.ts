@@ -337,16 +337,25 @@ export async function runGalleryMediaProcessing(
 
     const supabase = getSupabaseAdmin();
     if (supabase) {
-      // Mark claimed jobs as in-progress download for admin visibility.
-      await supabase
-        .from("gallery_media")
-        .update({ processing_status: "pending_download" })
-        .in(
-          "id",
-          rows
-            .filter((r) => r.processing_status === "failed")
-            .map((r) => r.id),
-        );
+      // Reset failed rows so Retry Failed re-enters the pipeline cleanly.
+      const failedIds = rows
+        .filter((r) => r.processing_status === "failed")
+        .map((r) => r.id);
+      if (failedIds.length > 0) {
+        await supabase
+          .from("gallery_media")
+          .update({
+            processing_status: "pending_download",
+            processing_error: null,
+          })
+          .in("id", failedIds);
+
+        for (const row of rows) {
+          if (row.processing_status === "failed") {
+            row.processing_status = "pending_download";
+          }
+        }
+      }
     }
 
     const source = new GoogleDriveSourceConnector();

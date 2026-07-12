@@ -1,31 +1,40 @@
 import { put, head, del } from "@vercel/blob";
 import type { StorageProvider, StorageHeadResult, StoragePutInput } from "./types";
 import type { StoredAssetObject } from "../types";
+import {
+  resolveVercelBlobAuthOptions,
+  toBlobSdkAuthFields,
+} from "./vercel-blob-auth";
 
 /**
  * Vercel Blob private store adapter.
- * Requires BLOB_READ_WRITE_TOKEN and a private Blob store.
+ *
+ * Production (connected store): authenticates via Vercel OIDC + BLOB_STORE_ID.
+ * Local/off-Vercel optional fallback: BLOB_READ_WRITE_TOKEN.
+ * Never requires a long-lived RW token when OIDC + store id are available.
  */
 export class VercelBlobStorageProvider implements StorageProvider {
   readonly id = "vercel_blob" as const;
+
+  private async authFields() {
+    const auth = await resolveVercelBlobAuthOptions();
+    return toBlobSdkAuthFields(auth);
+  }
 
   async put(input: StoragePutInput): Promise<StoredAssetObject> {
     if (input.access !== "private") {
       throw new Error("VercelBlobStorageProvider only allows private access.");
     }
 
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-    if (!token) {
-      throw new Error("BLOB_READ_WRITE_TOKEN is not configured.");
-    }
+    const authFields = await this.authFields();
 
     const result = await put(input.pathname, input.body, {
       access: "private",
       contentType: input.contentType,
-      token,
       multipart: input.multipart === true,
       allowOverwrite: input.allowOverwrite === true,
       addRandomSuffix: false,
+      ...authFields,
     });
 
     const sizeFromResult =
@@ -49,13 +58,10 @@ export class VercelBlobStorageProvider implements StorageProvider {
   }
 
   async head(pathname: string): Promise<StorageHeadResult> {
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-    if (!token) {
-      throw new Error("BLOB_READ_WRITE_TOKEN is not configured.");
-    }
+    const authFields = await this.authFields();
 
     try {
-      const meta = await head(pathname, { token });
+      const meta = await head(pathname, { ...authFields });
       return {
         pathname: meta.pathname,
         byteLength: meta.size,
@@ -78,10 +84,7 @@ export class VercelBlobStorageProvider implements StorageProvider {
   }
 
   async delete(pathname: string): Promise<void> {
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-    if (!token) {
-      throw new Error("BLOB_READ_WRITE_TOKEN is not configured.");
-    }
-    await del(pathname, { token });
+    const authFields = await this.authFields();
+    await del(pathname, { ...authFields });
   }
 }

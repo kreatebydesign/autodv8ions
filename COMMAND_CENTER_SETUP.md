@@ -132,7 +132,9 @@ GOOGLE_DRIVE_UPLOADS_FOLDER_ID=
 
 ### Live Portfolio sync options (optional)
 ```
-BLOB_READ_WRITE_TOKEN=                   # Phase 2A private Blob (required for media processing)
+BLOB_STORE_ID=                           # Phase 2A — connected private Blob store (OIDC preferred)
+BLOB_WEBHOOK_PUBLIC_KEY=                 # set by Vercel when store is connected
+# BLOB_READ_WRITE_TOKEN=                 # optional local/off-Vercel fallback ONLY — not required on Vercel OIDC
 CRON_SECRET=                             # future cron — not used yet
 ASSET_STORAGE_PROVIDER=                  # optional: memory (tests) | default vercel_blob
 PORTFOLIO_SYNC_START_DATE=               # optional YYYY-MM-DD
@@ -339,7 +341,7 @@ This is the **first phase allowed to download media** and write private Blob obj
 **Architecture**
 - Reusable engine: `lib/asset-engine/` (providers, connectors, pipeline)
 - AutoDV8ions adapter: `lib/live-portfolio/media-process.ts`
-- Storage: Vercel Blob **private** only (`BLOB_READ_WRITE_TOKEN`)
+- Storage: Vercel Blob **private** via **OIDC + `BLOB_STORE_ID`** (optional `BLOB_READ_WRITE_TOKEN` only for local/off-Vercel)
 - Source: Google Drive read-only (WIF)
 
 **Apply migration first**
@@ -366,12 +368,20 @@ This is the **first phase allowed to download media** and write private Blob obj
 - Max image **40 MB**, max video **200 MB**
 - Download timeout **90 s**, up to **3** retries
 
+**Blob authentication (Vercel OIDC)**
+- Preferred: `BLOB_STORE_ID` + runtime `VERCEL_OIDC_TOKEN` (auto on Vercel)
+- SDK credential order: explicit `token` → OIDC (`oidcToken`/`VERCEL_OIDC_TOKEN` + `storeId`/`BLOB_STORE_ID`) → `BLOB_READ_WRITE_TOKEN`
+- This project **does not require** a long-lived `BLOB_READ_WRITE_TOKEN` when the store is connected
+- Static RW token remains an optional local/off-Vercel fallback only
+- Never log OIDC or RW credentials
+
 **Guarantees**
 - No public URLs (`storage_url` stays null)
 - No publishing / homepage changes
 - No Drive original deletion
 - Idempotent: already `ready_for_review` is skipped; existing blob pathnames are not duplicated
 - Sync buttons unchanged
+- **Retry Failed** resets `failed` → `pending_download` (clears `processing_error`) then re-runs ingest
 
 ### Sync behavior (unchanged from Phase 0; not part of auth/discovery/plan verification)
 
