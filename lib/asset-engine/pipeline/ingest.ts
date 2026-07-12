@@ -1,5 +1,6 @@
 import type { SourceConnector } from "../source/types";
 import type { StorageProvider } from "../storage/types";
+import { toOwnedNodeBuffer } from "../bytes";
 import { sha256Buffer } from "../checksum";
 import { withRetries, withTimeout } from "../retry";
 import { resolveIngestLimits } from "../limits";
@@ -130,11 +131,15 @@ export async function ingestAssetObject(input: {
       },
     );
 
+    // Normalize to an owned Node Buffer before sharp / Blob upload.
+    const fileBytes = toOwnedNodeBuffer(downloaded.bytes);
+    const fileChecksum = downloaded.checksumSha256 || sha256Buffer(fileBytes);
+
     // Optional checksum validation when a prior hash exists
     if (
       job.existingChecksum &&
       job.existingChecksum.length === 64 &&
-      job.existingChecksum !== downloaded.checksumSha256
+      job.existingChecksum !== fileChecksum
     ) {
       throw new Error("Checksum mismatch versus existing content_hash.");
     }
@@ -150,9 +155,9 @@ export async function ingestAssetObject(input: {
         key: originalPath,
         pathname: originalPath,
         provider: storage.id,
-        byteLength: downloaded.byteLength,
+        byteLength: fileBytes.byteLength,
         contentType: downloaded.contentType || job.identity.mimeType,
-        checksumSha256: downloaded.checksumSha256,
+        checksumSha256: fileChecksum,
         access: "private",
         privateUrl: null,
         uploadedAt: new Date().toISOString(),
@@ -163,9 +168,9 @@ export async function ingestAssetObject(input: {
         key: originalPath,
         pathname: originalPath,
         provider: storage.id,
-        byteLength: downloaded.byteLength,
+        byteLength: fileBytes.byteLength,
         contentType: downloaded.contentType || job.identity.mimeType,
-        checksumSha256: downloaded.checksumSha256,
+        checksumSha256: fileChecksum,
         access: "private",
         privateUrl: null,
         uploadedAt: new Date().toISOString(),
@@ -173,11 +178,11 @@ export async function ingestAssetObject(input: {
     } else {
       original = await storage.put({
         pathname: originalPath,
-        body: downloaded.bytes,
+        body: fileBytes,
         contentType: downloaded.contentType || job.identity.mimeType,
         access: "private",
-        multipart: downloaded.byteLength > 8 * 1024 * 1024,
-        checksumSha256: downloaded.checksumSha256,
+        multipart: fileBytes.byteLength > 8 * 1024 * 1024,
+        checksumSha256: fileChecksum,
         allowOverwrite: false,
       });
     }
@@ -191,7 +196,7 @@ export async function ingestAssetObject(input: {
     const basePath = buildAssetBasePath(job.identity);
 
     if (isImageMime(mime) || job.identity.mediaKind === "image") {
-      const processed = await processImageBuffer(downloaded.bytes, {
+      const processed = await processImageBuffer(fileBytes, {
         mimeType: mime,
       });
       width = processed.width;
@@ -203,7 +208,7 @@ export async function ingestAssetObject(input: {
         if (!(await storage.exists(masterPath))) {
           await storage.put({
             pathname: masterPath,
-            body: processed.webSafeOriginal,
+            body: toOwnedNodeBuffer(processed.webSafeOriginal),
             contentType: processed.derivedMimeType,
             access: "private",
             checksumSha256: sha256Buffer(processed.webSafeOriginal),
@@ -214,23 +219,27 @@ export async function ingestAssetObject(input: {
 
       for (const variant of processed.variants) {
         const path = variantPathname(basePath, variant.name);
+        const variantBytes = toOwnedNodeBuffer(variant.buffer);
         if (!(await storage.exists(path))) {
           await storage.put({
             pathname: path,
-            body: variant.buffer,
+            body: variantBytes,
             contentType: variant.mimeType,
             access: "private",
             checksumSha256: variant.checksumSha256,
             allowOverwrite: false,
           });
         }
-        variants[variant.name] = buildVariantRecord(variant.name, path, variant);
+        variants[variant.name] = buildVariantRecord(variant.name, path, {
+          ...variant,
+          buffer: variantBytes,
+        });
       }
     } else if (isVideoMime(mime) || job.identity.mediaKind === "video") {
       assertNoVideoTranscode();
       const meta = collectVideoMetadata({
         mimeType: mime,
-        byteLength: downloaded.byteLength,
+        byteLength: fileBytes.byteLength,
       });
       width = meta.width;
       height = meta.height;
@@ -248,8 +257,8 @@ export async function ingestAssetObject(input: {
       durationSeconds,
       originalMimeType: mime,
       derivedMimeType,
-      checksumSha256: downloaded.checksumSha256,
-      byteLength: downloaded.byteLength,
+      checksumSha256: fileChecksum,
+      byteLength: fileBytes.byteLength,
     };
 
     return {

@@ -1,5 +1,6 @@
 import type { StorageProvider, StorageHeadResult, StoragePutInput } from "./types";
 import type { StoredAssetObject } from "../types";
+import { toOwnedNodeBuffer, isBinaryLike } from "../bytes";
 
 /** In-memory provider for unit tests. Never used in production. */
 export class MemoryStorageProvider implements StorageProvider {
@@ -14,8 +15,8 @@ export class MemoryStorageProvider implements StorageProvider {
       throw new Error(`Object already exists: ${input.pathname}`);
     }
 
-    const body = Buffer.isBuffer(input.body)
-      ? input.body
+    const body = isBinaryLike(input.body)
+      ? toOwnedNodeBuffer(input.body)
       : Buffer.from(String(input.body));
 
     const uploadedAt = new Date().toISOString();

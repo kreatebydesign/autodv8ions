@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import { toOwnedNodeBuffer } from "../bytes";
 import { sha256Buffer } from "../checksum";
 import type { AssetVariantName, AssetVariantRecord } from "../types";
 import {
@@ -30,12 +31,15 @@ export type ImageProcessOutput = {
  * Process an image buffer into aspect-preserving variants.
  * Never mutates/overwrites the caller’s original Buffer.
  * HEIC/HEIF → also produces a web-safe master derivative.
+ *
+ * Sharp always receives an owned Node Buffer (never ArrayBuffer / SharedArrayBuffer).
  */
 export async function processImageBuffer(
-  input: Buffer,
+  input: Buffer | Uint8Array,
   options: { mimeType: string },
 ): Promise<ImageProcessOutput> {
-  const pipeline = sharp(input, { failOn: "none" }).rotate();
+  const ownedInput = toOwnedNodeBuffer(input);
+  const pipeline = sharp(ownedInput, { failOn: "none" }).rotate();
   const meta = await pipeline.metadata();
   const width = meta.width || 0;
   const height = meta.height || 0;
@@ -49,14 +53,16 @@ export async function processImageBuffer(
   let derivedMimeType = options.mimeType;
 
   if (needsHeicConversion) {
-    webSafeOriginal = await sharp(input, { failOn: "none" })
-      .rotate()
-      .webp({ quality: 90 })
-      .toBuffer();
+    webSafeOriginal = toOwnedNodeBuffer(
+      await sharp(ownedInput, { failOn: "none" })
+        .rotate()
+        .webp({ quality: 90 })
+        .toBuffer(),
+    );
     derivedMimeType = DERIVED_IMAGE_MIME;
   }
 
-  const sourceForVariants = webSafeOriginal || input;
+  const sourceForVariants = webSafeOriginal || ownedInput;
   const variants: ImageProcessOutput["variants"] = [];
 
   for (const name of IMAGE_VARIANT_ORDER) {
@@ -72,13 +78,15 @@ export async function processImageBuffer(
       .webp({ quality: name === "thumbnail" ? 75 : 82 })
       .toBuffer({ resolveWithObject: true });
 
+    const variantBuffer = toOwnedNodeBuffer(resized.data);
+
     variants.push({
       name,
-      buffer: resized.data,
+      buffer: variantBuffer,
       width: resized.info.width,
       height: resized.info.height,
       mimeType: DERIVED_IMAGE_MIME,
-      checksumSha256: sha256Buffer(resized.data),
+      checksumSha256: sha256Buffer(variantBuffer),
     });
   }
 

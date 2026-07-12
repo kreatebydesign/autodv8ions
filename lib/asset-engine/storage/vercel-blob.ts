@@ -1,6 +1,7 @@
 import { put, head, del } from "@vercel/blob";
 import type { StorageProvider, StorageHeadResult, StoragePutInput } from "./types";
 import type { StoredAssetObject } from "../types";
+import { toOwnedNodeBuffer, isBinaryLike } from "../bytes";
 import {
   resolveVercelBlobAuthOptions,
   toBlobSdkAuthFields,
@@ -28,7 +29,12 @@ export class VercelBlobStorageProvider implements StorageProvider {
 
     const authFields = await this.authFields();
 
-    const result = await put(input.pathname, input.body, {
+    // Always upload an owned Node Buffer — never SAB-backed views.
+    const body = isBinaryLike(input.body)
+      ? toOwnedNodeBuffer(input.body)
+      : input.body;
+
+    const result = await put(input.pathname, body, {
       access: "private",
       contentType: input.contentType,
       multipart: input.multipart === true,
@@ -40,8 +46,8 @@ export class VercelBlobStorageProvider implements StorageProvider {
     const sizeFromResult =
       typeof (result as unknown as { size?: number }).size === "number"
         ? (result as unknown as { size: number }).size
-        : Buffer.isBuffer(input.body)
-          ? input.body.byteLength
+        : Buffer.isBuffer(body)
+          ? body.byteLength
           : 0;
 
     return {

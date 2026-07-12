@@ -1,6 +1,7 @@
 import type { Readable } from "node:stream";
 import { google } from "googleapis";
 import { getDriveAuthClient } from "@/lib/google/drive";
+import { toOwnedNodeBuffer } from "../bytes";
 import { sha256Readable } from "../checksum";
 import { withTimeout } from "../retry";
 import type { AssetObjectIdentity, DownloadedAssetBytes } from "../types";
@@ -59,7 +60,7 @@ export class GoogleDriveSourceConnector implements SourceConnector {
     );
 
     return {
-      bytes: result.buffer,
+      bytes: toOwnedNodeBuffer(result.buffer),
       byteLength: result.byteLength,
       checksumSha256: result.checksumSha256,
       contentType,

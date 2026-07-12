@@ -1,5 +1,6 @@
 import type { AssetObjectIdentity, DownloadedAssetBytes } from "../types";
 import type { SourceConnector } from "./types";
+import { toOwnedNodeBuffer } from "../bytes";
 import { sha256Buffer } from "../checksum";
 
 /** Test double source connector. */
@@ -22,10 +23,11 @@ export class MemorySourceConnector implements SourceConnector {
     if (obj.buffer.byteLength > options.maxBytes) {
       throw new Error("Asset exceeds maxBytes limit.");
     }
+    const bytes = toOwnedNodeBuffer(obj.buffer);
     return {
-      bytes: obj.buffer,
-      byteLength: obj.buffer.byteLength,
-      checksumSha256: sha256Buffer(obj.buffer),
+      bytes,
+      byteLength: bytes.byteLength,
+      checksumSha256: sha256Buffer(bytes),
       contentType: obj.contentType,
     };
   }

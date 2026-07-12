@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import type { Readable } from "node:stream";
+import { toOwnedNodeBuffer } from "./bytes";
 
 export function sha256Buffer(buffer: Buffer): string {
-  return createHash("sha256").update(buffer).digest("hex");
+  return createHash("sha256").update(toOwnedNodeBuffer(buffer)).digest("hex");
 }
 
 export async function sha256Readable(
@@ -16,7 +17,8 @@ export async function sha256Readable(
   let byteLength = 0;
 
   for await (const chunk of stream) {
-    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    // Always copy — Drive/undici chunks may be SAB-backed Uint8Arrays.
+    const buf = toOwnedNodeBuffer(chunk);
     byteLength += buf.length;
     if (byteLength > options.maxBytes) {
       throw new Error(
@@ -28,10 +30,14 @@ export async function sha256Readable(
     chunks.push(buf);
   }
 
+  const concatenated = Buffer.concat(chunks, byteLength);
+  // Final owned copy so callers never hold concat internals that might share views.
+  const buffer = toOwnedNodeBuffer(concatenated);
+
   return {
     checksumSha256: hash.digest("hex"),
-    byteLength,
-    buffer: Buffer.concat(chunks, byteLength),
+    byteLength: buffer.byteLength,
+    buffer,
   };
 }
 
