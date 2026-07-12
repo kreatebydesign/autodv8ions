@@ -7,12 +7,16 @@ import {
 export const DRIVE_READONLY_SCOPE =
   "https://www.googleapis.com/auth/drive.readonly";
 
+/**
+ * Required for Allowed-audiences WIF (Vercel Global issuer + aud https://vercel.com/{team}).
+ * GCP_AUDIENCE is intentionally NOT required: passing it to getVercelOidcToken()
+ * forces a token exchange that can rewrite iss to https://oidc.vercel.com/{team}.
+ */
 export const REQUIRED_WIF_ENV_VARS = [
   "GCP_PROJECT_NUMBER",
   "GCP_SERVICE_ACCOUNT_EMAIL",
   "GCP_WORKLOAD_IDENTITY_POOL_ID",
   "GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID",
-  "GCP_AUDIENCE",
 ] as const;
 
 export type DriveAuthMode = "wif" | "oauth_legacy" | "none";
@@ -36,7 +40,7 @@ function readEnv(name: string, env: EnvMap = process.env) {
 
 /**
  * STS audience for ExternalAccountClient (Google resource name form).
- * Note: this is distinct from GCP_AUDIENCE used when requesting the Vercel OIDC token.
+ * This is NOT the Vercel OIDC token `aud` claim.
  */
 export function buildWorkloadIdentityAudience(env: EnvMap = process.env): string {
   const projectNumber = readEnv("GCP_PROJECT_NUMBER", env);
@@ -51,6 +55,29 @@ export function buildWorkloadIdentityAudience(env: EnvMap = process.env): string
   }
 
   return `//iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${poolId}/providers/${providerId}`;
+}
+
+/**
+ * Whether to ask @vercel/oidc to exchange the runtime token for a custom audience.
+ *
+ * Allowed-audiences mode (provider accepts https://vercel.com/{team}):
+ *   must use the RAW token — do not exchange.
+ *
+ * Default-audience mode (provider accepts iam.googleapis.com/... audience):
+ *   exchange is required, but the exchanged token may use a team-scoped issuer.
+ *   That only works if the GCP provider issuer matches that exchanged iss.
+ *
+ * For Global issuer + Allowed audiences (current AutoDV8ions setup), returns false.
+ */
+export function shouldExchangeVercelOidcForAudience(
+  gcpAudience: string | null | undefined,
+): boolean {
+  if (!gcpAudience) return false;
+  const trimmed = gcpAudience.trim();
+  // Native Vercel token aud — never exchange for this.
+  if (/^https:\/\/vercel\.com\//i.test(trimmed)) return false;
+  // GCP default-audience URL — exchange only when explicitly configured.
+  return /iam\.googleapis\.com\/projects\//i.test(trimmed);
 }
 
 export function getMissingWifEnvVars(env: EnvMap = process.env): string[] {
@@ -90,6 +117,31 @@ export function getDriveAuthMode(env: EnvMap = process.env): DriveAuthMode {
 }
 
 /**
+ * Obtain the subject token for Google STS.
+ * For Allowed-audiences + Global issuer: raw getVercelOidcToken() with no audience option.
+ */
+export async function getVercelSubjectTokenForDrive(
+  env: EnvMap = process.env,
+): Promise<string> {
+  const gcpAudience = readEnv("GCP_AUDIENCE", env);
+  const exchange = shouldExchangeVercelOidcForAudience(gcpAudience);
+
+  try {
+    if (exchange && gcpAudience) {
+      return await getVercelOidcToken({ audience: gcpAudience });
+    }
+    return await getVercelOidcToken();
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "OIDC token retrieval failed";
+    throw new DriveAuthError(
+      "oidc_token_unavailable",
+      `Unable to obtain Vercel OIDC token. On production this requires OIDC federation. Locally use a linked Vercel project and vercel env pull. (${sanitizeErrorMessage(message)})`,
+    );
+  }
+}
+
+/**
  * Authenticate to Google Drive via Vercel OIDC → GCP Workload Identity Federation.
  * Does not log tokens or credentials.
  */
@@ -104,23 +156,10 @@ export async function getDriveAuthClientViaWif(
     );
   }
 
-  const gcpAudience = readEnv("GCP_AUDIENCE", env)!;
   const serviceAccountEmail = readEnv("GCP_SERVICE_ACCOUNT_EMAIL", env)!;
   const stsAudience = buildWorkloadIdentityAudience(env);
 
-  let oidcToken: string;
-  try {
-    oidcToken = await getVercelOidcToken({ audience: gcpAudience });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "OIDC token retrieval failed";
-    // Keep message high-level; never attach token material.
-    throw new DriveAuthError(
-      "oidc_token_unavailable",
-      `Unable to obtain Vercel OIDC token. On production this requires OIDC federation. Locally use a linked Vercel project and vercel env pull. (${sanitizeErrorMessage(message)})`,
-    );
-  }
-
+  const oidcToken = await getVercelSubjectTokenForDrive(env);
   if (!oidcToken) {
     throw new DriveAuthError(
       "oidc_token_unavailable",
@@ -137,8 +176,8 @@ export async function getDriveAuthClientViaWif(
       token_url: "https://sts.googleapis.com/v1/token",
       service_account_impersonation_url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${serviceAccountEmail}:generateAccessToken`,
       subject_token_supplier: {
-        getSubjectToken: async () =>
-          getVercelOidcToken({ audience: gcpAudience }),
+        // Re-fetch on each STS exchange; do not force audience exchange for Allowed-audiences mode.
+        getSubjectToken: async () => getVercelSubjectTokenForDrive(env),
       },
     });
   } catch (error) {

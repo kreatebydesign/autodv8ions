@@ -9,6 +9,7 @@ import {
   isGoogleDriveOAuthLegacyConfigured,
   isGoogleDriveWifConfigured,
   sanitizeErrorMessage,
+  shouldExchangeVercelOidcForAudience,
 } from "./auth-drive";
 
 const completeWifEnv = {
@@ -17,14 +18,13 @@ const completeWifEnv = {
     "autodv8ions-portfolio-sync@kxd-website-integrations.iam.gserviceaccount.com",
   GCP_WORKLOAD_IDENTITY_POOL_ID: "kxd-vercel",
   GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID: "vercel",
-  GCP_AUDIENCE:
-    "https://iam.googleapis.com/projects/719949077120/locations/global/workloadIdentityPools/kxd-vercel/providers/vercel",
   GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID: "1AZE5ek1GeICb1qYr5pJ6VYXzr-21SAp5",
 };
 
 describe("WIF config detection", () => {
-  it("requires all WIF env vars", () => {
+  it("requires WIF env vars but not GCP_AUDIENCE", () => {
     assert.deepEqual(getMissingWifEnvVars({}), [...REQUIRED_WIF_ENV_VARS]);
+    assert.equal(REQUIRED_WIF_ENV_VARS.includes("GCP_AUDIENCE" as never), false);
     assert.equal(isGoogleDriveWifConfigured({}), false);
     assert.equal(isGoogleDriveWifConfigured(completeWifEnv), true);
   });
@@ -33,6 +33,24 @@ describe("WIF config detection", () => {
     assert.equal(
       buildWorkloadIdentityAudience(completeWifEnv),
       "//iam.googleapis.com/projects/719949077120/locations/global/workloadIdentityPools/kxd-vercel/providers/vercel",
+    );
+  });
+
+  it("does not exchange for Allowed-audiences vercel.com aud", () => {
+    assert.equal(
+      shouldExchangeVercelOidcForAudience("https://vercel.com/kxd"),
+      false,
+    );
+    assert.equal(shouldExchangeVercelOidcForAudience(null), false);
+    assert.equal(shouldExchangeVercelOidcForAudience(undefined), false);
+  });
+
+  it("only exchanges for explicit GCP default-audience URLs", () => {
+    assert.equal(
+      shouldExchangeVercelOidcForAudience(
+        "https://iam.googleapis.com/projects/719949077120/locations/global/workloadIdentityPools/kxd-vercel/providers/vercel",
+      ),
+      true,
     );
   });
 
@@ -68,7 +86,6 @@ describe("WIF config detection", () => {
       GCP_SERVICE_ACCOUNT_EMAIL: "sa@example.com",
       GCP_WORKLOAD_IDENTITY_POOL_ID: "kxd-vercel",
       GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID: "vercel",
-      GCP_AUDIENCE: "https://example",
     };
     assert.equal(hasDriveFolderTarget(env), false);
     assert.equal(getDriveAuthMode(env), "none");

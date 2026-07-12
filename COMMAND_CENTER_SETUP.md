@@ -192,7 +192,9 @@ Vercel OIDC token (GCP_AUDIENCE)
 6. Set Vercel env vars listed above (`GCP_*` + `GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID`)
 7. Enable **OIDC federation** on the Vercel project (Settings → Security)
 
-`GCP_AUDIENCE` must match the provider’s **default audience** URL from Google Cloud (used when calling `getVercelOidcToken({ audience })`).
+`GCP_AUDIENCE` is **optional** and must NOT be passed into `getVercelOidcToken()` when the provider uses **Allowed audiences** (`https://vercel.com/kxd`).
+
+Passing a custom audience triggers `@vercel/oidc` token exchange at `https://oidc.vercel.com/~token`, which can rewrite `iss` to `https://oidc.vercel.com/kxd` and break a Global-issuer provider (`https://oidc.vercel.com`).
 
 ### Auth modes in this app
 
