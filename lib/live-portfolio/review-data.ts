@@ -48,6 +48,7 @@ export type ReviewCardItem = {
 
 export type ReviewDetailItem = ReviewCardItem & {
   serviceType: string;
+  description: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
   media: ReviewMediaSummary[];
@@ -148,7 +149,7 @@ export async function getReviewDetailItem(
   const { data: item, error } = await supabase
     .from("gallery_items")
     .select(
-      "id, slug, vehicle, service_type, work_date, status, published, provisional_vehicle, validation_errors, drive_folder_name, source_month_folder_name, import_scope, shade_percentage, seo_title, seo_description, created_at, updated_at",
+      "id, slug, vehicle, service_type, work_date, status, published, provisional_vehicle, validation_errors, drive_folder_name, source_month_folder_name, import_scope, shade_percentage, description, seo_title, seo_description, created_at, updated_at",
     )
     .eq("id", id)
     .maybeSingle();
@@ -212,6 +213,10 @@ export async function getReviewDetailItem(
     createdAt: item.created_at,
     updatedAt: item.updated_at,
     serviceType: item.service_type,
+    description:
+      "description" in item
+        ? ((item as { description?: string | null }).description ?? null)
+        : null,
     seoTitle: item.seo_title,
     seoDescription: item.seo_description,
     media: rows.map((m) => ({

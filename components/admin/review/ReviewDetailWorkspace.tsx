@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReviewDetailItem } from "@/lib/live-portfolio/review-data";
+import { itemIsReadyForPublish } from "@/lib/live-portfolio/publish-readiness";
 import { formatDate } from "@/lib/utils/format";
 
 type Tab = "edit" | "preview";
@@ -12,6 +14,7 @@ export default function ReviewDetailWorkspace({
 }: {
   item: ReviewDetailItem;
 }) {
+  const router = useRouter();
   const images = useMemo(
     () => item.media.filter((m) => m.mediaType === "image"),
     [item.media],
@@ -30,12 +33,17 @@ export default function ReviewDetailWorkspace({
   const [vehicle, setVehicle] = useState(item.vehicle);
   const [workDate, setWorkDate] = useState(item.workDate || "");
   const [shade, setShade] = useState(item.shadePercentage || "");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(item.description || "");
   const [seoTitle, setSeoTitle] = useState(item.seoTitle || "");
   const [seoDescription, setSeoDescription] = useState(
     item.seoDescription || "",
   );
   const [slug, setSlug] = useState(item.slug);
+  const [published, setPublished] = useState(item.published);
+  const [busy, setBusy] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+
+  const ready = itemIsReadyForPublish(item);
 
   const activeIndex = Math.max(
     0,
@@ -86,6 +94,51 @@ export default function ReviewDetailWorkspace({
       ? `/api/content/media-file/${active.id}?variant=large`
       : null;
 
+  async function runAction(action: "publish" | "unpublish" | "save") {
+    setBusy(true);
+    setStatusMessage("");
+    try {
+      const res = await fetch("/api/content/publish", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          action,
+          fields: {
+            vehicle,
+            workDate: workDate || null,
+            shadePercentage: shade || null,
+            description: description || null,
+            seoTitle: seoTitle || null,
+            seoDescription: seoDescription || null,
+            slug,
+            featuredMediaId: featuredId,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatusMessage(data.error || "Unable to update publish state.");
+        return;
+      }
+
+      setPublished(Boolean(data.published));
+      if (action === "publish") {
+        setStatusMessage("Published. Live on /recent-work.");
+      } else if (action === "unpublish") {
+        setStatusMessage("Unpublished. Hidden from the public site.");
+      } else {
+        setStatusMessage("Draft fields saved.");
+      }
+      router.refresh();
+    } catch {
+      setStatusMessage("Network error while updating publish state.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="review-detail">
       <div className="review-detail-top">
@@ -96,13 +149,30 @@ export default function ReviewDetailWorkspace({
           >
             ← Review Workspace
           </Link>
-          <h1 className="mt-3 text-[clamp(1.75rem,3vw,2.75rem)] font-light tracking-tight">
-            {item.vehicle}
-          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <h1 className="text-[clamp(1.75rem,3vw,2.75rem)] font-light tracking-tight">
+              {item.vehicle}
+            </h1>
+            {published && (
+              <span className="review-badge review-badge-ready">Published</span>
+            )}
+          </div>
           <p className="mt-2 text-sm text-[var(--dv8-muted)]">
             {item.serviceType} ·{" "}
             {item.workDate ? formatDate(item.workDate) : "Date needs review"}
             {item.provisionalVehicle ? " · Provisional title" : ""}
+            {published ? (
+              <>
+                {" · "}
+                <Link
+                  href={`/recent-work/${slug}`}
+                  className="text-white/80 underline-offset-4 hover:underline"
+                  target="_blank"
+                >
+                  View live
+                </Link>
+              </>
+            ) : null}
           </p>
         </div>
         <div className="review-detail-tabs">
@@ -216,7 +286,8 @@ export default function ReviewDetailWorkspace({
           <aside className="review-meta-panel">
             <p className="review-panel-kicker">Editorial fields</p>
             <p className="mb-5 text-sm text-[var(--dv8-muted)]">
-              Presentation-only for Phase 3A. Saving and publishing arrive later.
+              Publishing updates review state only. Drive, Blob, and Asset
+              Engine stay untouched.
             </p>
 
             <label className="admin-label">Vehicle</label>
@@ -297,24 +368,52 @@ export default function ReviewDetailWorkspace({
               )}
             </div>
 
+            {statusMessage && (
+              <p className="mt-6 text-sm text-[var(--dv8-muted)]">
+                {statusMessage}
+              </p>
+            )}
+
             <div className="mt-8 flex flex-wrap gap-3">
               <button
                 type="button"
                 className="admin-btn"
-                disabled
-                title="Later phase"
+                disabled={busy}
+                onClick={() => runAction("save")}
               >
-                Save draft
+                {busy ? "Saving…" : "Save draft"}
               </button>
-              <button
-                type="button"
-                className="admin-btn admin-btn-primary"
-                disabled
-                title="Later phase"
-              >
-                Publish
-              </button>
+              {published ? (
+                <button
+                  type="button"
+                  className="admin-btn"
+                  disabled={busy}
+                  onClick={() => runAction("unpublish")}
+                >
+                  Unpublish
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="admin-btn admin-btn-primary"
+                  disabled={busy || !ready}
+                  title={
+                    ready
+                      ? "Publish to the public portfolio"
+                      : "Requires ready-for-review media with no pending or failed files"
+                  }
+                  onClick={() => runAction("publish")}
+                >
+                  Publish
+                </button>
+              )}
             </div>
+            {!published && !ready && (
+              <p className="mt-3 text-xs text-[var(--dv8-muted)]">
+                Publish unlocks when Media Processing finishes with at least one
+                ready image and no pending or failed files.
+              </p>
+            )}
           </aside>
         </div>
       )}

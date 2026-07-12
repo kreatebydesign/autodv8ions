@@ -1,55 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import ScrollIndicator from "./components/ScrollIndicator";
+import { PortfolioCard } from "@/components/portfolio/PortfolioCard";
+import { listPublishedPortfolio } from "@/lib/live-portfolio/public-portfolio";
 
 const LOGO = "/images/logos/dv8-logo.png";
 
 const HERO_IMAGE =
   "https://static.wixstatic.com/media/24f460_4d7dd7a8905842738274a4951ce65994~mv2.jpg/v1/fill/w_1600,h_894,q_90,enc_avif,quality_auto/24f460_4d7dd7a8905842738274a4951ce65994~mv2.jpg";
-
-const GALLERY = [
-  {
-    title: "Tesla Model Y",
-    category: "Full Tint · Clean Finish",
-    image:
-      "https://static.wixstatic.com/media/24f460_356c10ff347148ab9335e8d86ada4040~mv2.jpg/v1/fit/w_960,h_1360,q_90,enc_avif,quality_auto/24f460_356c10ff347148ab9335e8d86ada4040~mv2.jpg",
-    span: "lg:col-span-7 lg:row-span-2",
-    aspect: "aspect-[4/5] lg:aspect-auto lg:min-h-[540px]",
-    featured: true,
-  },
-  {
-    title: "The Bay",
-    category: "Studio · Craft",
-    image:
-      "https://static.wixstatic.com/media/24f460_7bd7d949a99043c2b7fbbf6e31250d33~mv2.jpg/v1/fit/w_721,h_1021,q_90,enc_avif,quality_auto/24f460_7bd7d949a99043c2b7fbbf6e31250d33~mv2.jpg",
-    span: "lg:col-span-5 lg:col-start-8",
-    aspect: "aspect-[3/4] lg:aspect-[16/11]",
-  },
-  {
-    title: "Cadillac Escalade",
-    category: "Security · Lighting",
-    image:
-      "https://static.wixstatic.com/media/24f460_52e1c282a6c94f66ab15dfd094c3acd3~mv2.jpg/v1/fit/w_960,h_1360,q_90,enc_avif,quality_auto/24f460_52e1c282a6c94f66ab15dfd094c3acd3~mv2.jpg",
-    span: "lg:col-span-5 lg:col-start-8 lg:-mt-10",
-    aspect: "aspect-[3/4] lg:aspect-[4/5]",
-  },
-  {
-    title: "Dodge Charger",
-    category: "Custom Styling",
-    image:
-      "https://static.wixstatic.com/media/24f460_c6417f6cbae149f6b406ef5202b3dd2e~mv2.jpg/v1/fit/w_1440,h_1019,q_90,enc_avif,quality_auto/24f460_c6417f6cbae149f6b406ef5202b3dd2e~mv2.jpg",
-    span: "lg:col-span-7",
-    aspect: "aspect-[16/10]",
-  },
-  {
-    title: "Ford Bronco",
-    category: "Remote Start · Tint",
-    image:
-      "https://static.wixstatic.com/media/24f460_309341773f9246c0bbf17f3c3cd5c9ca~mv2.jpg/v1/fit/w_1440,h_1019,q_90,enc_avif,quality_auto/24f460_309341773f9246c0bbf17f3c3cd5c9ca~mv2.jpg",
-    span: "lg:col-span-5 lg:col-start-8 lg:-mt-6",
-    aspect: "aspect-[16/10] lg:aspect-[16/11]",
-  },
-];
 
 const SERVICES = [
   {
@@ -74,7 +32,12 @@ const SERVICES = [
   },
 ];
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const published = await listPublishedPortfolio(7);
+  const [featured, ...rest] = published;
+
   return (
     <>
       <ScrollIndicator />
@@ -102,6 +65,13 @@ export default function Home() {
                 {item}
               </a>
             ))}
+
+            <Link
+              href="/recent-work"
+              className="label-mono link-underline text-white/50 hover:text-white"
+            >
+              Recent Work
+            </Link>
 
             <Link
               href="/tint-quote"
@@ -275,64 +245,50 @@ export default function Home() {
           className="atmosphere atmosphere-dark relative border-t border-white/[0.04] py-20 sm:py-28 lg:py-36"
         >
           <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-            <div className="mb-12 flex flex-col gap-4 sm:mb-20 lg:flex-row lg:items-end lg:justify-between">
+            <div className="mb-12 flex flex-col gap-4 sm:mb-16 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <span className="label-mono mb-4 block">Featured Builds</span>
+                <span className="label-mono mb-4 block">Recent Tint Work</span>
 
                 <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-light tracking-[-0.02em]">
-                  Real builds.
+                  Published installs.
                   <br className="hidden sm:block" />
-                  <span className="text-white/40"> Real results.</span>
+                  <span className="text-white/40"> Fresh from review.</span>
                 </h2>
               </div>
 
-              <p className="max-w-sm text-sm leading-relaxed text-white/35">
-                A selection of recent work from the bay — daily upgrades, clean
-                installs, and automotive craftsmanship with presence.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12 lg:gap-7">
-              {GALLERY.map((item) => (
-                <article
-                  key={item.title}
-                  className={`group relative overflow-hidden ${item.span}`}
+              <div className="flex flex-col items-start gap-4 lg:items-end">
+                <p className="max-w-sm text-sm leading-relaxed text-white/35">
+                  Newest published window tint projects from the Command Center
+                  review pipeline.
+                </p>
+                <Link
+                  href="/recent-work"
+                  className="label-mono text-white/50 transition-colors hover:text-white"
                 >
-                  <div
-                    className={`image-zoom relative ${item.aspect} w-full bg-neutral-900 transition-all duration-700 group-hover:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7),0_0_0_1px_rgba(201,0,0,0.08)]`}
-                  >
-                    <Image
-                      src={item.image}
-                      alt={item.title}
-                      fill
-                      className="zoom-target object-cover"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-
-                    <div className="image-overlay" />
-                    <div className="image-overlay-subtle opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
-
-                    <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-6 lg:p-8">
-                      {item.featured && (
-                        <span className="label-mono mb-3 block text-[var(--accent)] opacity-70">
-                          Featured Build
-                        </span>
-                      )}
-
-                      <h3 className="text-lg font-light tracking-tight text-white sm:text-xl lg:text-2xl">
-                        {item.title}
-                      </h3>
-
-                      <p className="mt-1 text-xs tracking-wide text-white/45 sm:text-sm">
-                        {item.category}
-                      </p>
-                    </div>
-
-                    <div className="absolute left-0 top-0 h-px w-0 bg-[var(--accent)] opacity-50 transition-all duration-700 group-hover:w-full" />
-                  </div>
-                </article>
-              ))}
+                  View all projects →
+                </Link>
+              </div>
             </div>
+
+            {published.length === 0 ? (
+              <div className="portfolio-empty">
+                <p>New tint work will appear here after publishing.</p>
+                <Link href="/tint-quote" className="portfolio-inline-cta mt-6">
+                  Get a Tint Quote →
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-7">
+                {featured && <PortfolioCard item={featured} featured />}
+                {rest.length > 0 && (
+                  <div className="portfolio-grid">
+                    {rest.map((item) => (
+                      <PortfolioCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
@@ -411,6 +367,13 @@ export default function Home() {
                 >
                   Facebook
                 </a>
+
+                <Link
+                  href="/recent-work"
+                  className="label-mono link-underline text-white/40"
+                >
+                  Recent Work
+                </Link>
               </div>
 
               <a

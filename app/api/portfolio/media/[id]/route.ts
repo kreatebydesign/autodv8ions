@@ -1,20 +1,16 @@
 import { NextResponse } from "next/server";
-import { requireAdminSession } from "@/lib/auth/require-admin";
 import type { ReviewMediaVariantName } from "@/lib/live-portfolio/review-data";
 import { streamGalleryMediaBlob } from "@/lib/live-portfolio/serve-blob-media";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 /**
- * Admin-only private media proxy for Review Workspace presentation.
- * Does not publish. Does not alter Asset Engine processing.
+ * Public media proxy — only serves media belonging to published gallery items.
+ * Does not alter Blob storage or Asset Engine processing.
  */
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const { error } = await requireAdminSession();
-  if (error) return error;
-
   const { id } = await context.params;
   const { searchParams } = new URL(request.url);
   const variant = (searchParams.get("variant") ||
@@ -30,7 +26,9 @@ export async function GET(
 
   const { data: media, error: mediaError } = await supabase
     .from("gallery_media")
-    .select("id, blob_key, storage_pathname, variants, mime_type, media_type")
+    .select(
+      "id, gallery_item_id, blob_key, storage_pathname, variants, mime_type, media_type",
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -38,5 +36,15 @@ export async function GET(
     return NextResponse.json({ error: "Media not found." }, { status: 404 });
   }
 
-  return streamGalleryMediaBlob(media, variant, "private, max-age=300");
+  const { data: item } = await supabase
+    .from("gallery_items")
+    .select("id, published")
+    .eq("id", media.gallery_item_id)
+    .maybeSingle();
+
+  if (!item?.published) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
+  return streamGalleryMediaBlob(media, variant, "public, max-age=3600, stale-while-revalidate=86400");
 }

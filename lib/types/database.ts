@@ -96,6 +96,7 @@ export type GalleryItem = {
   content_upload_id: string | null;
   seo_title: string | null;
   seo_description: string | null;
+  description: string | null;
   published: boolean;
   status: GalleryItemStatus;
   shade_percentage: string | null;
