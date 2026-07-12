@@ -272,6 +272,61 @@ Still prohibited after Phase 1C:
 - Auto-publish / homepage wiring
 - Changing Sync button behavior
 
+### Phase 1D — Controlled pending-only database import (first write boundary)
+
+In Command Center → **Content** → **Import Recent as Pending**.
+
+This is the **first phase allowed to write** to the database for the Live Portfolio Engine.
+
+**Scope**
+- Creates `gallery_items` as **pending only** (`status=pending`, `published=false`)
+- Creates `gallery_media` **metadata only** (no file bytes)
+- Recent-first batch only (does **not** import all Drive jobs in one run)
+
+**Default / hard batch limits**
+- Newest month folders first
+- Max **3** months per run
+- Max **60** gallery items per run
+- Max **150** media records per run
+
+**Request**
+- `POST /api/content/drive-import-pending`
+- Body must include `{ "confirmPendingImport": true }`
+- Optional: `maxMonths`, `maxItems`, `maxMedia` (clamped to hard caps above)
+- Admin session required
+- GET is rejected (`405`) — no GET mutations
+
+**Pending-only guarantees**
+- No media downloads
+- No Vercel Blob uploads
+- No public media URLs / `storage_url`
+- No publishing / homepage changes
+- No automatic follow-up sync
+- Does not change Sync Recent Tint Jobs / Historical Backfill behavior
+- Does not invent customer PII, SEO copy, tint %, or captions
+
+**Idempotency**
+- Gallery items match on `drive_folder_id` (unique)
+- Gallery media match on `drive_file_id`
+- Rerunning the same batch returns created/matched counts and must not duplicate rows
+- Human-edited / locked items (`provisional_vehicle=false` or approved/rejected/archived) are matched and **not overwritten**
+
+**Schema verification**
+- Before writes, verifies Phase 0 migration `003_live_portfolio_foundations.sql` fields/tables exist
+- Write mode **fails closed** if `gallery_media` (or required columns) are missing — no silent empty-media fallback
+
+**Transaction / recovery**
+- Production path uses **per-job compensating rollback**: if media inserts fail after a new item insert, that gallery item is deleted (cascade) and counted as rolled back
+- Unique Drive IDs make partial runs recoverable by re-running the same import
+- To roll back a whole accidental batch: delete pending `gallery_items` created with `import_scope='recent'` for the affected Drive folder IDs (media cascades)
+
+**Prohibited in Phase 1D**
+- Downloading Drive binaries
+- Blob uploads
+- Publishing / approving
+- Homepage gallery wiring
+- Changing tint quote, jobs, calendar, or legacy Sync flows
+
 ### Sync behavior (unchanged from Phase 0; not part of auth/discovery/plan verification)
 
 Real production structure:

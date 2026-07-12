@@ -19,6 +19,7 @@ export default function ContentClient({
   const [checking, setChecking] = useState(false);
   const [discovering, setDiscovering] = useState(false);
   const [planning, setPlanning] = useState(false);
+  const [importingPending, setImportingPending] = useState(false);
 
   async function checkDriveConnection() {
     setChecking(true);
@@ -157,6 +158,65 @@ export default function ContentClient({
     }
   }
 
+  async function importRecentAsPending() {
+    const confirmed = window.confirm(
+      [
+        "Import Recent as Pending",
+        "",
+        "This will CREATE database records for up to 3 newest months (max 60 jobs / 150 media).",
+        "",
+        "• Gallery items will be created as pending only",
+        "• Nothing will publish to the website",
+        "• No media files will be downloaded",
+        "• No Blob uploads or public URLs",
+        "",
+        "Continue?",
+      ].join("\n"),
+    );
+
+    if (!confirmed) {
+      setStatus("Pending import cancelled — no records were written.");
+      return;
+    }
+
+    setImportingPending(true);
+    setStatus("");
+    try {
+      const res = await fetch("/api/content/drive-import-pending", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          confirmPendingImport: true,
+          maxMonths: 3,
+          maxItems: 60,
+          maxMedia: 150,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        const detail =
+          data.error?.message || data.error || "Pending import failed.";
+        setStatus(`Pending import failed: ${detail}`);
+        return;
+      }
+
+      const remaining =
+        data.batchLimits?.truncatedByLimits
+          ? ` Remaining estimate: ~${data.batchLimits.remainingItemsEstimate ?? "?"} jobs / ~${data.batchLimits.remainingMediaEstimate ?? "?"} media across ~${data.batchLimits.remainingMonthsEstimate ?? "?"} months.`
+          : "";
+
+      setStatus(
+        `Pending import complete (writesPerformed=${String(data.writesPerformed)}): created items ${data.counts?.createdGalleryItems ?? 0} · matched items ${data.counts?.matchedGalleryItems ?? 0} · created media ${data.counts?.createdMedia ?? 0} · matched media ${data.counts?.matchedMedia ?? 0} · skips ${data.counts?.skipped ?? 0} · conflicts ${data.counts?.conflicts ?? 0} · warnings ${data.counts?.warnings ?? 0}. Batch: ${data.batchLimits?.monthsSelected ?? 0} months / ${data.batchLimits?.itemsSelected ?? 0} items / ${data.batchLimits?.mediaSelected ?? 0} media.${remaining} Nothing was published; no media downloaded. Refresh the page to reload the review table.`,
+      );
+    } catch {
+      setStatus("Pending import failed: network or server error.");
+    } finally {
+      setImportingPending(false);
+    }
+  }
+
   async function syncDrive(mode?: string) {
     setLoading(true);
     setStatus("");
@@ -181,7 +241,8 @@ export default function ContentClient({
     setItems(data.items || []);
   }
 
-  const busy = loading || checking || discovering || planning;
+  const busy =
+    loading || checking || discovering || planning || importingPending;
 
   return (
     <div className="space-y-6">
@@ -237,6 +298,25 @@ export default function ContentClient({
           title="Explicit historical backfill — still pending review, never auto-published"
         >
           Historical Backfill (Pending Only)
+        </button>
+      </div>
+
+      <div className="admin-panel space-y-3 px-4 py-4">
+        <div className="text-sm font-medium text-[var(--dv8-ink)]">
+          Phase 1D — Controlled pending import
+        </div>
+        <p className="text-sm text-[var(--dv8-muted)]">
+          Creates pending gallery items and media metadata for the newest month
+          folders only (max 3 months / 60 jobs / 150 media). Does not publish,
+          download files, or upload to Blob. Separate from Sync buttons above.
+        </p>
+        <button
+          type="button"
+          className="admin-btn"
+          disabled={busy || !connected}
+          onClick={importRecentAsPending}
+        >
+          {importingPending ? "Importing..." : "Import Recent as Pending"}
         </button>
       </div>
 
