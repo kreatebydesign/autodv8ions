@@ -131,6 +131,25 @@ export type GalleryMedia = {
   orientation: string | null;
   validation_status: MediaValidationStatus;
   rejected_reason: string | null;
+  processing_status?:
+    | "pending_download"
+    | "downloaded"
+    | "processed"
+    | "ready_for_review"
+    | "failed";
+  processing_error?: string | null;
+  processing_attempts?: number;
+  processed_at?: string | null;
+  blob_key?: string | null;
+  blob_provider?: string | null;
+  storage_pathname?: string | null;
+  original_mime_type?: string | null;
+  derived_mime_type?: string | null;
+  duration_seconds?: number | null;
+  variants?: Record<string, unknown>;
+  uploaded_to_storage_at?: string | null;
+  source_connector?: string | null;
+  source_object_id?: string | null;
   created_at: string;
   updated_at: string;
 };

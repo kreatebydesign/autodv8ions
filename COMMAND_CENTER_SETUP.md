@@ -132,8 +132,9 @@ GOOGLE_DRIVE_UPLOADS_FOLDER_ID=
 
 ### Live Portfolio sync options (optional)
 ```
-BLOB_READ_WRITE_TOKEN=                   # Phase 1B+ storage — not used for auth
-CRON_SECRET=                             # future cron — not used for auth
+BLOB_READ_WRITE_TOKEN=                   # Phase 2A private Blob (required for media processing)
+CRON_SECRET=                             # future cron — not used yet
+ASSET_STORAGE_PROVIDER=                  # optional: memory (tests) | default vercel_blob
 PORTFOLIO_SYNC_START_DATE=               # optional YYYY-MM-DD
 PORTFOLIO_SYNC_END_DATE=                 # optional YYYY-MM-DD
 PORTFOLIO_SYNC_MAX_FOLDERS=              # optional, default 25
@@ -326,6 +327,51 @@ This is the **first phase allowed to write** to the database for the Live Portfo
 - Publishing / approving
 - Homepage gallery wiring
 - Changing tint quote, jobs, calendar, or legacy Sync flows
+
+### Phase 2A — Media ingestion foundation (KXD Asset Engine)
+
+See also: [`docs/KXD_ASSET_ENGINE.md`](./docs/KXD_ASSET_ENGINE.md).
+
+In Command Center → **Media Processing**.
+
+This is the **first phase allowed to download media** and write private Blob objects.
+
+**Architecture**
+- Reusable engine: `lib/asset-engine/` (providers, connectors, pipeline)
+- AutoDV8ions adapter: `lib/live-portfolio/media-process.ts`
+- Storage: Vercel Blob **private** only (`BLOB_READ_WRITE_TOKEN`)
+- Source: Google Drive read-only (WIF)
+
+**Apply migration first**
+- `supabase/migrations/004_asset_engine_media_ingestion.sql`
+
+**Processing states**
+`pending_download` → `downloaded` → `processed` → `ready_for_review` (or `failed`)
+
+**What it stores**
+- Original image/video (private blob key / pathname)
+- Image variants: thumbnail, small, medium, large (aspect-preserving WebP)
+- HEIC/HEIF: preserve original + web-safe derived master
+- Video: original only (no transcode); duration hooks reserved
+- Checksum (sha256), bytes, mime, dimensions when available
+
+**Request**
+- `POST /api/content/media-process`
+- Body: `{ "confirmMediaProcess": true, "maxItems": 5 }`
+- Optional: `mediaIds`, `retryFailed: true`
+- Admin only; GET returns queue status
+
+**Limits**
+- Default **5** files / run (hard max **10**)
+- Max image **40 MB**, max video **200 MB**
+- Download timeout **90 s**, up to **3** retries
+
+**Guarantees**
+- No public URLs (`storage_url` stays null)
+- No publishing / homepage changes
+- No Drive original deletion
+- Idempotent: already `ready_for_review` is skipped; existing blob pathnames are not duplicated
+- Sync buttons unchanged
 
 ### Sync behavior (unchanged from Phase 0; not part of auth/discovery/plan verification)
 

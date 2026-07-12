@@ -8,22 +8,25 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test lib/live-portfolio/parse-drive-folder.test.ts lib/live-portfolio/discovery.test.ts lib/live-portfolio/import-plan.test.ts lib/live-portfolio/pending-import.test.ts lib/google/auth-drive.test.ts lib/google/drive-import-pending.test.ts"
+    "test": "node --import tsx --test lib/live-portfolio/parse-drive-folder.test.ts lib/live-portfolio/discovery.test.ts lib/live-portfolio/import-plan.test.ts lib/live-portfolio/pending-import.test.ts lib/google/auth-drive.test.ts lib/google/drive-import-pending.test.ts lib/asset-engine/asset-engine.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
+    "@vercel/blob": "^2.6.1",
     "@vercel/oidc": "^3.8.0",
     "googleapis": "^173.0.0",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "resend": "^6.12.4"
+    "resend": "^6.12.4",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sharp": "^0.31.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
