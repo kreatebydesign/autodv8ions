@@ -1,8 +1,12 @@
 import ContentClient from "@/components/admin/ContentClient";
-import { isGoogleDriveConfigured, listContentUploadsFromDb } from "@/lib/google/drive";
+import {
+  isGoogleDriveConfigured,
+  listPortfolioItemsFromDb,
+} from "@/lib/google/drive";
+import type { PortfolioListItem } from "@/lib/types/database";
 
 export default async function AdminContentPage() {
-  const uploads = await listContentUploadsFromDb();
+  const items = (await listPortfolioItemsFromDb()) as PortfolioListItem[];
   const connected = isGoogleDriveConfigured();
 
   return (
@@ -13,14 +17,19 @@ export default async function AdminContentPage() {
         </p>
         <h1 className="mt-2 text-3xl font-light tracking-tight">Content</h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--dv8-muted)]">
-          Daily uploads from Google Drive appear here automatically after sync.
-          Use generated captions to speed up social posting.
+          Sync pulls Tint Jobs from Google Drive for review only. Nothing is
+          published to the website until a later approval step. Vehicle names
+          and dates from folder names are provisional.
         </p>
       </div>
       <ContentClient
-        initialUploads={uploads}
+        initialItems={items}
         connected={connected}
-        message={connected ? null : "Google Drive is not connected yet."}
+        message={
+          connected
+            ? "Sync imports content for review and does not publish it."
+            : "Google Drive is not connected yet."
+        }
       />
     </div>
   );

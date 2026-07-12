@@ -112,10 +112,30 @@ GOOGLE_REFRESH_TOKEN=
 GOOGLE_CALENDAR_ID=     # sales@autodv8ions.com calendar ID
 ```
 
-### Google Drive (optional)
+### Google Drive (optional — Live Portfolio Phase 0)
 ```
-GOOGLE_DRIVE_UPLOADS_FOLDER_ID=   # ID of 05-Daily-Uploads folder
+GOOGLE_DRIVE_UPLOADS_FOLDER_ID=          # legacy / vault root fallback
+GOOGLE_DRIVE_CONTENT_VAULT_FOLDER_ID=    # AutoDV8ions Content Vault (Main Shared ) — future
+GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID=        # preferred: direct Tint Jobs folder id
 ```
+
+### Live Portfolio — future only (not connected in Phase 0)
+```
+GOOGLE_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
+BLOB_READ_WRITE_TOKEN=
+CRON_SECRET=
+PORTFOLIO_SYNC_START_DATE=               # optional YYYY-MM-DD
+PORTFOLIO_SYNC_END_DATE=                 # optional YYYY-MM-DD
+PORTFOLIO_SYNC_MAX_FOLDERS=              # optional, default 25
+PORTFOLIO_SYNC_MODE=                     # current-and-previous-month | current-month-only | historical-backfill | date-range
+```
+
+Preferred future service-account share (narrowest workable path):
+
+`AutoDV8ions Content Vault (Main Shared ) → UPLOAD HERE - RAW CONTENT → Tint Jobs`
+
+Or share `Tint Jobs` directly via `GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID`.
 
 ---
 
@@ -138,34 +158,43 @@ Jobs still work. Manual calendar workflow unchanged.
 
 ---
 
-## 6. Google Drive Integration Setup
+## 6. Google Drive Integration Setup (Live Portfolio — Tint Jobs)
 
-1. In the same Google Cloud project, enable **Google Drive API**
-2. Reuse the same OAuth client + refresh token (add Drive scope):
-   - `https://www.googleapis.com/auth/drive.readonly`
-3. Open Google Drive → `05-Daily-Uploads`
-4. Copy the folder ID from the URL
-5. Set `GOOGLE_DRIVE_UPLOADS_FOLDER_ID`
+Real production structure:
 
-Expected folder structure:
 ```
-05-Daily-Uploads/
-├── Tint-Jobs/
-├── Security-Installs/
-├── Remote-Starters/
-├── Custom-Mods/
-├── Audio/
-└── Other/
+AutoDV8ions Content Vault (Main Shared )
+├── ARCHIVE                         ← ignored
+├── Creative Assets                 ← ignored
+├── EDITED / FINAL                  ← ignored
+└── UPLOAD HERE - RAW CONTENT
+    ├── Audio Installs              ← ignored
+    ├── Other                       ← ignored
+    ├── Security Installs           ← ignored
+    └── Tint Jobs                   ← ONLY portfolio source
+        ├── 2026-07 JULY
+        │   ├── 26 ZR2
+        │   └── 15 Jetta
+        └── ...
 ```
 
-Lisa continues uploading daily. In Command Center → **Content**, click **Sync Google Drive**.
+1. Enable **Google Drive API** in Google Cloud
+2. Keep existing OAuth vars for Calendar; Drive uses the same refresh token for Phase 0
+3. Prefer setting `GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID` to the Tint Jobs folder
+4. Or set vault/root id and let sync navigate to `UPLOAD HERE - RAW CONTENT` → `Tint Jobs`
 
-Sync will:
-- Mirror folders into `content_uploads`
-- Auto-generate gallery entries in `gallery_items`
-- Create SEO pages at `/recent-work/[slug]`
+**Sync behavior (Phase 0):**
+- Imports Tint Jobs only
+- Creates/updates `gallery_items` as `status=pending`, `published=false`
+- Inventories media into `gallery_media` (metadata only — no downloads, no public Drive URLs)
+- Does **not** auto-approve or auto-publish
+- Does **not** invent SEO copy, captions, tint %, years, or marketing claims
+- Default range: current month + previous month, max 25 folders, newest first
+- Historical backfill is an explicit admin action and still lands as pending
 
-No approval workflow required.
+Folder naming:
+- Parent `2026-07 JULY` + child `26 ZR2` → provisional `work_date=2026-07-26`, `vehicle=ZR2`
+- `2011 F250` / `Corvette` / ambiguous names → provisional vehicle preserved; date may be null; validation warnings recorded
 
 ---
 

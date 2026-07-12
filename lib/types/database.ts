@@ -1,4 +1,11 @@
 import type { JobStatus, ServiceType } from "@/lib/constants/jobs";
+import type {
+  GalleryItemStatus,
+  ImportScope,
+  MediaType,
+  MediaValidationStatus,
+  ValidationWarning,
+} from "@/lib/live-portfolio/types";
 
 export type Customer = {
   id: string;
@@ -90,5 +97,62 @@ export type GalleryItem = {
   seo_title: string | null;
   seo_description: string | null;
   published: boolean;
+  status: GalleryItemStatus;
+  shade_percentage: string | null;
+  drive_folder_id: string | null;
+  drive_parent_folder_id: string | null;
+  drive_folder_name: string | null;
+  source_month_folder_name: string | null;
+  provisional_vehicle: boolean;
+  validation_errors: ValidationWarning[];
+  approved_at: string | null;
+  approved_by: string | null;
+  import_scope: ImportScope | null;
   created_at: string;
+  updated_at: string;
+};
+
+export type GalleryMedia = {
+  id: string;
+  gallery_item_id: string;
+  drive_file_id: string | null;
+  drive_file_name: string;
+  drive_modified_at: string | null;
+  drive_created_at: string | null;
+  storage_url: string | null;
+  mime_type: string;
+  media_type: MediaType;
+  width: number | null;
+  height: number | null;
+  bytes: number | null;
+  content_hash: string | null;
+  sort_order: number;
+  is_featured: boolean;
+  orientation: string | null;
+  validation_status: MediaValidationStatus;
+  rejected_reason: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PortfolioListItem = {
+  id: string;
+  slug: string;
+  vehicle: string;
+  service_type: string;
+  work_date: string | null;
+  status: GalleryItemStatus;
+  published: boolean;
+  provisional_vehicle: boolean;
+  validation_errors: ValidationWarning[] | unknown;
+  drive_folder_id: string | null;
+  drive_folder_name: string | null;
+  source_month_folder_name: string | null;
+  import_scope: ImportScope | null;
+  shade_percentage: string | null;
+  updated_at?: string;
+  created_at?: string;
+  image_count: number;
+  video_count: number;
+  warning_count: number;
 };
