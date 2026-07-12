@@ -20,9 +20,9 @@ export default async function AdminContentPage() {
         </p>
         <h1 className="mt-2 text-3xl font-light tracking-tight">Content</h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--dv8-muted)]">
-          Sync pulls Tint Jobs from Google Drive for review only. Nothing is
-          published to the website until a later approval step. Vehicle names
-          and dates from folder names are provisional.
+          Drive discovery, sync, and pending import live here. Open Review
+          Workspace to edit and preview galleries. Nothing publishes until a
+          later approval step.
         </p>
       </div>
       <ContentClient

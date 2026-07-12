@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { PortfolioListItem } from "@/lib/types/database";
-import { formatDate } from "@/lib/utils/format";
 
 export default function ContentClient({
   initialItems,
@@ -211,7 +211,7 @@ export default function ContentClient({
         `Pending import complete (writesPerformed=${String(data.writesPerformed)}): created items ${data.counts?.createdGalleryItems ?? 0} · matched items ${data.counts?.matchedGalleryItems ?? 0} · created media ${data.counts?.createdMedia ?? 0} · matched media ${data.counts?.matchedMedia ?? 0} · skips ${data.counts?.skipped ?? 0} · conflicts ${data.counts?.conflicts ?? 0} · warnings ${data.counts?.warnings ?? 0}. Batch: ${data.batchLimits?.monthsSelected ?? 0} months / ${data.batchLimits?.itemsSelected ?? 0} items / ${data.batchLimits?.mediaSelected ?? 0} media.${remaining} Nothing was published; no media downloaded.`,
       );
 
-      // Reload review table from live gallery_items (do not rely on static RSC payload).
+      // Refresh portfolio count from live gallery_items (do not rely on static RSC payload).
       try {
         const listRes = await fetch("/api/content", { credentials: "include" });
         const listData = await listRes.json();
@@ -219,7 +219,7 @@ export default function ContentClient({
           setItems(listData.items);
         }
       } catch {
-        // Status already shows import succeeded; table refresh is best-effort.
+        // Status already shows import succeeded; list refresh is best-effort.
       }
     } catch {
       setStatus("Pending import failed: network or server error.");
@@ -337,78 +337,26 @@ export default function ContentClient({
         </div>
       )}
 
-      <div className="admin-panel overflow-x-auto">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Status</th>
-              <th>Vehicle</th>
-              <th>Work Date</th>
-              <th>Source Folder</th>
-              <th>Month</th>
-              <th>Images</th>
-              <th>Videos</th>
-              <th>Warnings</th>
-              <th>Scope</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="text-[var(--dv8-muted)]">
-                  No portfolio items yet. Run a sync to import Tint Jobs for review.
-                </td>
-              </tr>
-            ) : (
-              items.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <span className="uppercase tracking-[0.12em] text-xs">
-                      {item.status}
-                    </span>
-                    {item.provisional_vehicle && item.status === "pending" ? (
-                      <span className="mt-1 block text-[11px] text-[var(--dv8-muted)]">
-                        Provisional
-                      </span>
-                    ) : null}
-                  </td>
-                  <td>
-                    {item.vehicle || "—"}
-                    {item.provisional_vehicle ? (
-                      <span className="mt-1 block text-[11px] text-[var(--dv8-muted)]">
-                        Confirm before approval
-                      </span>
-                    ) : null}
-                  </td>
-                  <td>
-                    {item.work_date ? formatDate(item.work_date) : "—"}
-                    {!item.work_date ? (
-                      <span className="mt-1 block text-[11px] text-[var(--dv8-muted)]">
-                        Needs review
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="text-sm text-[var(--dv8-muted)]">
-                    {item.drive_folder_name || "—"}
-                  </td>
-                  <td className="text-sm text-[var(--dv8-muted)]">
-                    {item.source_month_folder_name || "—"}
-                  </td>
-                  <td>{item.image_count}</td>
-                  <td>{item.video_count}</td>
-                  <td>{item.warning_count}</td>
-                  <td className="text-sm text-[var(--dv8-muted)]">
-                    {item.import_scope === "historical"
-                      ? "Historical"
-                      : item.import_scope === "recent"
-                        ? "Recent"
-                        : "—"}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="admin-panel flex flex-col gap-4 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--dv8-muted)]">
+            Review queue
+          </p>
+          <p className="mt-2 text-2xl font-light tracking-tight">
+            {items.filter((item) => item.status === "pending").length} pending
+            <span className="text-[var(--dv8-muted)]">
+              {" "}
+              · {items.length} total
+            </span>
+          </p>
+          <p className="mt-2 max-w-lg text-sm text-[var(--dv8-muted)]">
+            Gallery review moved to the editorial Review Workspace. Import and
+            sync tools stay here.
+          </p>
+        </div>
+        <Link href="/admin/review" className="admin-btn admin-btn-primary">
+          Open Review Workspace
+        </Link>
       </div>
     </div>
   );
