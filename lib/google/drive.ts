@@ -1,5 +1,14 @@
 import { google, type drive_v3 } from "googleapis";
 import {
+  DriveAuthError,
+  getDriveAuthClientViaWif,
+  getDriveAuthMode,
+  hasDriveFolderTarget,
+  isGoogleDriveOAuthLegacyConfigured,
+  isGoogleDriveWifConfigured,
+  sanitizeErrorMessage,
+} from "@/lib/google/auth-drive";
+import {
   PORTFOLIO_SERVICE_TYPE,
   RAW_CONTENT_FOLDER_NAMES,
   TINT_JOBS_FOLDER_NAMES,
@@ -49,28 +58,139 @@ export type PortfolioSyncResult = {
 };
 
 export function isGoogleDriveConfigured() {
-  return Boolean(
-    process.env.GOOGLE_CLIENT_ID &&
-      process.env.GOOGLE_CLIENT_SECRET &&
-      process.env.GOOGLE_REFRESH_TOKEN &&
-      (process.env.GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID ||
-        process.env.GOOGLE_DRIVE_CONTENT_VAULT_FOLDER_ID ||
-        process.env.GOOGLE_DRIVE_UPLOADS_FOLDER_ID),
-  );
+  return getDriveAuthMode() !== "none";
 }
 
-function getOAuthClient() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-
-  if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error("Google Drive is not configured");
+/** Legacy OAuth refresh-token client — fallback only when WIF is unavailable. */
+function getLegacyOAuthClient() {
+  if (!isGoogleDriveOAuthLegacyConfigured()) {
+    throw new DriveAuthError(
+      "oauth_legacy_unavailable",
+      "Legacy Google Drive OAuth is not configured.",
+    );
   }
+
+  const clientId = process.env.GOOGLE_CLIENT_ID!;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN!;
 
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
   oauth2Client.setCredentials({ refresh_token: refreshToken });
   return oauth2Client;
+}
+
+/**
+ * Prefer Vercel OIDC → GCP Workload Identity Federation.
+ * Fall back to legacy OAuth only when WIF env is incomplete.
+ */
+export async function getDriveAuthClient() {
+  if (isGoogleDriveWifConfigured()) {
+    // googleapis nests a different google-auth-library build; cast at the boundary.
+    return (await getDriveAuthClientViaWif()) as never;
+  }
+
+  if (isGoogleDriveOAuthLegacyConfigured() && hasDriveFolderTarget()) {
+    return getLegacyOAuthClient();
+  }
+
+  throw new DriveAuthError(
+    "drive_not_configured",
+    "Google Drive is not configured. Set GCP_* Workload Identity variables (preferred) or legacy OAuth vars.",
+  );
+}
+
+export type DriveConnectionCheckResult = {
+  configured: boolean;
+  authenticated: boolean;
+  authMode: ReturnType<typeof getDriveAuthMode>;
+  rootFolderName: string | null;
+  immediateFolderCount: number;
+  sampleFolderNames: string[];
+  error?: { code: string; message: string };
+};
+
+/**
+ * Production-safe auth verification only.
+ * Lists Tint Jobs folder metadata + a few child folder names.
+ * No DB writes, no sync, no media downloads, no Drive URLs returned.
+ */
+export async function checkDriveConnection(): Promise<DriveConnectionCheckResult> {
+  const authMode = getDriveAuthMode();
+  const base: DriveConnectionCheckResult = {
+    configured: authMode !== "none",
+    authenticated: false,
+    authMode,
+    rootFolderName: null,
+    immediateFolderCount: 0,
+    sampleFolderNames: [],
+  };
+
+  if (authMode === "none") {
+    return {
+      ...base,
+      error: {
+        code: "drive_not_configured",
+        message:
+          "Drive is not configured. Required: GCP Workload Identity variables and GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID.",
+      },
+    };
+  }
+
+  try {
+    const auth = await getDriveAuthClient();
+    const drive = google.drive({ version: "v3", auth });
+
+    const resolved = await resolveTintJobsFolderId(drive);
+    if (!resolved.folderId) {
+      return {
+        ...base,
+        authenticated: true,
+        error: {
+          code: "tint_jobs_not_found",
+          message:
+            "Authenticated, but the Tint Jobs folder could not be resolved. Check GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID.",
+        },
+      };
+    }
+
+    const { data: root } = await drive.files.get({
+      fileId: resolved.folderId,
+      fields: "id,name,mimeType",
+      supportsAllDrives: true,
+    });
+
+    const children = await listChildFolders(drive, resolved.folderId);
+    const sampleFolderNames = children
+      .map((folder) => folder.name || "")
+      .filter(Boolean)
+      .slice(0, 5);
+
+    return {
+      configured: true,
+      authenticated: true,
+      authMode,
+      rootFolderName: root.name || null,
+      immediateFolderCount: children.length,
+      sampleFolderNames,
+    };
+  } catch (error) {
+    if (error instanceof DriveAuthError) {
+      return {
+        ...base,
+        error: { code: error.code, message: error.message },
+      };
+    }
+
+    return {
+      ...base,
+      error: {
+        code: "drive_check_failed",
+        message: sanitizeErrorMessage(
+          error instanceof Error ? error.message : "Drive connection check failed.",
+        ),
+      },
+    };
+  }
 }
 
 function normalizeFolderName(name: string) {
@@ -89,6 +209,8 @@ async function listChildFolders(drive: DriveClient, parentId: string) {
     fields: "files(id,name,createdTime)",
     pageSize: 200,
     orderBy: "name desc",
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   });
   return data.files || [];
 }
@@ -99,6 +221,8 @@ async function listChildFiles(drive: DriveClient, parentId: string) {
     fields:
       "files(id,name,mimeType,createdTime,modifiedTime,size)",
     pageSize: 200,
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   });
   return data.files || [];
 }
@@ -234,7 +358,7 @@ export async function syncDriveContentUploads(
     };
   }
 
-  const auth = getOAuthClient();
+  const auth = await getDriveAuthClient();
   const drive = google.drive({ version: "v3", auth });
   const supabase = getSupabaseAdmin();
   const aggregateWarnings: ValidationWarning[] = [];

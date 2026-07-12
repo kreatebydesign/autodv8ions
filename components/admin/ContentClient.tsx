@@ -16,18 +16,46 @@ export default function ContentClient({
   const [items, setItems] = useState(initialItems);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
+
+  async function checkDriveConnection() {
+    setChecking(true);
+    setStatus("");
+    try {
+      const res = await fetch("/api/content/drive-check", {
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.authenticated) {
+        const detail = data.error?.message || data.error || "Drive check failed.";
+        setStatus(`Drive check failed: ${detail}`);
+        return;
+      }
+
+      const samples =
+        Array.isArray(data.sampleFolderNames) && data.sampleFolderNames.length
+          ? ` Sample: ${data.sampleFolderNames.join(", ")}`
+          : "";
+
+      setStatus(
+        `Connected${data.authMode === "wif" ? " (OIDC / WIF)" : data.authMode === "oauth_legacy" ? " (legacy OAuth)" : ""}. Folder: ${data.rootFolderName || "—"}. Immediate folders: ${data.immediateFolderCount ?? 0}.${samples}`,
+      );
+    } catch {
+      setStatus("Drive check failed: network or server error.");
+    } finally {
+      setChecking(false);
+    }
+  }
 
   async function syncDrive(mode?: string) {
     setLoading(true);
     setStatus("");
     const res = await fetch("/api/content", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        mode
-          ? { mode }
-          : {},
-      ),
+      body: JSON.stringify(mode ? { mode } : {}),
     });
     const data = await res.json();
     setLoading(false);
@@ -43,6 +71,8 @@ export default function ContentClient({
     );
     setItems(data.items || []);
   }
+
+  const busy = loading || checking;
 
   return (
     <div className="space-y-6">
@@ -60,8 +90,16 @@ export default function ContentClient({
       <div className="flex flex-wrap gap-3">
         <button
           type="button"
+          className="admin-btn"
+          disabled={busy}
+          onClick={checkDriveConnection}
+        >
+          {checking ? "Checking..." : "Check Drive Connection"}
+        </button>
+        <button
+          type="button"
           className="admin-btn admin-btn-primary"
-          disabled={loading || !connected}
+          disabled={busy || !connected}
           onClick={() => syncDrive()}
         >
           {loading ? "Syncing..." : "Sync Recent Tint Jobs"}
@@ -69,7 +107,7 @@ export default function ContentClient({
         <button
           type="button"
           className="admin-btn"
-          disabled={loading || !connected}
+          disabled={busy || !connected}
           onClick={() => syncDrive("historical-backfill")}
           title="Explicit historical backfill — still pending review, never auto-published"
         >

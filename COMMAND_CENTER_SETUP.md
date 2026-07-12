@@ -112,30 +112,42 @@ GOOGLE_REFRESH_TOKEN=
 GOOGLE_CALENDAR_ID=     # sales@autodv8ions.com calendar ID
 ```
 
-### Google Drive (optional — Live Portfolio Phase 0)
+### Google Drive — Live Portfolio (Vercel OIDC / Workload Identity Federation)
 ```
-GOOGLE_DRIVE_UPLOADS_FOLDER_ID=          # legacy / vault root fallback
-GOOGLE_DRIVE_CONTENT_VAULT_FOLDER_ID=    # AutoDV8ions Content Vault (Main Shared ) — future
-GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID=        # preferred: direct Tint Jobs folder id
+# Preferred auth (no JSON service-account key)
+GCP_PROJECT_ID=
+GCP_PROJECT_NUMBER=
+GCP_SERVICE_ACCOUNT_EMAIL=
+GCP_WORKLOAD_IDENTITY_POOL_ID=
+GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID=
+GCP_AUDIENCE=
+
+# Tint Jobs folder (required)
+GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID=
+
+# Optional fallbacks if Tint Jobs ID is not set
+GOOGLE_DRIVE_CONTENT_VAULT_FOLDER_ID=
+GOOGLE_DRIVE_UPLOADS_FOLDER_ID=
 ```
 
-### Live Portfolio — future only (not connected in Phase 0)
+### Live Portfolio sync options (optional)
 ```
-GOOGLE_SERVICE_ACCOUNT_EMAIL=
-GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
-BLOB_READ_WRITE_TOKEN=
-CRON_SECRET=
+BLOB_READ_WRITE_TOKEN=                   # Phase 1B+ storage — not used for auth
+CRON_SECRET=                             # future cron — not used for auth
 PORTFOLIO_SYNC_START_DATE=               # optional YYYY-MM-DD
 PORTFOLIO_SYNC_END_DATE=                 # optional YYYY-MM-DD
 PORTFOLIO_SYNC_MAX_FOLDERS=              # optional, default 25
 PORTFOLIO_SYNC_MODE=                     # current-and-previous-month | current-month-only | historical-backfill | date-range
 ```
 
-Preferred future service-account share (narrowest workable path):
+**Deprecated / do not use for Drive auth:**
+```
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=      # DEPRECATED — never use JSON keys with Vercel OIDC
+GOOGLE_SERVICE_ACCOUNT_EMAIL=            # use GCP_SERVICE_ACCOUNT_EMAIL instead
+```
 
-`AutoDV8ions Content Vault (Main Shared ) → UPLOAD HERE - RAW CONTENT → Tint Jobs`
-
-Or share `Tint Jobs` directly via `GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID`.
+Drive auth prefers Vercel OIDC → Google STS → service-account impersonation.
+Calendar continues to use the separate OAuth refresh-token variables above.
 
 ---
 
@@ -158,43 +170,64 @@ Jobs still work. Manual calendar workflow unchanged.
 
 ---
 
-## 6. Google Drive Integration Setup (Live Portfolio — Tint Jobs)
+## 6. Google Drive Integration (Vercel OIDC / Workload Identity Federation)
+
+Drive portfolio access uses **keyless** authentication:
+
+```
+Vercel OIDC token (GCP_AUDIENCE)
+  → Google STS token exchange
+  → Impersonate GCP_SERVICE_ACCOUNT_EMAIL
+  → Google Drive API (drive.readonly)
+  → Tint Jobs folder
+```
+
+### Required GCP / Vercel setup
+
+1. Enable **Google Drive API**
+2. Create Workload Identity Pool + OIDC provider trusted to Vercel (`issuer`: Global `https://oidc.vercel.com` or Team issuer)
+3. Map `google.subject` = `assertion.sub`
+4. Bind production Vercel subject to the service account (`roles/iam.workloadIdentityUser`)
+5. Share **AutoDV8ions Content Vault** (or Tint Jobs) with the service account email
+6. Set Vercel env vars listed above (`GCP_*` + `GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID`)
+7. Enable **OIDC federation** on the Vercel project (Settings → Security)
+
+`GCP_AUDIENCE` must match the provider’s **default audience** URL from Google Cloud (used when calling `getVercelOidcToken({ audience })`).
+
+### Auth modes in this app
+
+- **Preferred:** Vercel OIDC / WIF when all `GCP_*` vars + folder ID are set
+- **Legacy fallback only:** `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REFRESH_TOKEN` (same OAuth trio Calendar uses)
+- **Never:** JSON service-account private keys (`GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` is deprecated)
+
+### Local development note
+
+Copying `GCP_*` into `.env.local` is **not** enough. Local OIDC requires a linked Vercel project and a development OIDC token (`vercel link` + `vercel env pull`, which provides `VERCEL_OIDC_TOKEN`). Production Functions receive the token via Vercel’s OIDC runtime.
+
+### Verify connection
+
+In Command Center → **Content** → **Check Drive Connection**.
+
+This authenticates and lists the Tint Jobs folder name + a few child folder names only.
+It does **not** sync, import, download media, write to the database, or publish.
+
+### Sync behavior (unchanged from Phase 0; not part of auth verification)
 
 Real production structure:
 
 ```
 AutoDV8ions Content Vault (Main Shared )
-├── ARCHIVE                         ← ignored
-├── Creative Assets                 ← ignored
-├── EDITED / FINAL                  ← ignored
 └── UPLOAD HERE - RAW CONTENT
-    ├── Audio Installs              ← ignored
-    ├── Other                       ← ignored
-    ├── Security Installs           ← ignored
     └── Tint Jobs                   ← ONLY portfolio source
         ├── 2026-07 JULY
-        │   ├── 26 ZR2
-        │   └── 15 Jetta
         └── ...
 ```
 
-1. Enable **Google Drive API** in Google Cloud
-2. Keep existing OAuth vars for Calendar; Drive uses the same refresh token for Phase 0
-3. Prefer setting `GOOGLE_DRIVE_TINT_JOBS_FOLDER_ID` to the Tint Jobs folder
-4. Or set vault/root id and let sync navigate to `UPLOAD HERE - RAW CONTENT` → `Tint Jobs`
-
-**Sync behavior (Phase 0):**
-- Imports Tint Jobs only
+- Imports Tint Jobs only when Sync is clicked
 - Creates/updates `gallery_items` as `status=pending`, `published=false`
-- Inventories media into `gallery_media` (metadata only — no downloads, no public Drive URLs)
+- Inventories media metadata only
 - Does **not** auto-approve or auto-publish
 - Does **not** invent SEO copy, captions, tint %, years, or marketing claims
-- Default range: current month + previous month, max 25 folders, newest first
-- Historical backfill is an explicit admin action and still lands as pending
-
-Folder naming:
-- Parent `2026-07 JULY` + child `26 ZR2` → provisional `work_date=2026-07-26`, `vehicle=ZR2`
-- `2011 F250` / `Corvette` / ambiguous names → provisional vehicle preserved; date may be null; validation warnings recorded
 
 ---
 
