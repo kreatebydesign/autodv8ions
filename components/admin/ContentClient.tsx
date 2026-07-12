@@ -208,8 +208,19 @@ export default function ContentClient({
           : "";
 
       setStatus(
-        `Pending import complete (writesPerformed=${String(data.writesPerformed)}): created items ${data.counts?.createdGalleryItems ?? 0} · matched items ${data.counts?.matchedGalleryItems ?? 0} · created media ${data.counts?.createdMedia ?? 0} · matched media ${data.counts?.matchedMedia ?? 0} · skips ${data.counts?.skipped ?? 0} · conflicts ${data.counts?.conflicts ?? 0} · warnings ${data.counts?.warnings ?? 0}. Batch: ${data.batchLimits?.monthsSelected ?? 0} months / ${data.batchLimits?.itemsSelected ?? 0} items / ${data.batchLimits?.mediaSelected ?? 0} media.${remaining} Nothing was published; no media downloaded. Refresh the page to reload the review table.`,
+        `Pending import complete (writesPerformed=${String(data.writesPerformed)}): created items ${data.counts?.createdGalleryItems ?? 0} · matched items ${data.counts?.matchedGalleryItems ?? 0} · created media ${data.counts?.createdMedia ?? 0} · matched media ${data.counts?.matchedMedia ?? 0} · skips ${data.counts?.skipped ?? 0} · conflicts ${data.counts?.conflicts ?? 0} · warnings ${data.counts?.warnings ?? 0}. Batch: ${data.batchLimits?.monthsSelected ?? 0} months / ${data.batchLimits?.itemsSelected ?? 0} items / ${data.batchLimits?.mediaSelected ?? 0} media.${remaining} Nothing was published; no media downloaded.`,
       );
+
+      // Reload review table from live gallery_items (do not rely on static RSC payload).
+      try {
+        const listRes = await fetch("/api/content", { credentials: "include" });
+        const listData = await listRes.json();
+        if (listRes.ok && Array.isArray(listData.items)) {
+          setItems(listData.items);
+        }
+      } catch {
+        // Status already shows import succeeded; table refresh is best-effort.
+      }
     } catch {
       setStatus("Pending import failed: network or server error.");
     } finally {

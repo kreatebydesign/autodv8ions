@@ -5,6 +5,9 @@ import {
 } from "@/lib/google/drive";
 import type { PortfolioListItem } from "@/lib/types/database";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminContentPage() {
   const items = (await listPortfolioItemsFromDb()) as PortfolioListItem[];
   const connected = isGoogleDriveConfigured();
