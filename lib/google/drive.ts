@@ -422,6 +422,10 @@ export async function syncDriveContentUploads(
       const vehicleParsed = parseVehicleFolder(
         vehicleFolder.name || "",
         monthParsed,
+        {
+          driveCreatedTime: vehicleFolder.createdTime,
+          driveModifiedTime: vehicleFolder.modifiedTime,
+        },
       );
       const vehicleLabel = normalizeProvisionalVehicleLabel(
         vehicleParsed.vehicle || vehicleParsed.rawName,

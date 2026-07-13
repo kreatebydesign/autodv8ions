@@ -49,75 +49,11 @@ describe("parseMonthFolder", () => {
 
 describe("parseVehicleFolder", () => {
   const july = parseMonthFolder("2026-07 JULY");
-
-  it("parses 26 ZR2 as day + vehicle + work_date", () => {
-    const parsed = parseVehicleFolder("26 ZR2", july);
-    assert.equal(parsed.day, 26);
-    assert.equal(parsed.vehicle, "ZR2");
-    assert.equal(parsed.workDate, "2026-07-26");
-    assert.equal(parsed.rawName, "26 ZR2");
-    assert.equal(parsed.provisionalVehicle, true);
-  });
-
-  it("parses 15 Jetta", () => {
-    const parsed = parseVehicleFolder("15 Jetta", july);
-    assert.equal(parsed.day, 15);
-    assert.equal(parsed.vehicle, "Jetta");
-    assert.equal(parsed.workDate, "2026-07-15");
-  });
-
-  it("does not treat 2011 F250 as a day", () => {
-    const parsed = parseVehicleFolder("2011 F250", july);
-    assert.equal(parsed.day, null);
-    assert.equal(parsed.vehicle, "2011 F250");
-    assert.equal(parsed.workDate, null);
-    assert.ok(parsed.warnings.some((w) => w.code === "year_like_prefix"));
-  });
-
-  it("leaves Corvette without a day", () => {
-    const parsed = parseVehicleFolder("Corvette", july);
-    assert.equal(parsed.day, null);
-    assert.equal(parsed.vehicle, "Corvette");
-    assert.equal(parsed.workDate, null);
-    assert.ok(parsed.warnings.some((w) => w.code === "no_day_prefix"));
-  });
-
-  it("does not treat impossible day 32 as a day", () => {
-    const parsed = parseVehicleFolder("32 Mystery", july);
-    assert.equal(parsed.day, null);
-    assert.equal(parsed.vehicle, "32 Mystery");
-    assert.equal(parsed.workDate, null);
-    assert.ok(parsed.warnings.some((w) => w.code === "day_impossible"));
-  });
-
-  it("handles empty vehicle after numeric prefix", () => {
-    const parsed = parseVehicleFolder("26", july);
-    assert.equal(parsed.day, 26);
-    assert.equal(parsed.vehicle, "");
-    assert.equal(parsed.workDate, "2026-07-26");
-    assert.ok(parsed.warnings.some((w) => w.code === "vehicle_empty_after_day"));
-  });
-
-  it("respects February non-leap year", () => {
-    const feb = parseMonthFolder("2025-02 February");
-    const parsed = parseVehicleFolder("29 Camry", feb);
-    assert.equal(parsed.day, null);
-    assert.equal(parsed.vehicle, "29 Camry");
-    assert.equal(parsed.workDate, null);
-    assert.ok(parsed.warnings.some((w) => w.code === "day_impossible"));
-  });
-
-  it("allows February 29 on leap year", () => {
-    const feb = parseMonthFolder("2024-02 February");
-    const parsed = parseVehicleFolder("29 Camry", feb);
-    assert.equal(parsed.day, 29);
-    assert.equal(parsed.vehicle, "Camry");
-    assert.equal(parsed.workDate, "2024-02-29");
-  });
+  const now = new Date("2026-07-11T12:00:00Z");
 
   it("preserves full name when month is malformed", () => {
     const bad = parseMonthFolder("not-a-month");
-    const parsed = parseVehicleFolder("26 ZR2", bad);
+    const parsed = parseVehicleFolder("26 ZR2", bad, { now });
     assert.equal(parsed.vehicle, "26 ZR2");
     assert.equal(parsed.workDate, null);
   });

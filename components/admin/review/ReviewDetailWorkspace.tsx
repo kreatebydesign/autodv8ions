@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReviewDetailItem } from "@/lib/live-portfolio/review-data";
 import { itemIsReadyForPublish } from "@/lib/live-portfolio/publish-readiness";
 import { formatDate } from "@/lib/utils/format";
+import ReviewIntelligencePanel from "./ReviewIntelligencePanel";
+import type { PortfolioIntelligenceRecord } from "@/lib/portfolio-intelligence/types";
 
 type Tab = "edit" | "preview";
 
@@ -44,6 +46,8 @@ export default function ReviewDetailWorkspace({
   const [lifecycleStatus, setLifecycleStatus] = useState(item.status);
   const [busy, setBusy] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [intelligence, setIntelligence] =
+    useState<PortfolioIntelligenceRecord | null>(item.intelligenceDetail);
 
   const ready = itemIsReadyForPublish(item);
   const isArchived =
@@ -211,6 +215,96 @@ export default function ReviewDetailWorkspace({
       router.refresh();
     } catch {
       setStatusMessage("Network error while restoring.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reanalyzeIntelligence() {
+    setBusy(true);
+    setStatusMessage("");
+    try {
+      const res = await fetch("/api/portfolio/intelligence/analyze", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, force: true }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatusMessage(data.error || "Unable to analyze project.");
+        return;
+      }
+      setIntelligence({
+        galleryItemId: item.id,
+        ignored: false,
+        analyzedAt: new Date().toISOString(),
+        staleAt: null,
+        ...data.analysis,
+      });
+      setStatusMessage("Portfolio intelligence updated.");
+      router.refresh();
+    } catch {
+      setStatusMessage("Network error while analyzing project.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function applyIntelligence(input: {
+    featuredMediaId?: string | null;
+    galleryOrder?: string[];
+    markHomepageCandidate?: boolean;
+  }) {
+    setBusy(true);
+    setStatusMessage("");
+    try {
+      const res = await fetch("/api/portfolio/intelligence/apply", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, ...input }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatusMessage(data.error || "Unable to apply intelligence suggestions.");
+        return;
+      }
+      if (input.featuredMediaId) {
+        setFeaturedId(input.featuredMediaId);
+        setActiveId(input.featuredMediaId);
+      }
+      setStatusMessage("Intelligence suggestions applied.");
+      router.refresh();
+    } catch {
+      setStatusMessage("Network error while applying suggestions.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function ignoreIntelligence(restore = false) {
+    setBusy(true);
+    setStatusMessage("");
+    try {
+      const res = await fetch("/api/portfolio/intelligence/ignore", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, ignored: !restore }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatusMessage(data.error || "Unable to update recommendation state.");
+        return;
+      }
+      setIntelligence((current) =>
+        current ? { ...current, ignored: !restore } : current,
+      );
+      setStatusMessage(restore ? "Recommendation restored." : "Recommendation ignored.");
+      router.refresh();
+    } catch {
+      setStatusMessage("Network error while updating recommendation.");
     } finally {
       setBusy(false);
     }
@@ -442,6 +536,27 @@ export default function ReviewDetailWorkspace({
                 )}
               </div>
             </div>
+
+            <ReviewIntelligencePanel
+              intelligence={intelligence}
+              busy={busy}
+              onApplyFeatured={(mediaId) =>
+                applyIntelligence({ featuredMediaId: mediaId })
+              }
+              onApplyGalleryOrder={(order) =>
+                applyIntelligence({ galleryOrder: order })
+              }
+              onMarkHomepageCandidate={() =>
+                applyIntelligence({ markHomepageCandidate: true })
+              }
+              onPin={togglePin}
+              onIgnore={() =>
+                intelligence?.ignored
+                  ? ignoreIntelligence(true)
+                  : ignoreIntelligence(false)
+              }
+              onReanalyze={reanalyzeIntelligence}
+            />
 
             {statusMessage && (
               <p className="review-status-message">{statusMessage}</p>

@@ -110,8 +110,8 @@ describe("import plan matching", () => {
     assert.equal(item.defaults.featured, false);
     assert.equal(item.defaults.homepageVisible, false);
     assert.equal(item.defaults.publicMediaUrl, null);
-    assert.equal(item.metadata.vehicleLabelCandidate, "ZR2");
-    assert.equal(item.metadata.workDateCandidate, "2026-07-26");
+    assert.equal(item.metadata.vehicleLabelCandidate, "26 ZR2");
+    assert.equal(item.metadata.workDateCandidate, null);
     assert.equal(plan.planned.newGalleryMedia[0].defaults.storageUrl, null);
     assert.equal(plan.planned.newGalleryMedia[0].defaults.isFeatured, false);
   });
@@ -428,7 +428,7 @@ describe("import plan matching", () => {
       month: 7,
       sortKey: "2026-07",
     });
-    assert.equal(meta.displayTitleCandidate, "ZR2");
+    assert.equal(meta.displayTitleCandidate, "26 ZR2");
     assert.equal(meta.provisionalVehicle, true);
     assert.doesNotMatch(meta.displayTitleCandidate, /customer/i);
   });

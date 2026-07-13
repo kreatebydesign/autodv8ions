@@ -48,6 +48,9 @@ export type ParsedVehicleFolder = {
   vehicle: string;
   day: number | null;
   workDate: string | null;
+  /** Drive timestamp fallback only — never auto-persisted as work_date */
+  suggestedWorkDate: string | null;
+  dateConfidence: "confirmed" | "provisional" | "none";
   provisionalVehicle: boolean;
   warnings: ValidationWarning[];
 };
