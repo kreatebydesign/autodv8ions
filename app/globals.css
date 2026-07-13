@@ -238,37 +238,57 @@ body {
 }
 
 /* Luxury horizontal recent-work gallery */
+.home-gallery-section {
+  overflow: hidden;
+}
+
 .home-gallery {
   position: relative;
 }
 
 .home-gallery-scroller {
   display: flex;
-  gap: 1.15rem;
+  gap: 1.75rem;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
-  padding: 0.25rem 0 1rem;
+  padding: 0.35rem max(1.25rem, calc((100vw - 80rem) / 2 + 1.25rem)) 1.25rem;
   cursor: grab;
   outline: none;
   mask-image: linear-gradient(
     to right,
     transparent 0%,
-    #000 2%,
-    #000 88%,
+    #000 1.5%,
+    #000 92%,
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to right,
     transparent 0%,
-    #000 2%,
-    #000 88%,
+    #000 1.5%,
+    #000 92%,
     transparent 100%
   );
   scrollbar-width: none;
+}
+
+@media (min-width: 640px) {
+  .home-gallery-scroller {
+    gap: 2rem;
+    padding-left: max(2rem, calc((100vw - 80rem) / 2 + 2rem));
+    padding-right: max(2rem, calc((100vw - 80rem) / 2 + 2rem));
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-gallery-scroller {
+    gap: 2.35rem;
+    padding-left: max(3rem, calc((100vw - 80rem) / 2 + 3rem));
+    padding-right: max(3rem, calc((100vw - 80rem) / 2 + 3rem));
+  }
 }
 
 .home-gallery-scroller::-webkit-scrollbar {
@@ -286,19 +306,19 @@ body {
 }
 
 .home-gallery-card {
-  flex: 0 0 min(86vw, 34rem);
+  flex: 0 0 min(88vw, 38rem);
   scroll-snap-align: start;
 }
 
 @media (min-width: 768px) {
   .home-gallery-card {
-    flex-basis: min(68vw, 42rem);
+    flex-basis: min(72vw, 48rem);
   }
 }
 
 @media (min-width: 1100px) {
   .home-gallery-card {
-    flex-basis: min(58vw, 48rem);
+    flex-basis: min(62vw, 56rem);
   }
 }
 
@@ -314,8 +334,8 @@ body {
   overflow: hidden;
   background: #0a0a0a;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-    0 24px 48px rgba(0, 0, 0, 0.35);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 32px 64px rgba(0, 0, 0, 0.38);
 }
 
 @media (min-width: 768px) {
@@ -328,11 +348,12 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 1.1s var(--ease-out);
+  transform: scale(1.01);
+  transition: transform 1.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .home-gallery-link:hover .home-gallery-image {
-  transform: scale(1.03);
+  transform: scale(1.045);
 }
 
 .home-gallery-placeholder {
@@ -355,9 +376,9 @@ body {
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(5, 5, 5, 0.82) 0%,
-    rgba(5, 5, 5, 0.15) 45%,
-    transparent 70%
+    rgba(5, 5, 5, 0.78) 0%,
+    rgba(5, 5, 5, 0.12) 42%,
+    transparent 68%
   );
   pointer-events: none;
 }
@@ -365,46 +386,82 @@ body {
 .home-gallery-caption {
   position: absolute;
   inset: auto 0 0 0;
-  padding: 1.35rem 1.2rem 1.25rem;
+  padding: 1.5rem 1.35rem 1.4rem;
   z-index: 1;
 }
 
 @media (min-width: 640px) {
   .home-gallery-caption {
-    padding: 1.75rem 1.6rem 1.5rem;
+    padding: 2rem 1.85rem 1.7rem;
   }
 }
 
 .home-gallery-title {
-  font-size: clamp(1.25rem, 2.6vw, 1.95rem);
+  font-size: clamp(1.35rem, 2.8vw, 2.15rem);
   font-weight: 300;
   letter-spacing: -0.03em;
-  line-height: 1.15;
+  line-height: 1.12;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-gallery-title {
+    opacity: 0.82;
+    transform: translateY(6px);
+  }
+
+  .home-gallery-link:hover .home-gallery-title {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .home-gallery-meta {
   margin-top: 0.4rem;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.38);
+  opacity: 0.9;
+  transition: opacity 0.6s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-gallery-link:hover .home-gallery-meta {
+    opacity: 1;
+  }
 }
 
 .home-gallery-cta {
   display: inline-block;
-  margin-top: 0.75rem;
+  margin-top: 0.85rem;
   font-size: 0.62rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-  transition: color 0.35s ease;
+  color: rgba(255, 255, 255, 0.55);
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    color 0.45s ease,
+    opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.home-gallery-link:hover .home-gallery-cta {
-  color: #fff;
-}
+@media (hover: hover) and (pointer: fine) {
+  .home-gallery-cta {
+    color: rgba(255, 255, 255, 0.42);
+    opacity: 0;
+    transform: translateY(8px);
+  }
 
-.home-gallery-hint {
-  margin-top: 0.35rem;
-  color: rgba(255, 255, 255, 0.28);
+  .home-gallery-link:hover .home-gallery-cta {
+    color: #fff;
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -412,8 +469,13 @@ body {
     scroll-behavior: auto;
   }
 
-  .home-gallery-image {
+  .home-gallery-image,
+  .home-gallery-title,
+  .home-gallery-meta,
+  .home-gallery-cta {
     transition: none;
+    opacity: 1;
+    transform: none;
   }
 
   .home-gallery-link:hover .home-gallery-image {
@@ -934,32 +996,6 @@ body {
   transform: scale(1);
 }
 
-.inside-work-frame {
-  max-width: 56rem;
-}
-
-.inside-work-media {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: #0a0a0a;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 28px 60px rgba(0, 0, 0, 0.4);
-}
-
-.inside-work-veil {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(
-    to top,
-    rgba(5, 5, 5, 0.35) 0%,
-    transparent 40%
-  );
-}
-
 .beyond-tint {
   position: relative;
   overflow: hidden;
@@ -968,16 +1004,17 @@ body {
 
 .beyond-tint-field {
   position: absolute;
-  inset: 0;
-  opacity: 0.55;
+  inset: -8% 0;
+  opacity: 0.9;
   pointer-events: none;
+  will-change: transform;
 }
 
 .beyond-tint-track {
   display: flex;
   width: max-content;
   height: 100%;
-  animation: beyond-drift 70s linear infinite;
+  animation: beyond-drift 90s linear infinite;
 }
 
 .beyond-tint-cell {
@@ -991,9 +1028,15 @@ body {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to bottom, #050505 0%, transparent 28%, transparent 72%, #050505 100%),
-    linear-gradient(to right, #050505 0%, transparent 18%, transparent 82%, #050505 100%),
-    radial-gradient(ellipse at 50% 50%, transparent 20%, rgba(5, 5, 5, 0.65) 100%);
+    linear-gradient(to bottom, #050505 0%, transparent 30%, transparent 70%, #050505 100%),
+    linear-gradient(to right, #050505 0%, transparent 20%, transparent 80%, #050505 100%),
+    radial-gradient(ellipse at 50% 50%, transparent 15%, rgba(5, 5, 5, 0.72) 100%);
+}
+
+.beyond-tint-title,
+.beyond-tint-support,
+.beyond-tint-link {
+  text-shadow: 0 1px 24px rgba(0, 0, 0, 0.65);
 }
 
 @keyframes beyond-drift {
@@ -1014,10 +1057,10 @@ body {
   left: 50%;
   top: 52%;
   transform: translate(-50%, -50%);
-  width: min(92vw, 52rem);
+  width: min(98vw, 64rem);
   pointer-events: none;
-  opacity: 0.08;
-  filter: drop-shadow(0 0 40px rgba(201, 0, 0, 0.22));
+  opacity: 0.055;
+  filter: drop-shadow(0 0 48px rgba(201, 0, 0, 0.18));
 }
 
 .brand-logo-moment-image {
@@ -1033,6 +1076,10 @@ body {
 
   .beyond-tint-track {
     animation: none;
+  }
+
+  .beyond-tint-field {
+    transform: none !important;
   }
 }
 

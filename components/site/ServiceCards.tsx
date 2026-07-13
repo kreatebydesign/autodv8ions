@@ -16,42 +16,42 @@ export const CORE_SERVICES: ServiceCardData[] = [
   {
     num: "01",
     title: "Window Tint",
-    desc: "Clean finish. Privacy, comfort, and glare control — installed with care for the glass and the trim.",
+    desc: "Clean finish. Privacy and comfort that hold up.",
     href: "/services/window-tint",
     cta: "Get a Tint Quote",
     emphasis: "primary",
-    imageSrc: "/images/editorial/tinted-suv.jpg",
-    imageAlt: "Dark luxury vehicle exterior",
+    imageSrc: "/images/editorial/service-tint.jpg",
+    imageAlt: "Tinted vehicle finished at AutoDV8ions",
   },
   {
     num: "02",
     title: "Remote Starters",
-    desc: "Start the vehicle before you walk out. Installed for the platform in front of us.",
+    desc: "Start it before you walk out.",
     href: "/services/remote-starters",
     cta: "Request More Info",
     emphasis: "standard",
-    imageSrc: "/images/editorial/key-fob.jpg",
-    imageAlt: "Vehicle key fob close-up",
+    imageSrc: "/images/editorial/service-charger.jpg",
+    imageAlt: "Vehicle in the AutoDV8ions bay",
   },
   {
     num: "03",
     title: "Vehicle Security",
-    desc: "Deterrence and alerts installed cleanly — recommended for how the vehicle is used.",
+    desc: "Deterrence installed clean for how you use the vehicle.",
     href: "/services/vehicle-security",
     cta: "Request More Info",
     emphasis: "standard",
-    imageSrc: "/images/editorial/night-vehicle.jpg",
-    imageAlt: "Vehicle at night",
+    imageSrc: "/images/editorial/service-detail.jpg",
+    imageAlt: "Detail work from AutoDV8ions",
   },
   {
     num: "04",
     title: "Audio + Select Custom",
-    desc: "Select projects only — based on scope, vehicle, and schedule.",
+    desc: "Select jobs only — when scope and schedule fit.",
     href: "/services/audio-custom",
     cta: "Submit Project for Review",
     emphasis: "selective",
-    imageSrc: "/images/editorial/audio-controls.jpg",
-    imageAlt: "Vehicle audio controls",
+    imageSrc: "/images/editorial/service-bay.jpg",
+    imageAlt: "AutoDV8ions shop bay",
   },
 ];
 
@@ -65,10 +65,7 @@ export default function ServiceCards({
 
   return (
     <div className="service-editorial">
-      <Link
-        href={primary.href}
-        className="service-editorial-primary group"
-      >
+      <Link href={primary.href} className="service-editorial-primary group">
         <div className="service-editorial-media">
           <Image
             src={primary.imageSrc}
@@ -81,13 +78,13 @@ export default function ServiceCards({
         </div>
         <div className="service-editorial-copy">
           <span className="label-mono text-[var(--accent)]/80">{primary.num}</span>
-          <h3 className="mt-3 text-[clamp(1.6rem,3vw,2.35rem)] font-light tracking-[-0.02em] text-white">
+          <h3 className="mt-2 text-[clamp(1.55rem,2.8vw,2.2rem)] font-light tracking-[-0.02em] text-white">
             {primary.title}
           </h3>
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-white/55 sm:text-base">
+          <p className="mt-2 max-w-sm text-sm leading-relaxed text-white/50">
             {primary.desc}
           </p>
-          <span className="mt-6 inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-white/70 transition-colors duration-500 group-hover:text-white">
+          <span className="mt-5 inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-white/70 transition-colors duration-500 group-hover:text-white">
             {primary.cta}
             <span aria-hidden>→</span>
           </span>
@@ -115,13 +112,13 @@ export default function ServiceCards({
               <span className="label-mono text-[var(--accent)]/70">
                 {service.num}
               </span>
-              <h3 className="mt-2 text-lg font-light tracking-tight text-white/95 sm:text-xl">
+              <h3 className="mt-1.5 text-lg font-light tracking-tight text-white/95 sm:text-xl">
                 {service.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-white/45">
+              <p className="mt-1.5 text-sm leading-relaxed text-white/40">
                 {service.desc}
               </p>
-              <span className="mt-4 inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-white/55 transition-colors duration-500 group-hover:text-white">
+              <span className="mt-3 inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-white/55 transition-colors duration-500 group-hover:text-white">
                 {service.cta}
                 <span aria-hidden>→</span>
               </span>

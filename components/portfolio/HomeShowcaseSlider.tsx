@@ -17,15 +17,38 @@ export default function HomeShowcaseSlider({
     startX: number;
     scrollLeft: number;
     moved: boolean;
-  }>({ active: false, startX: 0, scrollLeft: 0, moved: false });
+    lastX: number;
+    lastT: number;
+    velocity: number;
+  }>({
+    active: false,
+    startX: 0,
+    scrollLeft: 0,
+    moved: false,
+    lastX: 0,
+    lastT: 0,
+    velocity: 0,
+  });
+  const momentumRef = useRef<number | null>(null);
 
-  const scrollByCard = useCallback((direction: -1 | 1) => {
-    const node = scrollerRef.current;
-    if (!node) return;
-    const card = node.querySelector<HTMLElement>(".home-gallery-card");
-    const amount = card ? card.offsetWidth + 20 : node.clientWidth * 0.8;
-    node.scrollBy({ left: direction * amount, behavior: "smooth" });
+  const stopMomentum = useCallback(() => {
+    if (momentumRef.current != null) {
+      cancelAnimationFrame(momentumRef.current);
+      momentumRef.current = null;
+    }
   }, []);
+
+  const scrollByCard = useCallback(
+    (direction: -1 | 1) => {
+      const node = scrollerRef.current;
+      if (!node) return;
+      stopMomentum();
+      const card = node.querySelector<HTMLElement>(".home-gallery-card");
+      const amount = card ? card.offsetWidth + 28 : node.clientWidth * 0.82;
+      node.scrollBy({ left: direction * amount, behavior: "smooth" });
+    },
+    [stopMomentum],
+  );
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -53,15 +76,42 @@ export default function HomeShowcaseSlider({
     return () => window.removeEventListener("keydown", onKey);
   }, [items.length, scrollByCard]);
 
+  useEffect(() => () => stopMomentum(), [stopMomentum]);
+
+  function runMomentum(initialVelocity: number) {
+    const node = scrollerRef.current;
+    if (!node) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let velocity = initialVelocity;
+    const friction = 0.94;
+
+    function tick() {
+      if (!node || Math.abs(velocity) < 0.15) {
+        momentumRef.current = null;
+        return;
+      }
+      node.scrollLeft -= velocity;
+      velocity *= friction;
+      momentumRef.current = requestAnimationFrame(tick);
+    }
+
+    momentumRef.current = requestAnimationFrame(tick);
+  }
+
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const node = scrollerRef.current;
     if (!node) return;
+    stopMomentum();
     dragRef.current = {
       active: true,
       startX: e.clientX,
       scrollLeft: node.scrollLeft,
       moved: false,
+      lastX: e.clientX,
+      lastT: performance.now(),
+      velocity: 0,
     };
     node.setPointerCapture(e.pointerId);
     node.classList.add("is-dragging");
@@ -71,9 +121,15 @@ export default function HomeShowcaseSlider({
     const drag = dragRef.current;
     const node = scrollerRef.current;
     if (!drag.active || !node) return;
+    const now = performance.now();
     const delta = e.clientX - drag.startX;
     if (Math.abs(delta) > 6) drag.moved = true;
     node.scrollLeft = drag.scrollLeft - delta;
+
+    const dt = Math.max(now - drag.lastT, 1);
+    drag.velocity = ((e.clientX - drag.lastX) / dt) * 16;
+    drag.lastX = e.clientX;
+    drag.lastT = now;
   }
 
   function endDrag(e: React.PointerEvent<HTMLDivElement>) {
@@ -86,6 +142,9 @@ export default function HomeShowcaseSlider({
       node.releasePointerCapture(e.pointerId);
     } catch {
       /* already released */
+    }
+    if (Math.abs(drag.velocity) > 0.4) {
+      runMomentum(drag.velocity);
     }
   }
 
@@ -151,7 +210,7 @@ export default function HomeShowcaseSlider({
                         : "Recent work"}
                       {item.shadePercentage
                         ? ` · ${item.shadePercentage}`
-                        : " · Window Tint"}
+                        : ""}
                     </p>
                     <span className="home-gallery-cta">View Project →</span>
                   </div>
@@ -161,12 +220,6 @@ export default function HomeShowcaseSlider({
           );
         })}
       </div>
-
-      {items.length > 1 ? (
-        <p className="home-gallery-hint label-mono">
-          Drag or swipe · Arrow keys
-        </p>
-      ) : null}
     </div>
   );
 }

@@ -17,10 +17,11 @@ License: [Unsplash License](https://unsplash.com/license) — free commercial us
 | `/images/editorial/audio-controls.jpg` | [Toni Cuenca](https://unsplash.com/@tonicuenca) | [Unsplash](https://unsplash.com/photos/a-cars-volume-knob-and-bmw-logo-oMElRPUwIRI) | audio-custom, services |
 | `/images/editorial/craft-detail.jpg` | [Toni Cuenca](https://unsplash.com/@tonicuenca) | [Unsplash](https://unsplash.com/photos/hand-on-a-manual-car-gear-shift-with-rs-logo-syjoRp-CXxw) | audio-custom |
 | `/images/editorial/steering-detail.jpg` | [Toni Cuenca](https://unsplash.com/@tonicuenca) | [Unsplash](https://unsplash.com/photos/a-close-up-of-a-steering-wheel-and-dashboard-of-a-car-kyj9CjJpaoI) | services, window-tint |
-| `/images/editorial/tesla-dark.jpg` | Unsplash | [photo-1560958089](https://unsplash.com/photos/red-tesla-model-s-1560958089-b8a1929cea89) | beyond-tint atmosphere |
-| `/images/editorial/corvette-red.jpg` | Unsplash | [photo-1552519507](https://unsplash.com/photos/red-chevrolet-corvette-coupe-1552519507-da3b142c6e3d) | beyond-tint atmosphere |
-| `/images/editorial/porsche-dark.jpg` | Unsplash | [photo-1503376780353](https://unsplash.com/photos/black-porsche-911-1503376780353-7e6692767b70) | beyond-tint atmosphere |
-| `/images/editorial/truck-suv-dark.jpg` | Unsplash | [photo-1519641471654](https://unsplash.com/photos/black-suv-on-road-1519641471654-76ce0107ad1b) | beyond-tint atmosphere |
-| `/images/editorial/tinted-suv.jpg` | Unsplash | [photo-1617788138017](https://unsplash.com/photos/white-tesla-model-y-1617788138017-80ad40651399) | services — window tint card |
+| `/images/editorial/service-tint.jpg` | AutoDV8ions (owned) | Local tint work | homepage services — Window Tint |
+| `/images/editorial/service-charger.jpg` | AutoDV8ions (owned) | Local shop photo | homepage services — Remote Starters |
+| `/images/editorial/service-detail.jpg` | AutoDV8ions (owned) | Local work photo | homepage services — Vehicle Security |
+| `/images/editorial/service-bay.jpg` | AutoDV8ions (owned) | Local bay photo | homepage services — Audio + Custom |
+| `/images/editorial/service-work.jpg` | AutoDV8ions (owned) | Local work photo | beyond-tint atmosphere |
+| `/images/editorial/service-classic.jpg` | AutoDV8ions (owned) | Local work photo | beyond-tint atmosphere |
 | `/images/wraps/autodv8ions-shop.jpg` | AutoDV8ions (owned) | Local storefront photo | homepage shop, about |
 | `/images/editorial/workshop-tools.jpg` | Unsplash | Mechanic under hood | **Removed from public pages in Phase 6D** |
