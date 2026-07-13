@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { PublicPortfolioCard } from "@/lib/live-portfolio/public-portfolio";
 import { publicMediaUrl } from "@/lib/live-portfolio/public-media-url";
 import { formatDate } from "@/lib/utils/format";
@@ -11,157 +11,162 @@ export default function HomeShowcaseSlider({
 }: {
   items: PublicPortfolioCard[];
 }) {
-  const [active, setActive] = useState(0);
-  const touchStartX = useRef<number | null>(null);
-  const count = items.length;
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{
+    active: boolean;
+    startX: number;
+    scrollLeft: number;
+    moved: boolean;
+  }>({ active: false, startX: 0, scrollLeft: 0, moved: false });
 
-  const go = useCallback(
-    (delta: number) => {
-      if (count === 0) return;
-      setActive((i) => (i + delta + count) % count);
-    },
-    [count],
-  );
+  const scrollByCard = useCallback((direction: -1 | 1) => {
+    const node = scrollerRef.current;
+    if (!node) return;
+    const card = node.querySelector<HTMLElement>(".home-gallery-card");
+    const amount = card ? card.offsetWidth + 20 : node.clientWidth * 0.8;
+    node.scrollBy({ left: direction * amount, behavior: "smooth" });
+  }, []);
 
   useEffect(() => {
-    if (count < 2) return;
-
     function onKey(e: KeyboardEvent) {
-      if (e.key === "ArrowRight") go(1);
-      if (e.key === "ArrowLeft") go(-1);
+      const node = scrollerRef.current;
+      if (!node || items.length < 2) return;
+      const focused = document.activeElement;
+      if (
+        focused !== node &&
+        !node.contains(focused) &&
+        focused !== document.body
+      ) {
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        scrollByCard(1);
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        scrollByCard(-1);
+      }
     }
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [count, go]);
+  }, [items.length, scrollByCard]);
 
-  function onTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.changedTouches[0]?.clientX ?? null;
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const node = scrollerRef.current;
+    if (!node) return;
+    dragRef.current = {
+      active: true,
+      startX: e.clientX,
+      scrollLeft: node.scrollLeft,
+      moved: false,
+    };
+    node.setPointerCapture(e.pointerId);
+    node.classList.add("is-dragging");
   }
 
-  function onTouchEnd(e: React.TouchEvent) {
-    const start = touchStartX.current;
-    touchStartX.current = null;
-    if (start == null || count < 2) return;
-
-    const end = e.changedTouches[0]?.clientX ?? start;
-    const delta = end - start;
-    if (Math.abs(delta) < 48) return;
-    go(delta < 0 ? 1 : -1);
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    const node = scrollerRef.current;
+    if (!drag.active || !node) return;
+    const delta = e.clientX - drag.startX;
+    if (Math.abs(delta) > 6) drag.moved = true;
+    node.scrollLeft = drag.scrollLeft - delta;
   }
 
-  if (count === 0) return null;
+  function endDrag(e: React.PointerEvent<HTMLDivElement>) {
+    const node = scrollerRef.current;
+    const drag = dragRef.current;
+    if (!node || !drag.active) return;
+    drag.active = false;
+    node.classList.remove("is-dragging");
+    try {
+      node.releasePointerCapture(e.pointerId);
+    } catch {
+      /* already released */
+    }
+  }
 
-  const slide = items[active];
+  function onClickCapture(e: React.MouseEvent) {
+    if (dragRef.current.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+      dragRef.current.moved = false;
+    }
+  }
+
+  if (items.length === 0) return null;
 
   return (
     <div
-      className="home-showcase"
+      className="home-gallery"
       role="region"
       aria-roledescription="carousel"
-      aria-label="Recent tint work showcase"
+      aria-label="Recent tint work"
     >
       <div
-        className="home-showcase-viewport"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+        ref={scrollerRef}
+        className="home-gallery-scroller"
+        tabIndex={0}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClickCapture={onClickCapture}
       >
-        <div
-          className="home-showcase-track"
-          style={{ transform: `translate3d(-${active * 100}%, 0, 0)` }}
-        >
-          {items.map((item) => {
-            const src = item.coverMediaId
-              ? publicMediaUrl(item.coverMediaId, "large")
-              : null;
-            return (
-              <article
-                key={item.id}
-                className="home-showcase-slide"
-                aria-hidden={item.id !== slide.id}
+        {items.map((item) => {
+          const src = item.coverMediaId
+            ? publicMediaUrl(item.coverMediaId, "large")
+            : null;
+          return (
+            <article key={item.id} className="home-gallery-card">
+              <Link
+                href={`/recent-work/${item.slug}`}
+                className="home-gallery-link group"
+                draggable={false}
               >
-                <Link
-                  href={`/recent-work/${item.slug}`}
-                  className="home-showcase-link group"
-                >
-                  <div className="home-showcase-media">
-                    {src ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={src}
-                        alt={item.vehicle}
-                        className="home-showcase-image"
-                        loading="lazy"
-                        draggable={false}
-                      />
-                    ) : (
-                      <div className="home-showcase-placeholder">
-                        {item.vehicle.slice(0, 1)}
-                      </div>
-                    )}
-                    <div className="home-showcase-veil" />
-                    <div className="home-showcase-caption">
-                      {item.pinned && (
-                        <p className="home-showcase-kicker">Featured install</p>
-                      )}
-                      <h3 className="home-showcase-title">{item.vehicle}</h3>
-                      <p className="home-showcase-meta">
-                        {item.workDate ? formatDate(item.workDate) : "Recent work"}
-                        {item.shadePercentage
-                          ? ` · ${item.shadePercentage}`
-                          : " · Window Tint"}
-                      </p>
-                      <span className="home-showcase-cta">View project →</span>
+                <div className="home-gallery-media">
+                  {src ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={src}
+                      alt={item.vehicle}
+                      className="home-gallery-image"
+                      loading="lazy"
+                      draggable={false}
+                    />
+                  ) : (
+                    <div className="home-gallery-placeholder">
+                      {item.vehicle.slice(0, 1)}
                     </div>
+                  )}
+                  <div className="home-gallery-veil" />
+                  <div className="home-gallery-caption">
+                    <h3 className="home-gallery-title">{item.vehicle}</h3>
+                    <p className="home-gallery-meta">
+                      {item.workDate
+                        ? formatDate(item.workDate)
+                        : "Recent work"}
+                      {item.shadePercentage
+                        ? ` · ${item.shadePercentage}`
+                        : " · Window Tint"}
+                    </p>
+                    <span className="home-gallery-cta">View Project →</span>
                   </div>
-                </Link>
-              </article>
-            );
-          })}
-        </div>
+                </div>
+              </Link>
+            </article>
+          );
+        })}
       </div>
 
-      {count > 1 && (
-        <div className="home-showcase-controls">
-          <div className="home-showcase-nav">
-            <button
-              type="button"
-              className="home-showcase-btn"
-              onClick={() => go(-1)}
-              aria-label="Previous project"
-            >
-              Prev
-            </button>
-            <span className="home-showcase-counter">
-              {String(active + 1).padStart(2, "0")} /{" "}
-              {String(count).padStart(2, "0")}
-            </span>
-            <button
-              type="button"
-              className="home-showcase-btn"
-              onClick={() => go(1)}
-              aria-label="Next project"
-            >
-              Next
-            </button>
-          </div>
-
-          <div className="home-showcase-dots" role="tablist" aria-label="Showcase slides">
-            {items.map((item, index) => (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={index === active}
-                aria-label={`Show ${item.vehicle}`}
-                className={`home-showcase-dot ${index === active ? "is-active" : ""}`}
-                onClick={() => setActive(index)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
+      {items.length > 1 ? (
+        <p className="home-gallery-hint label-mono">
+          Drag or swipe · Arrow keys
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import ServicePageShell from "@/components/site/ServicePageShell";
 export const metadata: Metadata = {
   title: "Vehicle Security",
   description:
-    "Vehicle security consultation and professional installation from AutoDV8ions in Altoona, PA.",
+    "Vehicle security installs from AutoDV8ions in Altoona, PA — recommended for your vehicle and how you use it.",
 };
 
 export default function VehicleSecurityPage() {
@@ -14,14 +14,14 @@ export default function VehicleSecurityPage() {
     <ServicePageShell
       activeHref="/services"
       eyebrow="Vehicle Security"
-      title="Protection with a calm hand."
-      lead="Deterrence, alerts, and clean integration — recommended for the vehicle, not sold with fear."
+      title="Protection without the sales pitch."
+      lead="Deterrence, alerts, and a clean install — recommended for the vehicle, not sold with fear."
       imageSrc="/images/editorial/night-vehicle.jpg"
-      imageAlt="Editorial photograph of a dark vehicle at night — atmosphere imagery, not an AutoDV8ions customer project."
+      imageAlt="Dark vehicle at night"
       ctaHref="#consultation"
-      ctaLabel="Request a Consultation"
+      ctaLabel="Request More Info"
     >
-      <section className="atmosphere relative py-16 sm:py-24">
+      <section className="atmosphere relative py-14 sm:py-20">
         <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-6">
@@ -33,16 +33,16 @@ export default function VehicleSecurityPage() {
                     copy: "Systems that raise awareness and make casual theft less inviting.",
                   },
                   {
-                    title: "Alerts and deterrence",
-                    copy: "Clear feedback when something is wrong — without theatrical promises.",
+                    title: "Alerts",
+                    copy: "Clear feedback when something is wrong — without overselling.",
                   },
                   {
-                    title: "Professional installation",
-                    copy: "Clean routing, clean connections, and respect for the vehicle’s electronics.",
+                    title: "Clean install",
+                    copy: "Clean routing, solid connections, and respect for the vehicle's electronics.",
                   },
                   {
                     title: "Vehicle-specific advice",
-                    copy: "Recommendations based on how the vehicle is used and what it supports.",
+                    copy: "Based on how the vehicle is used and what it supports.",
                   },
                 ].map((item) => (
                   <article key={item.title} className="panel p-5">
@@ -56,21 +56,18 @@ export default function VehicleSecurityPage() {
                 ))}
               </div>
               <p className="mt-6 text-sm leading-relaxed text-white/35">
-                We do not promise theft prevention or guarantee outcomes. Security
-                is about reducing risk and improving awareness — honestly.
+                We don&apos;t promise theft prevention or guarantee outcomes.
+                Security is about reducing risk and improving awareness.
               </p>
             </div>
             <div className="relative aspect-[4/5] overflow-hidden lg:col-span-6">
               <Image
                 src="/images/editorial/night-street.jpg"
-                alt="Editorial photograph of a vehicle parked at night — atmosphere imagery, not an AutoDV8ions customer project."
+                alt="Vehicle parked at night"
                 fill
                 className="object-cover"
                 sizes="(max-width:1024px) 100vw, 45vw"
               />
-              <p className="absolute bottom-3 left-3 label-mono text-white/50">
-                Atmosphere imagery · Unsplash
-              </p>
             </div>
           </div>
         </div>
@@ -78,17 +75,17 @@ export default function VehicleSecurityPage() {
 
       <section
         id="consultation"
-        className="atmosphere atmosphere-dark relative border-t border-white/[0.04] py-16 sm:py-24"
+        className="atmosphere atmosphere-dark relative border-t border-white/[0.04] py-14 sm:py-20"
       >
         <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-12 lg:px-12">
           <div className="lg:col-span-5">
-            <p className="label-mono mb-4 text-white/40">Consultation</p>
+            <p className="label-mono mb-4 text-white/40">Request More Info</p>
             <h2 className="text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight">
-              Request a Security Consultation
+              Ask about this service
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-white/45">
               Tell us about the vehicle and what you want from a security
-              system. We will follow up with grounded options.
+              system. We&apos;ll follow up with grounded options.
             </p>
           </div>
           <div className="lg:col-span-7">

@@ -8,7 +8,7 @@ import SiteHeader from "@/components/site/SiteHeader";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "27 years of automotive craftsmanship in Altoona, PA — tint-focused work with remote starters, security, and select custom upgrades.",
+    "AutoDV8ions in Altoona, PA — 27 years of window tint, remote starters, vehicle security, and select custom work from the same shop.",
 };
 
 export default function AboutPage() {
@@ -19,77 +19,70 @@ export default function AboutPage() {
         <section className="relative overflow-hidden border-b border-white/[0.05]">
           <div className="absolute inset-0">
             <Image
-              src="/images/editorial/garage-window.jpg"
-              alt="Editorial photograph of a vehicle in a dark garage lit by a window — atmosphere imagery, not an AutoDV8ions customer project."
+              src="/images/wraps/autodv8ions-shop.jpg"
+              alt="AutoDV8ions shop exterior in Altoona, Pennsylvania"
               fill
-              className="object-cover opacity-40"
+              className="object-cover object-center opacity-55"
               priority
               sizes="100vw"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/85 to-black/50" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-black/45" />
           </div>
-          <div className="relative z-10 mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-28 lg:px-12">
+          <div className="relative z-10 mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
             <p className="label-mono mb-4 text-white/45">About</p>
-            <h1 className="max-w-3xl text-[clamp(2.25rem,5vw,4rem)] font-light tracking-[-0.02em]">
-              Why AutoDV8ions
+            <h1 className="max-w-3xl text-[clamp(2.1rem,4.8vw,3.6rem)] font-light tracking-[-0.02em]">
+              Same shop. Same focus.
             </h1>
-            <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/50 sm:text-base">
-              A tint-first shop with 27 years of craftsmanship — calm
-              recommendations, clean installs, and respect for every vehicle.
+            <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/55 sm:text-base">
+              AutoDV8ions has been in Altoona for nearly three decades — tint
+              first, with the rest handled when the job is a fit.
             </p>
           </div>
         </section>
 
-        <section className="atmosphere relative py-16 sm:py-24">
+        <section className="atmosphere relative py-14 sm:py-20">
           <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
             <div className="grid gap-10 lg:grid-cols-12">
               <div className="lg:col-span-5">
                 <p className="label-mono mb-4 text-white/40">The shop</p>
-                <h2 className="text-[clamp(1.6rem,3vw,2.25rem)] font-light tracking-tight">
-                  Local. Direct. Detail-minded.
+                <h2 className="text-[clamp(1.5rem,3vw,2.15rem)] font-light tracking-tight">
+                  Local. Direct. Established.
                 </h2>
               </div>
               <div className="space-y-5 lg:col-span-7">
                 <p className="text-sm leading-[1.85] text-white/55 sm:text-base">
-                  AutoDV8ions has served Altoona and Central Pennsylvania for 27
-                  years. The work began with a simple standard: treat every
-                  vehicle carefully and finish what you start.
+                  Chris has been doing this work for 27 years. Tint remains the
+                  main focus, with remote starters, security, and select custom
+                  work handled when the project makes sense.
                 </p>
                 <p className="text-sm leading-[1.85] text-white/45 sm:text-base">
-                  Window tint remains the primary focus. Around that core, the
-                  shop offers remote starters, vehicle security, and select audio
-                  and custom upgrades when the project is a genuine fit.
-                </p>
-                <p className="text-sm leading-[1.85] text-white/45 sm:text-base">
-                  We do not invent counts, awards, or guarantees. The reputation
-                  is built in the bay — one clean install at a time.
+                  AutoDV8ions has served Altoona and Central Pennsylvania from
+                  the same shop for nearly three decades. Clean installs. Straight
+                  answers. Respect for every vehicle that comes through.
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="border-t border-white/[0.04] py-16">
-          <div className="mx-auto grid max-w-7xl gap-8 px-5 sm:px-8 lg:grid-cols-2 lg:px-12">
+        <section className="border-t border-white/[0.04] py-14 sm:py-16">
+          <div className="mx-auto grid max-w-7xl gap-8 px-5 sm:px-8 lg:grid-cols-2 lg:gap-12 lg:px-12">
             <div className="relative aspect-[16/11] overflow-hidden">
               <Image
-                src="/images/editorial/workshop-tools.jpg"
-                alt="Editorial photograph of automotive diagnostic work — atmosphere imagery, not an AutoDV8ions customer project."
+                src="/images/wraps/autodv8ions-shop.jpg"
+                alt="AutoDV8ions storefront in Altoona"
                 fill
                 className="object-cover"
                 sizes="(max-width:1024px) 100vw, 50vw"
               />
-              <p className="absolute bottom-3 left-3 label-mono text-white/50">
-                Atmosphere imagery · Unsplash
-              </p>
             </div>
             <div className="flex flex-col justify-center">
-              <p className="label-mono mb-4 text-white/40">Standards</p>
-              <ul className="space-y-4 text-sm leading-relaxed text-white/45">
-                <li>Clear recommendations without pressure</li>
-                <li>Respect for trim, glass, and factory systems</li>
-                <li>Selective acceptance of custom work</li>
-                <li>Real published tint projects kept separate from editorial imagery</li>
+              <p className="label-mono mb-4 text-white/40">How we work</p>
+              <ul className="space-y-4 text-sm leading-relaxed text-white/50">
+                <li>Tell you what fits the vehicle — and what doesn&apos;t</li>
+                <li>Careful with glass, trim, and factory systems</li>
+                <li>Selective about custom work</li>
+                <li>Published tint projects are real customer installs</li>
               </ul>
               <Link
                 href="/recent-work"
@@ -103,7 +96,7 @@ export default function AboutPage() {
 
         <ProcessSteps />
 
-        <section className="border-t border-white/[0.04] py-16 sm:py-20">
+        <section className="border-t border-white/[0.04] py-14 sm:py-18">
           <div className="mx-auto max-w-7xl px-5 text-center sm:px-8 lg:px-12">
             <h2 className="text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight">
               Ready to talk about your vehicle?

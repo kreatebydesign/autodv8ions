@@ -7,7 +7,7 @@ const ogImageUrl = `${siteUrl}/images/autodv8ions-og.jpg`;
 const defaultTitle =
   "AutoDV8ions | Window Tint, Remote Starters & Vehicle Upgrades in Altoona, PA";
 const defaultDescription =
-  "AutoDV8ions is Altoona, PA's trusted shop for window tint, remote starters, car audio, security systems, and custom vehicle upgrades — over 27 years of expert craftsmanship.";
+  "AutoDV8ions in Altoona, PA — window tint, remote starters, vehicle security, and select custom work. Same shop since 1998.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

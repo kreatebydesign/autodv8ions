@@ -11,7 +11,7 @@ export const revalidate = 0;
 export const metadata: Metadata = {
   title: "Recent Tint Work",
   description:
-    "Published window tint projects from AutoDV8ions in Altoona, PA — precision installs with a clean finish.",
+    "Published window tint projects from AutoDV8ions in Altoona, PA — real installs from the bay.",
 };
 
 export default async function RecentWorkIndexPage() {

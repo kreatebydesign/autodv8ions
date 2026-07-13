@@ -1,17 +1,20 @@
-const TRUST_ITEMS = [
-  "Serving Altoona and Central Pennsylvania",
-  "27 years of automotive craftsmanship",
-  "Precision installation",
-  "Respect for every vehicle",
-  "Clear recommendations without pressure",
+const ITEMS = [
+  "27 years in Altoona",
+  "Same shop since 1998",
+  "Tint-first focus",
+  "Clean installs",
+  "Select custom work",
 ];
 
 export default function TrustStrip() {
   return (
-    <section className="border-y border-white/[0.05] bg-black/40">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-4 px-5 py-6 sm:px-8 lg:justify-between lg:px-12 lg:py-7">
-        {TRUST_ITEMS.map((item) => (
-          <p key={item} className="label-mono text-center text-white/40">
+    <section
+      aria-label="Shop highlights"
+      className="border-y border-white/[0.04] bg-white/[0.015]"
+    >
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-5 py-5 sm:px-8 lg:justify-between lg:px-12">
+        {ITEMS.map((item) => (
+          <p key={item} className="label-mono text-white/35">
             {item}
           </p>
         ))}

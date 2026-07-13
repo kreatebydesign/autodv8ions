@@ -7,7 +7,7 @@ import SiteHeader from "@/components/site/SiteHeader";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Contact AutoDV8ions in Altoona, PA for tint quotes, remote starter and security consultations, or select custom project reviews.",
+    "Contact AutoDV8ions in Altoona, PA for tint quotes, remote starter and security info, or select custom project reviews.",
 };
 
 export default function ContactPage() {
@@ -15,20 +15,20 @@ export default function ContactPage() {
     <>
       <SiteHeader activeHref="/contact" ctaLabel="Get Tint Quote" ctaHref="/tint-quote" />
       <main className="pt-[4.5rem]">
-        <section className="atmosphere relative border-b border-white/[0.05] py-16 sm:py-24">
+        <section className="atmosphere relative border-b border-white/[0.05] py-14 sm:py-20">
           <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
             <p className="label-mono mb-4 text-white/45">Contact</p>
-            <h1 className="max-w-3xl text-[clamp(2.25rem,5vw,4rem)] font-light tracking-[-0.02em]">
+            <h1 className="max-w-3xl text-[clamp(2.1rem,4.8vw,3.6rem)] font-light tracking-[-0.02em]">
               Contact the shop
             </h1>
             <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/50 sm:text-base">
-              Choose the path that matches the work. Tint quotes stay on their
-              dedicated form. Everything else can start here.
+              Tint quotes use the dedicated form. For everything else, start
+              here.
             </p>
           </div>
         </section>
 
-        <section className="py-12 sm:py-16">
+        <section className="py-10 sm:py-14">
           <div className="mx-auto grid max-w-7xl gap-4 px-5 sm:px-8 sm:grid-cols-2 lg:grid-cols-4 lg:px-12">
             {[
               {
@@ -38,12 +38,12 @@ export default function ContactPage() {
               },
               {
                 title: "Remote Starters",
-                cta: "Request a Consultation",
+                cta: "Request More Info",
                 href: "/services/remote-starters#consultation",
               },
               {
                 title: "Vehicle Security",
-                cta: "Request a Consultation",
+                cta: "Request More Info",
                 href: "/services/vehicle-security#consultation",
               },
               {
@@ -66,12 +66,12 @@ export default function ContactPage() {
           </div>
         </section>
 
-        <section className="atmosphere atmosphere-dark relative border-t border-white/[0.04] py-16 sm:py-24">
+        <section className="atmosphere atmosphere-dark relative border-t border-white/[0.04] py-14 sm:py-20">
           <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-12 lg:px-12">
             <div className="lg:col-span-5">
               <p className="label-mono mb-4 text-white/40">General inquiry</p>
               <h2 className="text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight">
-                Send a message
+                Request More Info
               </h2>
               <div className="mt-6 space-y-3 text-sm text-white/45">
                 <p>

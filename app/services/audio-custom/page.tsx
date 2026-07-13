@@ -14,22 +14,22 @@ export default function AudioCustomPage() {
     <ServicePageShell
       activeHref="/services"
       eyebrow="Audio + Select Custom"
-      title="Selective projects. Honest fit."
-      lead="Some vehicles need more than an off-the-shelf answer. AutoDV8ions accepts select audio and custom upgrade projects when the scope, vehicle, and schedule are the right fit."
+      title="Select projects only."
+      lead="Some vehicles need more than an off-the-shelf answer. We take select audio and custom work when the scope, vehicle, and schedule line up."
       imageSrc="/images/editorial/audio-controls.jpg"
-      imageAlt="Editorial detail of vehicle audio controls — atmosphere imagery, not an AutoDV8ions customer project."
+      imageAlt="Vehicle audio controls"
       ctaHref="#project-review"
       ctaLabel="Submit Project for Review"
     >
-      <section className="atmosphere relative py-16 sm:py-24">
+      <section className="atmosphere relative py-14 sm:py-20">
         <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
           <div className="mb-10 max-w-2xl">
-            <p className="label-mono mb-4 text-white/40">Possible categories</p>
+            <p className="label-mono mb-4 text-white/40">What we may take on</p>
             <h2 className="text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight">
-              Capabilities we may consider
+              Categories we review
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-white/40">
-              This is not unlimited custom fabrication. Requests are reviewed
+              This is not open-ended custom fabrication. Requests are reviewed
               before anything is scheduled.
             </p>
           </div>
@@ -37,22 +37,22 @@ export default function AudioCustomPage() {
             {[
               {
                 title: "Audio upgrades",
-                copy: "Cleaner sound and careful component choices for the vehicle.",
+                copy: "Better sound and careful component choices for the vehicle.",
               },
               {
-                title: "Clean component integration",
+                title: "Clean component installs",
                 copy: "Hardware that looks like it belongs — not bolted on as an afterthought.",
               },
               {
-                title: "Lighting and select appearance upgrades",
-                copy: "Tasteful accents when they support the vehicle’s character.",
+                title: "Lighting and appearance",
+                copy: "Tasteful accents when they suit the vehicle.",
               },
               {
                 title: "Convenience upgrades",
-                copy: "Practical improvements that make daily driving easier.",
+                copy: "Practical improvements for daily driving.",
               },
               {
-                title: "Carefully scoped custom requests",
+                title: "Scoped custom requests",
                 copy: "One-off ideas reviewed against shop capacity and fit.",
               },
             ].map((item) => (
@@ -67,28 +67,25 @@ export default function AudioCustomPage() {
         </div>
       </section>
 
-      <section className="border-t border-white/[0.04] py-16">
+      <section className="border-t border-white/[0.04] py-14 sm:py-16">
         <div className="mx-auto grid max-w-7xl gap-8 px-5 sm:px-8 lg:grid-cols-12 lg:px-12">
           <div className="relative aspect-[4/5] overflow-hidden lg:col-span-5">
             <Image
               src="/images/editorial/craft-detail.jpg"
-              alt="Editorial detail of a hand on a vehicle gear selector — atmosphere imagery, not an AutoDV8ions customer project."
+              alt="Vehicle interior detail"
               fill
               className="object-cover"
               sizes="(max-width:1024px) 100vw, 40vw"
             />
-            <p className="absolute bottom-3 left-3 label-mono text-white/50">
-              Atmosphere imagery · Unsplash
-            </p>
           </div>
           <div className="flex flex-col justify-center lg:col-span-7">
-            <p className="label-mono mb-4 text-white/40">Qualification</p>
+            <p className="label-mono mb-4 text-white/40">Before we schedule</p>
             <h2 className="text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight">
-              Submission does not guarantee acceptance.
+              Submitting does not mean we take the job.
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/45">
               Share the vehicle, the goal, the timeline, and a realistic budget
-              range. We review first. If it is not a fit, we will say so clearly.
+              range. We review first. If it is not a fit, we say so.
             </p>
           </div>
         </div>
@@ -96,7 +93,7 @@ export default function AudioCustomPage() {
 
       <section
         id="project-review"
-        className="atmosphere atmosphere-dark relative border-t border-white/[0.04] py-16 sm:py-24"
+        className="atmosphere atmosphere-dark relative border-t border-white/[0.04] py-14 sm:py-20"
       >
         <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-12 lg:px-12">
           <div className="lg:col-span-5">
@@ -105,9 +102,8 @@ export default function AudioCustomPage() {
               Submit Project for Review
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-white/45">
-              Include as much detail as you can. Photos are welcome later in
-              conversation if helpful — this form keeps the first step simple
-              and secure.
+              Include as much detail as you can. Photos can come later if needed
+              — this form keeps the first step simple.
             </p>
           </div>
           <div className="lg:col-span-7">

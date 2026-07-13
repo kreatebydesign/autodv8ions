@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export type ServiceCardData = {
@@ -6,6 +7,8 @@ export type ServiceCardData = {
   desc: string;
   href: string;
   cta: string;
+  imageSrc: string;
+  imageAlt: string;
   emphasis?: "primary" | "standard" | "selective";
 };
 
@@ -13,34 +16,42 @@ export const CORE_SERVICES: ServiceCardData[] = [
   {
     num: "01",
     title: "Window Tint",
-    desc: "Precision tint with a clean finish — privacy, comfort, glare control, and a sharper vehicle profile.",
+    desc: "Clean finish. Privacy, comfort, and glare control — installed with care for the glass and the trim.",
     href: "/services/window-tint",
     cta: "Get a Tint Quote",
     emphasis: "primary",
+    imageSrc: "/images/editorial/tinted-suv.jpg",
+    imageAlt: "Dark luxury vehicle exterior",
   },
   {
     num: "02",
     title: "Remote Starters",
-    desc: "Professional integration for everyday comfort — start the vehicle before you walk out the door.",
+    desc: "Start the vehicle before you walk out. Installed for the platform in front of us.",
     href: "/services/remote-starters",
-    cta: "Request a Consultation",
+    cta: "Request More Info",
     emphasis: "standard",
+    imageSrc: "/images/editorial/key-fob.jpg",
+    imageAlt: "Vehicle key fob close-up",
   },
   {
     num: "03",
     title: "Vehicle Security",
-    desc: "Protection systems chosen for the vehicle and installed cleanly for deterrence and peace of mind.",
+    desc: "Deterrence and alerts installed cleanly — recommended for how the vehicle is used.",
     href: "/services/vehicle-security",
-    cta: "Request a Consultation",
+    cta: "Request More Info",
     emphasis: "standard",
+    imageSrc: "/images/editorial/night-vehicle.jpg",
+    imageAlt: "Vehicle at night",
   },
   {
     num: "04",
     title: "Audio + Select Custom",
-    desc: "Select audio and custom upgrade projects accepted based on scope, vehicle, and schedule.",
+    desc: "Select projects only — based on scope, vehicle, and schedule.",
     href: "/services/audio-custom",
-    cta: "Request a Project Review",
+    cta: "Submit Project for Review",
     emphasis: "selective",
+    imageSrc: "/images/editorial/audio-controls.jpg",
+    imageAlt: "Vehicle audio controls",
   },
 ];
 
@@ -49,39 +60,75 @@ export default function ServiceCards({
 }: {
   services?: ServiceCardData[];
 }) {
+  const primary = services.find((s) => s.emphasis === "primary") ?? services[0];
+  const supporting = services.filter((s) => s.num !== primary.num);
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
-      {services.map((service) => (
-        <article
-          key={service.num}
-          className={`panel group service-card p-6 transition-all duration-700 sm:p-7 lg:hover:-translate-y-1 ${
-            service.emphasis === "primary" ? "service-card-primary" : ""
-          }`}
-        >
-          <span className="label-mono text-[var(--accent)] opacity-60 transition-opacity duration-500 group-hover:opacity-100">
-            {service.num}
-          </span>
-          <h3 className="mt-4 text-lg font-light tracking-tight text-white/90">
-            {service.title}
+    <div className="service-editorial">
+      <Link
+        href={primary.href}
+        className="service-editorial-primary group"
+      >
+        <div className="service-editorial-media">
+          <Image
+            src={primary.imageSrc}
+            alt={primary.imageAlt}
+            fill
+            className="service-editorial-image object-cover"
+            sizes="(max-width:1024px) 100vw, 60vw"
+          />
+          <div className="service-editorial-veil" />
+        </div>
+        <div className="service-editorial-copy">
+          <span className="label-mono text-[var(--accent)]/80">{primary.num}</span>
+          <h3 className="mt-3 text-[clamp(1.6rem,3vw,2.35rem)] font-light tracking-[-0.02em] text-white">
+            {primary.title}
           </h3>
-          <p className="mt-3 text-sm leading-relaxed text-white/40">
-            {service.desc}
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-white/55 sm:text-base">
+            {primary.desc}
           </p>
-          {service.emphasis === "selective" ? (
-            <p className="mt-3 text-xs leading-relaxed text-white/30">
-              Selective acceptance — not every request is a fit.
-            </p>
-          ) : null}
-          <Link
-            href={service.href}
-            className="mt-6 inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-white/55 transition-colors duration-500 group-hover:text-white"
-          >
-            {service.cta}
+          <span className="mt-6 inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-white/70 transition-colors duration-500 group-hover:text-white">
+            {primary.cta}
             <span aria-hidden>→</span>
+          </span>
+        </div>
+      </Link>
+
+      <div className="service-editorial-support">
+        {supporting.map((service) => (
+          <Link
+            key={service.num}
+            href={service.href}
+            className="service-editorial-card group"
+          >
+            <div className="service-editorial-card-media">
+              <Image
+                src={service.imageSrc}
+                alt={service.imageAlt}
+                fill
+                className="service-editorial-image object-cover"
+                sizes="(max-width:1024px) 100vw, 30vw"
+              />
+              <div className="service-editorial-veil service-editorial-veil-card" />
+            </div>
+            <div className="service-editorial-card-copy">
+              <span className="label-mono text-[var(--accent)]/70">
+                {service.num}
+              </span>
+              <h3 className="mt-2 text-lg font-light tracking-tight text-white/95 sm:text-xl">
+                {service.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-white/45">
+                {service.desc}
+              </p>
+              <span className="mt-4 inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-white/55 transition-colors duration-500 group-hover:text-white">
+                {service.cta}
+                <span aria-hidden>→</span>
+              </span>
+            </div>
           </Link>
-          <div className="mt-5 h-px w-0 bg-[var(--accent)] opacity-40 transition-all duration-700 group-hover:w-8" />
-        </article>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

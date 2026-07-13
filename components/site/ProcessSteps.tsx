@@ -10,35 +10,35 @@ const STEPS = [
   },
   {
     num: "02",
-    title: "Get a clear recommendation",
-    copy: "Practical options with no pressure and no filler.",
+    title: "Get a straight answer",
+    copy: "What fits the vehicle — and what does not.",
   },
   {
     num: "03",
     title: "Schedule the work",
-    copy: "A clean appointment window that fits the shop and your day.",
+    copy: "An appointment that works for the shop and your day.",
   },
   {
     num: "04",
-    title: "Precision installation",
-    copy: "Careful prep, clean fitment, and attention to the finish.",
+    title: "Install",
+    copy: "Careful prep, clean fitment, and a finish that holds up.",
   },
   {
     num: "05",
-    title: "Final quality review",
-    copy: "We check the result before the vehicle leaves the bay.",
+    title: "Final check",
+    copy: "We look it over before the vehicle leaves the bay.",
   },
   {
     num: "06",
-    title: "Pickup and enjoy",
-    copy: "Leave with a cleaner look, better comfort, or added peace of mind.",
+    title: "Pickup",
+    copy: "You leave with the work done right.",
   },
 ];
 
 export default function ProcessSteps({
-  eyebrow = "The experience",
-  title = "How the work gets done",
-  intro = "A straightforward path from first conversation to finished install.",
+  eyebrow = "How it works",
+  title = "From the first call to pickup",
+  intro = "Straightforward steps. No extra ceremony.",
 }: {
   eyebrow?: string;
   title?: string;

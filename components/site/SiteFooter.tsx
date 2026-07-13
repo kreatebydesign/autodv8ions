@@ -22,8 +22,8 @@ export default function SiteFooter() {
               Altoona, Pennsylvania
             </p>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/35">
-              Precision window tint with remote starters, vehicle security, and
-              select audio and custom upgrades.
+              Window tint, remote starters, vehicle security, and select audio
+              and custom work — Altoona, PA since 1998.
             </p>
           </div>
 

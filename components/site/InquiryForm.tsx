@@ -20,17 +20,17 @@ type FieldConfig = {
 const CONFIG: Record<InquiryType, FieldConfig> = {
   remote_starter: {
     showVehicle: true,
-    submitLabel: "Request a Remote Starter Consultation",
-    successTitle: "Consultation request received",
+    submitLabel: "Request More Info",
+    successTitle: "Request received",
     successCopy:
-      "Thanks — the AutoDV8ions team will review your vehicle details and follow up.",
+      "Thanks — we'll review your vehicle details and follow up.",
   },
   vehicle_security: {
     showVehicle: true,
-    submitLabel: "Request a Security Consultation",
-    successTitle: "Consultation request received",
+    submitLabel: "Request More Info",
+    successTitle: "Request received",
     successCopy:
-      "Thanks — we will review your request and follow up with clear next steps.",
+      "Thanks — we'll review your request and follow up.",
   },
   audio_custom: {
     showVehicle: true,
@@ -38,14 +38,14 @@ const CONFIG: Record<InquiryType, FieldConfig> = {
     submitLabel: "Submit Project for Review",
     successTitle: "Project submitted for review",
     successCopy:
-      "Thanks — submission does not guarantee acceptance. We will review scope, vehicle, and schedule before responding.",
+      "Thanks — submitting does not guarantee acceptance. We'll review the scope, vehicle, and schedule before responding.",
     disclaimer:
       "Select audio and custom upgrade projects are accepted based on scope, vehicle, and schedule. Submitting this form does not guarantee acceptance.",
   },
   general_contact: {
-    submitLabel: "Contact the Shop",
+    submitLabel: "Request More Info",
     successTitle: "Message received",
-    successCopy: "Thanks — we will get back to you as soon as we can.",
+    successCopy: "Thanks — we'll get back to you as soon as we can.",
   },
 };
 

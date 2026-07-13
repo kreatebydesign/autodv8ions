@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import ScrollIndicator from "./components/ScrollIndicator";
 import HomeShowcaseSlider from "@/components/portfolio/HomeShowcaseSlider";
-import HomeHeroVideo from "@/components/site/HomeHeroVideo";
+import BeyondTintStrip from "@/components/site/BeyondTintStrip";
+import BrandLogoMoment from "@/components/site/BrandLogoMoment";
+import InsideTheWork from "@/components/site/InsideTheWork";
 import ServiceCards from "@/components/site/ServiceCards";
 import ShopShowcase from "@/components/site/ShopShowcase";
 import SiteFooter from "@/components/site/SiteFooter";
@@ -10,6 +13,9 @@ import SiteHeader from "@/components/site/SiteHeader";
 import { listHomepagePortfolio } from "@/lib/live-portfolio/public-portfolio";
 
 export const dynamic = "force-dynamic";
+
+const HERO_IMAGE =
+  "https://static.wixstatic.com/media/24f460_4d7dd7a8905842738274a4951ce65994~mv2.jpg/v1/fill/w_1600,h_894,q_90,enc_avif,quality_auto/24f460_4d7dd7a8905842738274a4951ce65994~mv2.jpg";
 
 export const metadata: Metadata = {
   title:
@@ -25,19 +31,40 @@ export default async function Home() {
       <SiteHeader activeHref="/" transparent />
 
       <main>
-        {/* 1. Hero — cinematic tint video */}
+        {/* 1. Tesla hero — restored static treatment */}
         <section className="relative flex min-h-[100svh] items-end overflow-hidden">
-          <HomeHeroVideo />
+          <div className="absolute inset-0 image-zoom">
+            <Image
+              src={HERO_IMAGE}
+              alt="Custom vehicle build by AutoDV8ions"
+              fill
+              className="zoom-target object-cover object-center"
+              priority
+              sizes="100vw"
+            />
+          </div>
+
+          <div className="image-overlay" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_80%,rgba(201,0,0,0.08)_0%,transparent_50%)]" />
 
           <div className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-16 pt-32 sm:px-8 sm:pb-24 lg:px-12 lg:pb-32">
-            <h1 className="max-w-3xl animate-fade-up text-[clamp(2.15rem,6vw,4.6rem)] font-light leading-[1.02] tracking-[-0.03em] text-white">
+            <span className="label-mono mb-4 block animate-fade-up text-white/40">
+              // Altoona, PA · Est. 1998
+            </span>
+
+            <h1 className="max-w-3xl animate-fade-up text-[clamp(2rem,6vw,4.5rem)] font-light leading-[1.05] tracking-[-0.02em] text-white [animation-delay:0.1s]">
               Elevate the ride.
+              <br />
+              <span className="text-white/60">Not just modify it.</span>
             </h1>
-            <p className="mt-6 max-w-sm animate-fade-up text-sm leading-relaxed text-white/50 [animation-delay:0.12s] sm:text-base">
-              Window tint, remote starters, vehicle security, and select custom
-              work — Altoona, PA since 1998.
+
+            <p className="mt-6 max-w-md animate-fade-up text-sm leading-relaxed text-white/50 [animation-delay:0.2s] sm:text-base">
+              27 years in Altoona — window tint, remote starters, vehicle
+              security, and select custom work.
             </p>
-            <div className="mt-10 flex flex-wrap items-center gap-6 animate-fade-up [animation-delay:0.22s]">
+
+            <div className="mt-10 flex flex-wrap items-center gap-6 animate-fade-up [animation-delay:0.3s]">
               <Link
                 href="/tint-quote"
                 className="group inline-flex items-center gap-3 border border-white/15 bg-white/[0.05] px-6 py-3 text-xs uppercase tracking-[0.15em] text-white transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.08] hover:shadow-[0_0_32px_var(--accent-glow)]"
@@ -47,12 +74,17 @@ export default async function Home() {
                   →
                 </span>
               </Link>
+
               <a
                 href="#gallery"
-                className="text-xs uppercase tracking-[0.15em] text-white/40 transition-colors duration-500 hover:text-white"
+                className="group inline-flex items-center gap-3 text-xs uppercase tracking-[0.15em] text-white/45 transition-all duration-500 hover:text-white"
               >
-                Recent work
+                View Builds
               </a>
+
+              <span className="accent-line" />
+
+              <span className="label-mono text-white/30">Altoona, PA</span>
             </div>
           </div>
         </section>
@@ -60,31 +92,30 @@ export default async function Home() {
         {/* 2. Story */}
         <section
           id="about"
-          className="relative border-t border-white/[0.04] py-24 sm:py-32 lg:py-40"
+          className="relative border-t border-white/[0.04] py-16 sm:py-20 lg:py-24"
         >
           <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-            <div className="grid gap-14 lg:grid-cols-12 lg:gap-20">
+            <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
               <div className="lg:col-span-5">
-                <h2 className="text-[clamp(1.85rem,4vw,2.9rem)] font-light leading-[1.1] tracking-[-0.03em]">
-                  Craftsmanship
+                <h2 className="text-[clamp(1.75rem,3.8vw,2.6rem)] font-light leading-[1.1] tracking-[-0.03em]">
+                  Tint first.
                   <br />
-                  before shortcuts.
+                  Everything else when it fits.
                 </h2>
               </div>
               <div className="lg:col-span-6 lg:col-start-7">
-                <p className="text-base leading-[1.85] text-white/55 sm:text-lg">
-                  For 27 years, AutoDV8ions has built a reputation on clean
-                  installs and honest recommendations. Tint is the core of the
-                  shop — and it stays that way.
+                <p className="text-base leading-[1.8] text-white/55 sm:text-lg">
+                  Chris has been doing this work for 27 years. Tint is still the
+                  main focus — clean installs, straight talk, and respect for the
+                  vehicle in the bay.
                 </p>
-                <p className="mt-6 text-sm leading-[1.85] text-white/40 sm:text-base">
+                <p className="mt-5 text-sm leading-[1.8] text-white/40 sm:text-base">
                   Remote starters, vehicle security, and select audio or custom
-                  upgrades when the vehicle, scope, and schedule are the right
-                  fit.
+                  upgrades when the project makes sense.
                 </p>
                 <Link
                   href="/about"
-                  className="mt-10 inline-flex label-mono text-white/45 transition-colors duration-500 hover:text-white"
+                  className="mt-8 inline-flex label-mono text-white/45 transition-colors duration-500 hover:text-white"
                 >
                   Our story →
                 </Link>
@@ -96,11 +127,11 @@ export default async function Home() {
         {/* 3. Services */}
         <section
           id="services"
-          className="relative border-t border-white/[0.04] py-24 sm:py-32"
+          className="relative border-t border-white/[0.04] py-16 sm:py-20 lg:py-24"
         >
           <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-            <div className="mb-14 max-w-xl">
-              <h2 className="text-[clamp(1.85rem,4vw,2.9rem)] font-light tracking-[-0.03em]">
+            <div className="mb-10 max-w-xl sm:mb-12">
+              <h2 className="text-[clamp(1.75rem,3.8vw,2.6rem)] font-light tracking-[-0.03em]">
                 What we do
               </h2>
             </div>
@@ -108,17 +139,20 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 4. Shop — real AutoDV8ions storefront */}
+        {/* 4. Shop */}
         <ShopShowcase />
 
-        {/* 5. Portfolio — real customer work */}
+        {/* 5. Inside the work — controlled tint video */}
+        <InsideTheWork />
+
+        {/* 6. Portfolio */}
         <section
           id="gallery"
-          className="relative border-t border-white/[0.04] py-24 sm:py-32 lg:py-40"
+          className="relative border-t border-white/[0.04] py-16 sm:py-20 lg:py-24"
         >
           <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-            <div className="mb-14 flex flex-col gap-6 lg:mb-20 lg:flex-row lg:items-end lg:justify-between">
-              <h2 className="max-w-xl text-[clamp(1.85rem,4vw,2.9rem)] font-light tracking-[-0.03em]">
+            <div className="mb-8 flex flex-col gap-4 sm:mb-10 lg:flex-row lg:items-end lg:justify-between">
+              <h2 className="max-w-xl text-[clamp(1.75rem,3.8vw,2.6rem)] font-light tracking-[-0.03em]">
                 Recent tint work
               </h2>
               <Link
@@ -142,80 +176,11 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 6. Additional services — quieter, less card-stack */}
-        <section className="relative border-t border-white/[0.04] py-24 sm:py-32">
-          <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-            <div className="grid gap-16 lg:grid-cols-12 lg:gap-12">
-              <div className="lg:col-span-4">
-                <h2 className="text-[clamp(1.7rem,3.5vw,2.4rem)] font-light tracking-[-0.03em]">
-                  Beyond tint
-                </h2>
-                <p className="mt-5 text-sm leading-relaxed text-white/40">
-                  Established offerings for comfort and protection — plus select
-                  custom work when it fits.
-                </p>
-              </div>
-              <div className="divide-y divide-white/[0.06] lg:col-span-7 lg:col-start-6">
-                {[
-                  {
-                    title: "Remote Starters",
-                    href: "/services/remote-starters",
-                    cta: "Consultation",
-                  },
-                  {
-                    title: "Vehicle Security",
-                    href: "/services/vehicle-security",
-                    cta: "Consultation",
-                  },
-                  {
-                    title: "Audio + Custom",
-                    href: "/services/audio-custom",
-                    cta: "Project review",
-                  },
-                ].map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="group flex items-baseline justify-between gap-6 py-6 transition-colors duration-500"
-                  >
-                    <span className="text-xl font-light tracking-tight text-white/85 transition-colors group-hover:text-white sm:text-2xl">
-                      {item.title}
-                    </span>
-                    <span className="label-mono shrink-0 text-white/35 transition-colors group-hover:text-white/70">
-                      {item.cta} →
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* 7. Beyond tint */}
+        <BeyondTintStrip />
 
-        {/* 7. CTA */}
-        <section
-          id="contact"
-          className="relative border-t border-white/[0.04] py-24 sm:py-32 lg:py-40"
-        >
-          <div className="mx-auto max-w-7xl px-5 text-center sm:px-8 lg:px-12">
-            <h2 className="mx-auto max-w-2xl text-[clamp(1.85rem,4vw,3rem)] font-light tracking-[-0.03em]">
-              Ready when you are.
-            </h2>
-            <div className="mt-10 flex flex-col items-center justify-center gap-5 sm:flex-row">
-              <Link
-                href="/tint-quote"
-                className="inline-flex items-center gap-3 border border-white/15 bg-white/[0.05] px-8 py-3.5 text-xs uppercase tracking-[0.15em] text-white transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.08] hover:shadow-[0_0_32px_var(--accent-glow)]"
-              >
-                Get Tint Quote
-              </Link>
-              <Link
-                href="/contact"
-                className="label-mono text-white/40 transition-colors duration-500 hover:text-white"
-              >
-                Contact the Shop
-              </Link>
-            </div>
-          </div>
-        </section>
+        {/* 8. CTA + logo moment */}
+        <BrandLogoMoment />
       </main>
 
       <SiteFooter />
