@@ -435,7 +435,10 @@ export async function POST(request: NextRequest) {
             asNullableString(body.preferredDate),
           message:
             asNullableString(body.tintNotes) || asNullableString(body.message),
-          source: "autodv8ions.com",
+          source:
+            asNullableString(body.pageSource) ||
+            asNullableString(body.source) ||
+            "autodv8ions.com",
           raw_submission: body,
         })
         .select("id")

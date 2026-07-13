@@ -1,0 +1,146 @@
+{
+  "generatedAt": "2026-07-13T01:19:25.997Z",
+  "licenseNote": "All images sourced from Unsplash under the Unsplash License (https://unsplash.com/license). Free to use commercially. Attribution is appreciated but not required. These images are editorial atmosphere only and must never be presented as AutoDV8ions customer work.",
+  "assets": [
+    {
+      "id": "interior-dark",
+      "localPath": "/images/editorial/interior-dark.jpg",
+      "sourceUrl": "https://unsplash.com/photos/black-car-interior-design--gy2ToQa8u4",
+      "photographer": "Erik Mclean",
+      "photographerUrl": "https://unsplash.com/@introspectivedsgn",
+      "license": "Unsplash License",
+      "intendedSections": [
+        "homepage-atmosphere",
+        "window-tint",
+        "services"
+      ],
+      "alt": "Editorial photograph of a dark modern vehicle interior — atmosphere imagery, not an AutoDV8ions customer project.",
+      "note": "Editorial atmosphere imagery only. Not an AutoDV8ions customer project."
+    },
+    {
+      "id": "garage-window",
+      "localPath": "/images/editorial/garage-window.jpg",
+      "sourceUrl": "https://unsplash.com/photos/classic-car-in-a-dark-garage-illuminated-by-a-window-aqbWY3tSNTw",
+      "photographer": "Toni Cuenca",
+      "photographerUrl": "https://unsplash.com/@tonicuenca",
+      "license": "Unsplash License",
+      "intendedSections": [
+        "homepage-atmosphere",
+        "about",
+        "process"
+      ],
+      "alt": "Editorial photograph of a vehicle in a dark garage lit by a window — atmosphere imagery, not an AutoDV8ions customer project.",
+      "note": "Editorial atmosphere imagery only. Not an AutoDV8ions customer project."
+    },
+    {
+      "id": "interior-night",
+      "localPath": "/images/editorial/interior-night.jpg",
+      "sourceUrl": "https://unsplash.com/photos/the-interior-of-a-car-in-the-dark-S5v2FvAIknA",
+      "photographer": "Toni Cuenca",
+      "photographerUrl": "https://unsplash.com/@tonicuenca",
+      "license": "Unsplash License",
+      "intendedSections": [
+        "window-tint",
+        "homepage-story"
+      ],
+      "alt": "Editorial photograph of a vehicle cabin in low light — atmosphere imagery, not an AutoDV8ions customer project.",
+      "note": "Editorial atmosphere imagery only. Not an AutoDV8ions customer project."
+    },
+    {
+      "id": "night-vehicle",
+      "localPath": "/images/editorial/night-vehicle.jpg",
+      "sourceUrl": "https://unsplash.com/photos/black-vehicle-parked-on-road-during-nighttime-CvfxfpTnisM",
+      "photographer": "Jonathan Cooper",
+      "photographerUrl": "https://unsplash.com/@the_modern_life_vids",
+      "license": "Unsplash License",
+      "intendedSections": [
+        "vehicle-security",
+        "homepage-atmosphere"
+      ],
+      "alt": "Editorial photograph of a dark vehicle at night — atmosphere imagery, not an AutoDV8ions customer project.",
+      "note": "Editorial atmosphere imagery only. Not an AutoDV8ions customer project."
+    },
+    {
+      "id": "night-street",
+      "localPath": "/images/editorial/night-street.jpg",
+      "sourceUrl": "https://unsplash.com/photos/a-black-and-white-car-parked-at-night-QaW_oI_Zkdk",
+      "photographer": "Erik Mclean",
+      "photographerUrl": "https://unsplash.com/@introspectivedsgn",
+      "license": "Unsplash License",
+      "intendedSections": [
+        "vehicle-security",
+        "homepage-cta"
+      ],
+      "alt": "Editorial photograph of a vehicle parked at night — atmosphere imagery, not an AutoDV8ions customer project.",
+      "note": "Editorial atmosphere imagery only. Not an AutoDV8ions customer project."
+    },
+    {
+      "id": "key-fob",
+      "localPath": "/images/editorial/key-fob.jpg",
+      "sourceUrl": "https://unsplash.com/photos/closeup-photo-of-black-remote-control-y8CtjK0ej6A",
+      "photographer": "Joey Banks",
+      "photographerUrl": "https://unsplash.com/@joeybanks",
+      "license": "Unsplash License",
+      "intendedSections": [
+        "remote-starters"
+      ],
+      "alt": "Editorial close-up of a vehicle remote key fob — atmosphere imagery, not an AutoDV8ions product photo.",
+      "note": "Editorial atmosphere imagery only. Not an AutoDV8ions customer project."
+    },
+    {
+      "id": "audio-controls",
+      "localPath": "/images/editorial/audio-controls.jpg",
+      "sourceUrl": "https://unsplash.com/photos/a-cars-volume-knob-and-bmw-logo-oMElRPUwIRI",
+      "photographer": "Toni Cuenca",
+      "photographerUrl": "https://unsplash.com/@tonicuenca",
+      "license": "Unsplash License",
+      "intendedSections": [
+        "audio-custom"
+      ],
+      "alt": "Editorial detail of vehicle audio controls — atmosphere imagery, not an AutoDV8ions customer project.",
+      "note": "Editorial atmosphere imagery only. Not an AutoDV8ions customer project."
+    },
+    {
+      "id": "craft-detail",
+      "localPath": "/images/editorial/craft-detail.jpg",
+      "sourceUrl": "https://unsplash.com/photos/hand-on-a-manual-car-gear-shift-with-rs-logo-syjoRp-CXxw",
+      "photographer": "Toni Cuenca",
+      "photographerUrl": "https://unsplash.com/@tonicuenca",
+      "license": "Unsplash License",
+      "intendedSections": [
+        "audio-custom",
+        "about"
+      ],
+      "alt": "Editorial detail of a hand on a vehicle gear selector — atmosphere imagery, not an AutoDV8ions customer project.",
+      "note": "Editorial atmosphere imagery only. Not an AutoDV8ions customer project."
+    },
+    {
+      "id": "steering-detail",
+      "localPath": "/images/editorial/steering-detail.jpg",
+      "sourceUrl": "https://unsplash.com/photos/a-close-up-of-a-steering-wheel-and-dashboard-of-a-car-kyj9CjJpaoI",
+      "photographer": "Toni Cuenca",
+      "photographerUrl": "https://unsplash.com/@tonicuenca",
+      "license": "Unsplash License",
+      "intendedSections": [
+        "services",
+        "window-tint"
+      ],
+      "alt": "Editorial close-up of a steering wheel and dashboard — atmosphere imagery, not an AutoDV8ions customer project.",
+      "note": "Editorial atmosphere imagery only. Not an AutoDV8ions customer project."
+    },
+    {
+      "id": "workshop-tools",
+      "localPath": "/images/editorial/workshop-tools.jpg",
+      "sourceUrl": "https://unsplash.com/photos/car-mechanic-holding-diagnostic-tablet-near-open-hood",
+      "photographer": "Unsplash Contributor",
+      "photographerUrl": "https://unsplash.com",
+      "license": "Unsplash License",
+      "intendedSections": [
+        "about",
+        "process"
+      ],
+      "alt": "Editorial photograph of automotive diagnostic work — atmosphere imagery, not an AutoDV8ions customer project.",
+      "note": "Editorial atmosphere imagery only. Not an AutoDV8ions customer project."
+    }
+  ]
+}

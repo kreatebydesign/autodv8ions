@@ -827,7 +827,7 @@ export default function TintQuotePage() {
                       rows={4}
                       value={form.vehicleNotes}
                       onChange={(e) => update("vehicleNotes", e.target.value)}
-                      placeholder="e.g. Large panoramic roof, existing ceramic tint on rear, PPF on windshield..."
+                      placeholder="e.g. Large panoramic roof, existing tint on rear, PPF on windshield..."
                       className={`${inputClass} resize-none`}
                     />
                   </div>

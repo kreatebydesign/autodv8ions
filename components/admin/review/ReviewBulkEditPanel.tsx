@@ -70,7 +70,7 @@ export default function ReviewBulkEditPanel({
           className="review-field mb-4"
           value={shade}
           onChange={(e) => setShade(e.target.value)}
-          placeholder="e.g. 15% ceramic"
+          placeholder="e.g. 15%"
         />
 
         <label className="review-label">Description</label>

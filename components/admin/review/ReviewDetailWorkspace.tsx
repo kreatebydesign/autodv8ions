@@ -477,7 +477,7 @@ export default function ReviewDetailWorkspace({
                 className="review-field"
                 value={shade}
                 onChange={(e) => setShade(e.target.value)}
-                placeholder="e.g. 15% ceramic"
+                placeholder="e.g. 15%"
               />
             </div>
 
