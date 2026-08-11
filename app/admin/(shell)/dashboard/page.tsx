@@ -67,9 +67,10 @@ export default async function AdminDashboardPage() {
               <p className="text-sm text-[var(--dv8-muted)]">No jobs yet.</p>
             ) : (
               recentJobs.map((job) => (
-                <div
+                <Link
                   key={job.id}
-                  className="flex items-center justify-between gap-4 border-b border-[var(--dv8-border)] pb-3 last:border-0"
+                  href={`/admin/jobs?jobId=${job.id}`}
+                  className="flex items-center justify-between gap-4 border-b border-[var(--dv8-border)] pb-3 last:border-0 transition-colors hover:bg-white/[0.03] focus-visible:bg-white/[0.03] focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[rgba(211,11,11,0.45)]"
                 >
                   <div>
                     <p>{formatCustomerName(job.customers)}</p>
@@ -78,7 +79,7 @@ export default async function AdminDashboardPage() {
                     </p>
                   </div>
                   <JobStatusBadge status={job.status} />
-                </div>
+                </Link>
               ))
             )}
           </div>

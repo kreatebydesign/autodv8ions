@@ -16,7 +16,9 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [jobs, setJobs] = useState(initialJobs);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => searchParams.get("jobId"),
+  );
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [status, setStatus] = useState(searchParams.get("status") || "");
   const [serviceType, setServiceType] = useState(searchParams.get("serviceType") || "");
