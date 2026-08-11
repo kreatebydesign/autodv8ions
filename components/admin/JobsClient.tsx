@@ -25,6 +25,10 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   const [savingStatus, setSavingStatus] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [draftNotes, setDraftNotes] = useState("");
+  const [showEmailComposer, setShowEmailComposer] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const selected = jobs.find((job) => job.id === selectedId) || null;
   const notesDirty =
@@ -37,6 +41,16 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       setDraftNotes("");
     }
   }, [selectedId, selected?.internal_notes]);
+
+  function selectJob(id: string) {
+    if (id !== selectedId) {
+      setShowEmailComposer(false);
+      setEmailSubject("");
+      setEmailMessage("");
+      setSendingEmail(false);
+    }
+    setSelectedId(id);
+  }
 
   async function refreshJobs() {
     setFeedback(null);
@@ -137,6 +151,69 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     }
   }
 
+  async function handleSendCustomerEmail() {
+    if (!selected || sendingEmail) return;
+
+    const to = selected.customers?.email?.trim() || "";
+    const subject = emailSubject.trim();
+    const message = emailMessage.trim();
+
+    if (!to) {
+      setFeedback({ type: "error", text: "This customer has no email address." });
+      return;
+    }
+    if (!subject) {
+      setFeedback({ type: "error", text: "Subject is required." });
+      return;
+    }
+    if (!message) {
+      setFeedback({ type: "error", text: "Message is required." });
+      return;
+    }
+
+    setSendingEmail(true);
+    setFeedback(null);
+
+    try {
+      const res = await fetch(`/api/jobs/${selected.id}/email`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to, subject, message }),
+      });
+
+      let data: { error?: string; success?: boolean } = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok) {
+        setFeedback({
+          type: "error",
+          text: data.error || "Email failed to send.",
+        });
+        return;
+      }
+
+      setFeedback({
+        type: "success",
+        text: `Email sent to ${to}.`,
+      });
+      setEmailSubject("");
+      setEmailMessage("");
+      setShowEmailComposer(false);
+    } catch {
+      setFeedback({
+        type: "error",
+        text: "Email failed to send. Check your connection and try again.",
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  }
+
   async function createCalendarEvent(id: string) {
     setLoading(true);
     setFeedback(null);
@@ -165,7 +242,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     setFeedback({ type: "success", text: "Calendar details copied." });
   }
 
-  const detailDisabled = loading || savingStatus || savingNotes;
+  const detailDisabled = loading || savingStatus || savingNotes || sendingEmail;
 
   return (
     <div className="space-y-6">
@@ -233,7 +310,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                 <tr
                   key={job.id}
                   className={`cursor-pointer hover:bg-white/[0.03] ${selectedId === job.id ? "bg-[var(--dv8-red-soft)]" : ""}`}
-                  onClick={() => setSelectedId(job.id)}
+                  onClick={() => selectJob(job.id)}
                 >
                   <td>{formatCustomerName(job.customers)}</td>
                   <td>{formatVehicleShort(job.vehicles)}</td>
@@ -257,17 +334,79 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                 <p>{formatCustomerName(selected.customers)}</p>
                 <div className="mt-2 flex flex-wrap gap-3 text-sm">
                   {selected.customers?.phone && (
-                    <a className="text-[var(--dv8-red-bright)]" href={`tel:${selected.customers.phone}`}>
+                    <a
+                      className="text-[var(--dv8-red-bright)]"
+                      href={`tel:${selected.customers.phone}`}
+                    >
                       Call
                     </a>
                   )}
                   {selected.customers?.email && (
-                    <a className="text-[var(--dv8-red-bright)]" href={`mailto:${selected.customers.email}`}>
-                      Email
-                    </a>
+                    <button
+                      type="button"
+                      className="text-[var(--dv8-red-bright)] underline-offset-2 hover:underline"
+                      disabled={detailDisabled}
+                      onClick={() => setShowEmailComposer((open) => !open)}
+                    >
+                      {showEmailComposer ? "Hide Email" : "Email Customer"}
+                    </button>
                   )}
                 </div>
               </div>
+
+              {showEmailComposer && selected.customers?.email && (
+                <div className="space-y-3 rounded-md border border-[var(--dv8-border)] bg-black/20 p-4">
+                  <div>
+                    <p className="admin-label">To</p>
+                    <input
+                      className="admin-input"
+                      type="email"
+                      value={selected.customers.email}
+                      readOnly
+                      aria-readonly="true"
+                    />
+                  </div>
+                  <div>
+                    <p className="admin-label">Subject</p>
+                    <input
+                      className="admin-input"
+                      type="text"
+                      value={emailSubject}
+                      disabled={sendingEmail}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                      placeholder="Subject"
+                    />
+                  </div>
+                  <div>
+                    <p className="admin-label">Message</p>
+                    <textarea
+                      className="admin-input min-h-28"
+                      value={emailMessage}
+                      disabled={sendingEmail}
+                      onChange={(e) => setEmailMessage(e.target.value)}
+                      placeholder="Write your message…"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn-primary"
+                      disabled={
+                        sendingEmail ||
+                        !emailSubject.trim() ||
+                        !emailMessage.trim()
+                      }
+                      onClick={handleSendCustomerEmail}
+                    >
+                      {sendingEmail ? "Sending…" : "Send"}
+                    </button>
+                    <span className="text-xs text-[var(--dv8-muted)]">
+                      Sends from AutoDV8ions Sales · replies go to
+                      sales@autodv8ions.com
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <p className="admin-label">Vehicle</p>
