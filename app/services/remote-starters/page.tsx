@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 const PACKAGES = [
   {
     title: "Basic Remote Start",
-    price: "Starting at $400 + tax",
+    amount: "$400",
     imageSrc: "/images/remote-starters/display/basic-remote-start.png",
     imageAlt: "1-way remote start key fob",
     features: [
@@ -23,7 +23,7 @@ const PACKAGES = [
   },
   {
     title: "2-Way LED Remote Start",
-    price: "Starting at $500 + tax",
+    amount: "$500",
     imageSrc: "/images/remote-starters/display/two-way-led-remote-start.png",
     imageAlt: "2-way LED remote start key fob",
     features: [
@@ -85,27 +85,27 @@ export default function RemoteStartersPage() {
         <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
           <p className="label-mono mb-4 text-white/40">Options</p>
           <h2 className="max-w-2xl text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight">
-            Choose by range and features.
+            Choose your remote start.
           </h2>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/45">
-            We match the right hardware to your vehicle after we review it.
-            Pricing below is a starting point — final cost depends on the
-            vehicle and install path.
+            We review the vehicle and match the right hardware for the
+            application. Pricing below is a starting point — final cost depends
+            on the vehicle and install path.
           </p>
 
-          <div className="mt-10 grid gap-4 lg:grid-cols-2">
+          <div className="mt-10 grid items-stretch gap-4 lg:grid-cols-2">
             {PACKAGES.map((item) => (
               <article
                 key={item.title}
                 className="panel flex h-full flex-col overflow-hidden p-5 sm:p-6"
               >
-                <div className="relative mb-6 flex h-[15.5rem] items-center justify-center sm:h-[17.5rem]">
+                <div className="relative mb-4 flex h-[13.25rem] items-center justify-center overflow-hidden sm:mb-5 sm:h-[15rem]">
                   <div
-                    className="pointer-events-none absolute inset-[12%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(201,0,0,0.10)_0%,transparent_68%)]"
+                    className="pointer-events-none absolute inset-[8%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.03)_38%,transparent_72%)]"
                     aria-hidden
                   />
                   <div
-                    className="pointer-events-none absolute inset-x-[18%] bottom-[8%] h-10 rounded-[100%] bg-black/45 blur-xl"
+                    className="pointer-events-none absolute inset-x-[22%] bottom-[6%] h-8 rounded-[100%] bg-black/35 blur-lg"
                     aria-hidden
                   />
                   <Image
@@ -113,17 +113,27 @@ export default function RemoteStartersPage() {
                     alt={item.imageAlt}
                     width={379}
                     height={616}
-                    className="relative z-[1] h-full w-auto max-w-[11.5rem] object-contain drop-shadow-[0_18px_36px_rgba(0,0,0,0.55)] sm:max-w-[13rem]"
-                    sizes="(max-width:640px) 184px, 208px"
+                    className="relative z-[1] h-[118%] w-auto max-w-[12rem] object-contain drop-shadow-[0_10px_28px_rgba(0,0,0,0.45)] sm:max-w-[13.5rem]"
+                    sizes="(max-width:640px) 192px, 216px"
                     priority={false}
                   />
                 </div>
 
-                <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <h3 className="text-lg font-light text-white/90">
+                <div className="flex min-h-[3.75rem] items-start justify-between gap-4">
+                  <h3 className="max-w-[12.5rem] text-lg font-light leading-snug text-white/90 sm:max-w-none">
                     {item.title}
                   </h3>
-                  <p className="text-sm text-white/70">{item.price}</p>
+                  <div className="shrink-0 text-right">
+                    <p className="text-[0.65rem] uppercase tracking-[0.16em] text-white/35">
+                      Starting at
+                    </p>
+                    <p className="mt-1 text-[1.65rem] font-light leading-none tracking-tight text-white/92 sm:text-[1.85rem]">
+                      {item.amount}
+                      <span className="ml-1.5 align-baseline text-sm font-light tracking-normal text-white/40">
+                        + tax
+                      </span>
+                    </p>
+                  </div>
                 </div>
 
                 <ul className="mt-5 space-y-3 text-sm leading-relaxed text-white/45">
@@ -142,7 +152,7 @@ export default function RemoteStartersPage() {
           </div>
 
           <article className="panel mt-4 p-5 sm:p-6 lg:p-8">
-            <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
+            <div className="grid gap-8 lg:grid-cols-12 lg:items-center">
               <div className="lg:col-span-7">
                 <p className="label-mono mb-3 text-white/40">Add-on</p>
                 <h3 className="text-lg font-light text-white/90">
@@ -158,11 +168,19 @@ export default function RemoteStartersPage() {
                 </p>
               </div>
               <div className="lg:col-span-5 lg:text-right">
-                <p className="text-sm text-white/35 line-through decoration-white/30">
-                  Regularly $200
+                <p className="text-sm text-white/45">
+                  Regularly{" "}
+                  <span className="text-white/60 line-through decoration-white/45">
+                    $200
+                  </span>
                 </p>
-                <p className="mt-2 text-base text-white/85">
-                  $150 with Remote Start Installation
+                <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 lg:justify-end">
+                  <span className="text-[1.85rem] font-light leading-none tracking-tight text-white/92">
+                    $150
+                  </span>
+                  <span className="text-sm text-white/50">
+                    with Remote Start Installation
+                  </span>
                 </p>
                 <p className="mt-3 text-xs leading-relaxed text-white/35">
                   Install special — not a standalone offer. Available only when
