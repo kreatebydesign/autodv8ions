@@ -6,8 +6,29 @@ import ServicePageShell from "@/components/site/ServicePageShell";
 export const metadata: Metadata = {
   title: "Remote Starters",
   description:
-    "Remote starter installs from AutoDV8ions in Altoona, PA — reviewed for your vehicle before we schedule.",
+    "Remote starter installs from AutoDV8ions in Altoona, PA — Basic and 2-Way LED packages plus optional smartphone control, reviewed for your vehicle before we schedule.",
 };
+
+const PACKAGES = [
+  {
+    title: "Basic Remote Start",
+    price: "Starting at $400 + tax",
+    features: [
+      "1-way remote starter",
+      "Up to 1,500 ft range",
+      "Simple remote start operation",
+    ],
+  },
+  {
+    title: "2-Way LED Remote Start",
+    price: "Starting at $500 + tax",
+    features: [
+      "2-way LED remote starter",
+      "Up to 1/2-mile range",
+      "Remote confirmation when the command is received",
+    ],
+  },
+] as const;
 
 export default function RemoteStartersPage() {
   return (
@@ -50,6 +71,78 @@ export default function RemoteStartersPage() {
               />
             </div>
           </div>
+        </div>
+      </section>
+
+      <section
+        id="options"
+        className="border-t border-white/[0.04] py-14 sm:py-20"
+      >
+        <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+          <p className="label-mono mb-4 text-white/40">Options</p>
+          <h2 className="max-w-2xl text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight">
+            Choose by range and features.
+          </h2>
+          <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/45">
+            We match the right hardware to your vehicle after we review it.
+            Pricing below is a starting point — final cost depends on the
+            vehicle and install path.
+          </p>
+
+          <div className="mt-10 grid gap-4 lg:grid-cols-2">
+            {PACKAGES.map((item) => (
+              <article key={item.title} className="panel flex flex-col p-5 sm:p-6">
+                <div className="flex flex-wrap items-baseline justify-between gap-3">
+                  <h3 className="text-lg font-light text-white/90">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-white/70">{item.price}</p>
+                </div>
+                <ul className="mt-5 space-y-3 text-sm leading-relaxed text-white/45">
+                  {item.features.map((feature) => (
+                    <li key={feature} className="flex gap-3">
+                      <span
+                        className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--accent)] opacity-80"
+                        aria-hidden
+                      />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+
+          <article className="panel mt-4 p-5 sm:p-6 lg:p-8">
+            <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
+              <div className="lg:col-span-7">
+                <p className="label-mono mb-3 text-white/40">Add-on</p>
+                <h3 className="text-lg font-light text-white/90">
+                  DroneMobile Smartphone Add-On
+                </h3>
+                <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/45">
+                  Control your remote start from your phone with the DroneMobile
+                  smartphone module.
+                </p>
+                <p className="mt-4 text-sm leading-relaxed text-white/40">
+                  Special pricing valid only at the time of remote start
+                  installation.
+                </p>
+              </div>
+              <div className="lg:col-span-5 lg:text-right">
+                <p className="text-sm text-white/35 line-through decoration-white/30">
+                  Regularly $200
+                </p>
+                <p className="mt-2 text-base text-white/85">
+                  $150 with Remote Start Installation
+                </p>
+                <p className="mt-3 text-xs leading-relaxed text-white/35">
+                  Install special — not a standalone offer. Available only when
+                  purchased with a remote starter install.
+                </p>
+              </div>
+            </div>
+          </article>
         </div>
       </section>
 
