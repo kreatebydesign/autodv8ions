@@ -114,6 +114,31 @@ GOOGLE_REFRESH_TOKEN=
 GOOGLE_CALENDAR_ID=     # sales@autodv8ions.com calendar ID
 ```
 
+### Google Gmail — CRM communication (optional, Phase 1 auth)
+```
+# Reuses the same OAuth client ID/secret as Calendar.
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_GMAIL_REFRESH_TOKEN=   # Gmail-only refresh token — DO NOT put Calendar token here
+# GOOGLE_GMAIL_USER=sales@autodv8ions.com   # optional; API defaults to "me"
+```
+
+**DO NOT replace `GOOGLE_REFRESH_TOKEN`.** That token remains Calendar / legacy Drive auth.
+Gmail must use a **separate** refresh token (`GOOGLE_GMAIL_REFRESH_TOKEN`) authorized with
+`https://www.googleapis.com/auth/gmail.modify` while signed in as `sales@autodv8ions.com`.
+
+Generate the Gmail token locally (never commit it):
+
+```
+node scripts/get-google-gmail-refresh-token.js
+```
+
+Verify connection (profile counts only — no message content):
+
+```
+node scripts/test-google-gmail.js
+```
+
 ### Google Drive — Live Portfolio (Vercel OIDC / Workload Identity Federation)
 ```
 # Preferred auth (no JSON service-account key)
@@ -172,6 +197,25 @@ If not configured, the admin Workspace shows:
 **"Google Calendar is not connected yet."**
 
 Jobs still work. Manual calendar workflow unchanged.
+
+---
+
+## 5b. Google Gmail Setup (CRM Phase 1 — auth only)
+
+Use the **same** Google Cloud project and OAuth client as Calendar.
+
+1. Google Cloud Console → APIs & Services → Library → enable **Gmail API**
+2. OAuth consent screen → add scope  
+   `https://www.googleapis.com/auth/gmail.modify`  
+   (Testing mode: add `sales@autodv8ions.com` as a test user)
+3. Confirm Authorized redirect URI includes:  
+   `http://localhost:3001/api/auth/google/callback`
+4. Run `node scripts/get-google-gmail-refresh-token.js` while logged in as **sales@autodv8ions.com**
+5. Add `GOOGLE_GMAIL_REFRESH_TOKEN` to `.env.local` and Vercel  
+   Optionally set `GOOGLE_GMAIL_USER=sales@autodv8ions.com`
+6. Verify with `node scripts/test-google-gmail.js` (prints email + totals only)
+
+**Isolation rule:** never overwrite `GOOGLE_REFRESH_TOKEN` for Gmail. Calendar and legacy Drive continue to use that variable unchanged.
 
 ---
 

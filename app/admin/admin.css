@@ -411,10 +411,264 @@
   color: #b8b8c0;
 }
 
+.job-comm-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
 .job-comm-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.85rem;
   padding: 1.05rem;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.job-comm-composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.job-comm-textarea {
+  min-height: 7.5rem;
+  resize: vertical;
+}
+
+.job-comm-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 9rem;
+  padding: 1.1rem 0.2rem;
+}
+
+.job-comm-skeleton {
+  height: 3.4rem;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.09),
+    rgba(255, 255, 255, 0.04)
+  );
+  background-size: 200% 100%;
+  animation: job-comm-shimmer 1.4s ease-in-out infinite;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.job-comm-skeleton--short {
+  width: 62%;
+  height: 2.2rem;
+}
+
+.job-comm-loading-label {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #a8a8b0;
+}
+
+@keyframes job-comm-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.job-comm-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.job-comm-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem 1.25rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.job-comm-header-copy {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.job-comm-email {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: #c4c4cc;
+  word-break: break-all;
+}
+
+.job-comm-subject {
+  margin: 0.35rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: #f4f4f6;
+}
+
+.job-comm-meta {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: #a8a8b2;
+}
+
+.job-comm-ambiguity {
+  margin: 0.55rem 0 0;
+  max-width: 36rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #d0d0d8;
+}
+
+.job-comm-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.job-comm-earlier {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0.35rem 0;
+  border: 0;
+  background: transparent;
+  color: #e8e8ee;
+  font-size: 0.82rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+.job-comm-earlier:hover {
+  color: #fff;
+}
+
+.job-comm-messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 46rem;
+}
+
+.job-comm-message {
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.job-comm-message.is-incoming {
+  border-left: 2px solid rgba(211, 11, 11, 0.75);
+}
+
+.job-comm-message.is-outgoing {
+  border-left: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.job-comm-message-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.45rem 1rem;
+  margin-bottom: 0.65rem;
+}
+
+.job-comm-message-direction {
+  margin: 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #a0a0aa;
+}
+
+.job-comm-message.is-incoming .job-comm-message-direction {
+  color: #f0a0a0;
+}
+
+.job-comm-message-from {
+  margin: 0.2rem 0 0;
+  font-size: 0.92rem;
+  color: #f2f2f4;
+}
+
+.job-comm-message-time {
+  font-size: 0.75rem;
+  color: #9e9ea8;
+  white-space: nowrap;
+}
+
+.job-comm-message-body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #e4e4ea;
+}
+
+.job-comm-message-fallback {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: #b4b4bc;
+  font-style: italic;
+}
+
+.job-comm-attachment-note {
+  margin: 0.65rem 0 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9a9aa4;
+}
+
+.job-comm-reply {
+  margin-top: 0.35rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-width: 46rem;
+}
+
+.job-comm-hint {
+  font-size: 0.78rem;
+  color: #9e9ea8;
+}
+
+.job-comm-hint.is-warn {
+  color: #f0b4b4;
+}
+
+.job-comm-feedback {
+  margin: 0.15rem 0 0;
+  font-size: 0.84rem;
+}
+
+.job-comm-feedback.is-success {
+  color: #b8e0c0;
+}
+
+.job-comm-feedback.is-error {
+  color: #f0b0b0;
 }
 
 .job-notes-body {

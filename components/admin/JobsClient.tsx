@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import JobCommunication from "@/components/admin/JobCommunication";
 import JobStatusBadge from "@/components/admin/JobStatusBadge";
 import { JOB_STATUSES, SERVICE_TYPES } from "@/lib/constants/jobs";
 import type { Job } from "@/lib/types/database";
@@ -73,10 +74,6 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   const [savingStatus, setSavingStatus] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [draftNotes, setDraftNotes] = useState("");
-  const [showEmailComposer, setShowEmailComposer] = useState(false);
-  const [emailSubject, setEmailSubject] = useState("");
-  const [emailMessage, setEmailMessage] = useState("");
-  const [sendingEmail, setSendingEmail] = useState(false);
   const [appointmentLocal, setAppointmentLocal] = useState("");
   const [scheduling, setScheduling] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
@@ -109,10 +106,6 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   }, [selectedId, selected?.internal_notes, selected?.appointment_notes]);
 
   function resetDetailChrome() {
-    setShowEmailComposer(false);
-    setEmailSubject("");
-    setEmailMessage("");
-    setSendingEmail(false);
     setAppointmentLocal(defaultAppointmentLocalValue());
     setScheduling(false);
     setRescheduling(false);
@@ -251,69 +244,6 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
 
     if (ok) {
       setFeedback({ type: "success", text: "Internal notes saved." });
-    }
-  }
-
-  async function handleSendCustomerEmail() {
-    if (!selected || sendingEmail) return;
-
-    const to = selected.customers?.email?.trim() || "";
-    const subject = emailSubject.trim();
-    const message = emailMessage.trim();
-
-    if (!to) {
-      setFeedback({ type: "error", text: "This customer has no email address." });
-      return;
-    }
-    if (!subject) {
-      setFeedback({ type: "error", text: "Subject is required." });
-      return;
-    }
-    if (!message) {
-      setFeedback({ type: "error", text: "Message is required." });
-      return;
-    }
-
-    setSendingEmail(true);
-    setFeedback(null);
-
-    try {
-      const res = await fetch(`/api/jobs/${selected.id}/email`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to, subject, message }),
-      });
-
-      let data: { error?: string; success?: boolean } = {};
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
-      }
-
-      if (!res.ok) {
-        setFeedback({
-          type: "error",
-          text: data.error || "Email failed to send.",
-        });
-        return;
-      }
-
-      setFeedback({
-        type: "success",
-        text: `Email sent to ${to}.`,
-      });
-      setEmailSubject("");
-      setEmailMessage("");
-      setShowEmailComposer(false);
-    } catch {
-      setFeedback({
-        type: "error",
-        text: "Email failed to send. Check your connection and try again.",
-      });
-    } finally {
-      setSendingEmail(false);
     }
   }
 
@@ -546,7 +476,6 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     loading ||
     savingStatus ||
     savingNotes ||
-    sendingEmail ||
     scheduling ||
     rescheduling ||
     cancelling ||
@@ -680,16 +609,6 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                 <a className="admin-btn" href={`tel:${selected.customers.phone}`}>
                   Call
                 </a>
-              )}
-              {selected.customers?.email && (
-                <button
-                  type="button"
-                  className="admin-btn"
-                  disabled={detailDisabled}
-                  onClick={() => setShowEmailComposer((open) => !open)}
-                >
-                  {showEmailComposer ? "Hide Email" : "Email Customer"}
-                </button>
               )}
             </div>
           </section>
@@ -913,103 +832,11 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
           )}
         </section>
 
-        <section className="job-section job-section--comm">
-          <div className="job-section-head">
-            <div>
-              <h2 className="job-section-title">Communication</h2>
-              <p className="job-section-lede">
-                Messages from AutoDV8ions Sales. Customer conversation history will
-                appear in this module.
-              </p>
-            </div>
-          </div>
-
-          {!selected.customers?.email ? (
-            <div className="job-comm-empty">
-              <div>
-                <p className="job-comm-empty-title">No email on file</p>
-                <p className="job-comm-empty-copy">
-                  Add a customer email to send messages from this job.
-                </p>
-              </div>
-            </div>
-          ) : showEmailComposer ? (
-            <div className="job-comm-composer space-y-3">
-              <div>
-                <p className="admin-label">To</p>
-                <input
-                  className="admin-input"
-                  type="email"
-                  value={selected.customers.email}
-                  readOnly
-                  aria-readonly="true"
-                />
-              </div>
-              <div>
-                <p className="admin-label">Subject</p>
-                <input
-                  className="admin-input"
-                  type="text"
-                  value={emailSubject}
-                  disabled={sendingEmail}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  placeholder="Subject"
-                />
-              </div>
-              <div>
-                <p className="admin-label">Message</p>
-                <textarea
-                  className="admin-input min-h-28"
-                  value={emailMessage}
-                  disabled={sendingEmail}
-                  onChange={(e) => setEmailMessage(e.target.value)}
-                  placeholder="Write your message…"
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-primary"
-                  disabled={
-                    sendingEmail || !emailSubject.trim() || !emailMessage.trim()
-                  }
-                  onClick={handleSendCustomerEmail}
-                >
-                  {sendingEmail ? "Sending…" : "Send"}
-                </button>
-                <button
-                  type="button"
-                  className="admin-btn"
-                  disabled={sendingEmail}
-                  onClick={() => setShowEmailComposer(false)}
-                >
-                  Close
-                </button>
-                <span className="text-xs text-[var(--dv8-muted)]">
-                  Replies go to sales@autodv8ions.com
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="job-comm-empty">
-              <div>
-                <p className="job-comm-empty-title">No conversation yet</p>
-                <p className="job-comm-empty-copy">
-                  Start with a direct email. Threaded Gmail history will live in this
-                  space when that integration lands.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="admin-btn admin-btn-primary"
-                disabled={detailDisabled}
-                onClick={() => setShowEmailComposer(true)}
-              >
-                Email Customer
-              </button>
-            </div>
-          )}
-        </section>
+        <JobCommunication
+          jobId={selected.id}
+          customerEmail={selected.customers?.email}
+          disabled={detailDisabled}
+        />
 
         <div className="job-grid-2">
           <section className="job-section job-section--notes">
