@@ -77,6 +77,20 @@ export function formatDateTime(value?: string | null) {
   });
 }
 
+/** Appointment display in shop timezone (America/New_York). */
+export function formatDateTimeNy(value?: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function generateGallerySlug(vehicle: string, service: string, date?: string) {
   const parts = [date?.slice(0, 4), vehicle, service, "altoona-pa"]
     .filter(Boolean)

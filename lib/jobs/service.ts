@@ -147,3 +147,25 @@ export async function getRecentJobs(limit = 8) {
 
   return data || [];
 }
+
+/** Map Google Calendar event IDs → job IDs (for dashboard appointment links). */
+export async function getJobIdsByCalendarEventIds(eventIds: string[]) {
+  const uniqueIds = [...new Set(eventIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return new Map<string, string>();
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return new Map<string, string>();
+
+  const { data } = await supabase
+    .from("jobs")
+    .select("id, google_calendar_event_id")
+    .in("google_calendar_event_id", uniqueIds);
+
+  const map = new Map<string, string>();
+  for (const row of data || []) {
+    if (row.google_calendar_event_id) {
+      map.set(row.google_calendar_event_id, row.id);
+    }
+  }
+  return map;
+}

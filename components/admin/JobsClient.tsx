@@ -5,12 +5,58 @@ import { useEffect, useState } from "react";
 import JobStatusBadge from "@/components/admin/JobStatusBadge";
 import { JOB_STATUSES, SERVICE_TYPES } from "@/lib/constants/jobs";
 import type { Job } from "@/lib/types/database";
-import { buildCalendarDetails, formatCustomerName, formatVehicleShort } from "@/lib/utils/format";
+import { buildCalendarDetails, formatCustomerName, formatDateTimeNy, formatVehicleShort } from "@/lib/utils/format";
 
 type Feedback = {
   type: "success" | "error";
   text: string;
 };
+
+/** Default picker value: tomorrow 10:00 local (treated as America/New_York wall time on create). */
+function defaultAppointmentLocalValue() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(10, 0, 0, 0);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+}
+
+/** Prefill datetime-local from an ISO timestamp in America/New_York. */
+function toNyDatetimeLocal(value?: string | null) {
+  if (!value) return defaultAppointmentLocalValue();
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return defaultAppointmentLocalValue();
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value || "";
+
+  const year = get("year");
+  const month = get("month");
+  const day = get("day");
+  let hour = get("hour");
+  const minute = get("minute");
+  if (hour === "24") hour = "00";
+
+  if (!year || !month || !day || !hour || !minute) {
+    return defaultAppointmentLocalValue();
+  }
+
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
 
 export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   const router = useRouter();
@@ -31,6 +77,12 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailMessage, setEmailMessage] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [appointmentLocal, setAppointmentLocal] = useState("");
+  const [scheduling, setScheduling] = useState(false);
+  const [rescheduling, setRescheduling] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [showReschedule, setShowReschedule] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const selected = jobs.find((job) => job.id === selectedId) || null;
   const notesDirty =
@@ -50,9 +102,23 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       setEmailSubject("");
       setEmailMessage("");
       setSendingEmail(false);
+      setAppointmentLocal(defaultAppointmentLocalValue());
+      setScheduling(false);
+      setRescheduling(false);
+      setCancelling(false);
+      setShowReschedule(false);
+      setShowCancelConfirm(false);
     }
     setSelectedId(id);
   }
+
+  useEffect(() => {
+    if (selected && !selected.google_calendar_event_id) {
+      setAppointmentLocal((current) => current || defaultAppointmentLocalValue());
+      setShowReschedule(false);
+      setShowCancelConfirm(false);
+    }
+  }, [selectedId, selected?.google_calendar_event_id, selected]);
 
   async function refreshJobs() {
     setFeedback(null);
@@ -217,6 +283,15 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   }
 
   async function createCalendarEvent(id: string) {
+    if (!appointmentLocal.trim()) {
+      setFeedback({
+        type: "error",
+        text: "Choose an appointment date and time first.",
+      });
+      return;
+    }
+
+    setScheduling(true);
     setLoading(true);
     setFeedback(null);
 
@@ -224,19 +299,113 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "create-calendar-event" }),
+      body: JSON.stringify({
+        action: "create-calendar-event",
+        startDateTime: appointmentLocal,
+      }),
     });
     const data = await res.json();
 
     setLoading(false);
+    setScheduling(false);
 
     if (!res.ok) {
+      if (data.job) {
+        setJobs((prev) => prev.map((job) => (job.id === id ? data.job : job)));
+      }
       setFeedback({ type: "error", text: data.error || "Calendar event failed." });
       return;
     }
 
     setJobs((prev) => prev.map((job) => (job.id === id ? data.job : job)));
-    setFeedback({ type: "success", text: "Google Calendar event created." });
+    setShowReschedule(false);
+    setShowCancelConfirm(false);
+    setFeedback({ type: "success", text: "Appointment scheduled on Google Calendar." });
+  }
+
+  async function updateCalendarEvent(id: string) {
+    if (!appointmentLocal.trim()) {
+      setFeedback({
+        type: "error",
+        text: "Choose a new appointment date and time first.",
+      });
+      return;
+    }
+
+    setRescheduling(true);
+    setLoading(true);
+    setFeedback(null);
+
+    const res = await fetch(`/api/jobs/${id}`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "update-calendar-event",
+        startDateTime: appointmentLocal,
+      }),
+    });
+    const data = await res.json();
+
+    setLoading(false);
+    setRescheduling(false);
+
+    if (!res.ok) {
+      if (data.job) {
+        setJobs((prev) => prev.map((job) => (job.id === id ? data.job : job)));
+      }
+      setFeedback({
+        type: "error",
+        text: data.error || "Could not reschedule appointment.",
+      });
+      return;
+    }
+
+    setJobs((prev) => prev.map((job) => (job.id === id ? data.job : job)));
+    setShowReschedule(false);
+    setShowCancelConfirm(false);
+    setFeedback({ type: "success", text: "Appointment rescheduled." });
+  }
+
+  async function cancelCalendarEvent(id: string) {
+    setCancelling(true);
+    setLoading(true);
+    setFeedback(null);
+
+    const res = await fetch(`/api/jobs/${id}`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "cancel-calendar-event",
+      }),
+    });
+    const data = await res.json();
+
+    setLoading(false);
+    setCancelling(false);
+
+    if (!res.ok) {
+      if (data.job) {
+        setJobs((prev) => prev.map((job) => (job.id === id ? data.job : job)));
+      }
+      setFeedback({
+        type: "error",
+        text: data.error || "Could not cancel appointment.",
+      });
+      return;
+    }
+
+    setJobs((prev) => prev.map((job) => (job.id === id ? data.job : job)));
+    setShowReschedule(false);
+    setShowCancelConfirm(false);
+    setAppointmentLocal(defaultAppointmentLocalValue());
+    setFeedback({
+      type: "success",
+      text: data.alreadyMissing
+        ? "Google event was already gone. Appointment cleared on this job."
+        : "Appointment cancelled and removed from Google Calendar.",
+    });
   }
 
   async function copyCalendarDetails(job: Job) {
@@ -244,7 +413,21 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     setFeedback({ type: "success", text: "Calendar details copied." });
   }
 
-  const detailDisabled = loading || savingStatus || savingNotes || sendingEmail;
+  function openReschedule(job: Job) {
+    setShowCancelConfirm(false);
+    setAppointmentLocal(toNyDatetimeLocal(job.scheduled_at));
+    setShowReschedule(true);
+  }
+
+  const detailDisabled =
+    loading ||
+    savingStatus ||
+    savingNotes ||
+    sendingEmail ||
+    scheduling ||
+    rescheduling ||
+    cancelling;
+  const hasAppointment = Boolean(selected?.google_calendar_event_id);
 
   return (
     <div className="space-y-6">
@@ -481,33 +664,183 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="admin-btn"
-                  disabled={detailDisabled}
-                  onClick={() => copyCalendarDetails(selected)}
-                >
-                  Copy Calendar Details
-                </button>
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-primary"
-                  disabled={detailDisabled}
-                  onClick={() => createCalendarEvent(selected.id)}
-                >
-                  Create Google Calendar Event
-                </button>
-                {selected.google_calendar_event_url && (
-                  <a
-                    href={selected.google_calendar_event_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="admin-btn"
-                  >
-                    Open Event
-                  </a>
+              <div className="space-y-3 rounded-md border border-[var(--dv8-border)] bg-black/20 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="admin-label mb-0">Appointment</p>
+                    <p className="mt-1 text-xs text-[var(--dv8-muted)]">
+                      America/New_York · 2-hour default
+                    </p>
+                  </div>
+                  {hasAppointment && (
+                    <span className="text-xs uppercase tracking-[0.14em] text-[var(--dv8-red-bright)]">
+                      Scheduled
+                    </span>
+                  )}
+                </div>
+
+                {hasAppointment ? (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-lg font-light tracking-tight">
+                        {formatDateTimeNy(selected.scheduled_at)}
+                      </p>
+                      {!selected.scheduled_at && (
+                        <p className="mt-1 text-xs text-[var(--dv8-muted)]">
+                          Linked to Google Calendar. Time not stored on this job.
+                        </p>
+                      )}
+                    </div>
+
+                    {showReschedule ? (
+                      <div className="space-y-3 border-t border-[var(--dv8-border)] pt-3">
+                        <div>
+                          <label
+                            className="admin-label"
+                            htmlFor="reschedule-datetime"
+                          >
+                            New date &amp; time
+                          </label>
+                          <input
+                            id="reschedule-datetime"
+                            className="admin-input"
+                            type="datetime-local"
+                            value={appointmentLocal}
+                            disabled={detailDisabled}
+                            onChange={(e) => setAppointmentLocal(e.target.value)}
+                          />
+                          <p className="mt-2 text-xs text-[var(--dv8-muted)]">
+                            Updates the existing Google event. Duration is kept when
+                            available.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn-primary"
+                            disabled={detailDisabled || !appointmentLocal.trim()}
+                            onClick={() => updateCalendarEvent(selected.id)}
+                          >
+                            {rescheduling ? "Saving…" : "Save New Time"}
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-btn"
+                            disabled={detailDisabled}
+                            onClick={() => setShowReschedule(false)}
+                          >
+                            Back
+                          </button>
+                        </div>
+                      </div>
+                    ) : showCancelConfirm ? (
+                      <div className="space-y-3 border-t border-[var(--dv8-border)] pt-3">
+                        <p className="text-sm text-[var(--dv8-muted)]">
+                          Cancel this appointment? It will be removed from Google
+                          Calendar. Job status will stay unchanged.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn-primary"
+                            disabled={detailDisabled}
+                            onClick={() => cancelCalendarEvent(selected.id)}
+                          >
+                            {cancelling ? "Cancelling…" : "Confirm Cancel"}
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-btn"
+                            disabled={detailDisabled}
+                            onClick={() => setShowCancelConfirm(false)}
+                          >
+                            Keep Appointment
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn-primary"
+                          disabled={detailDisabled}
+                          onClick={() => openReschedule(selected)}
+                        >
+                          Reschedule
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-btn"
+                          disabled={detailDisabled}
+                          onClick={() => {
+                            setShowReschedule(false);
+                            setShowCancelConfirm(true);
+                          }}
+                        >
+                          Cancel Appointment
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-btn"
+                          disabled={detailDisabled}
+                          onClick={() => copyCalendarDetails(selected)}
+                        >
+                          Copy Details
+                        </button>
+                        {selected.google_calendar_event_url && (
+                          <a
+                            href={selected.google_calendar_event_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="admin-btn"
+                          >
+                            Open in Google Calendar
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="admin-label" htmlFor="appointment-datetime">
+                        Date &amp; time
+                      </label>
+                      <input
+                        id="appointment-datetime"
+                        className="admin-input"
+                        type="datetime-local"
+                        value={appointmentLocal}
+                        disabled={detailDisabled}
+                        onChange={(e) => setAppointmentLocal(e.target.value)}
+                      />
+                      <p className="mt-2 text-xs text-[var(--dv8-muted)]">
+                        Required before creating a calendar event. Duration is 2 hours.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-primary"
+                        disabled={detailDisabled || !appointmentLocal.trim()}
+                        onClick={() => createCalendarEvent(selected.id)}
+                      >
+                        {scheduling ? "Scheduling…" : "Schedule Appointment"}
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-btn"
+                        disabled={detailDisabled}
+                        onClick={() => copyCalendarDetails(selected)}
+                      >
+                        Copy Details
+                      </button>
+                    </div>
+                  </div>
                 )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   className="admin-btn"
