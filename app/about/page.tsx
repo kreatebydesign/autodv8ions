@@ -6,9 +6,10 @@ import SiteFooter from "@/components/site/SiteFooter";
 import SiteHeader from "@/components/site/SiteHeader";
 
 export const metadata: Metadata = {
-  title: "About",
+  title: "About — Altoona, PA Since 1998",
   description:
-    "AutoDV8ions in Altoona, PA — 27 years of window tint, remote starters, vehicle security, and select custom work from the same shop.",
+    "AutoDV8ions in Altoona, PA — nearly three decades of window tint, remote starters, vehicle security, and select custom work for Central Pennsylvania.",
+  alternates: { canonical: "/about" },
 };
 
 export default function AboutPage() {

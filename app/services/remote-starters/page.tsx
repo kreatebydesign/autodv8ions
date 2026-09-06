@@ -4,9 +4,10 @@ import InquiryForm from "@/components/site/InquiryForm";
 import ServicePageShell from "@/components/site/ServicePageShell";
 
 export const metadata: Metadata = {
-  title: "Remote Starters",
+  title: "Remote Starter Installation in Altoona, PA",
   description:
-    "Remote starter installs from AutoDV8ions in Altoona, PA — Basic and 2-Way LED packages plus optional smartphone control, reviewed for your vehicle before we schedule.",
+    "Remote starter installation in Altoona, PA from AutoDV8ions — Basic and 2-Way LED packages plus optional smartphone control, reviewed for your vehicle before we schedule.",
+  alternates: { canonical: "/services/remote-starters" },
 };
 
 const PACKAGES = [

@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
+import LocalBusinessJsonLd from "@/components/site/LocalBusinessJsonLd";
+import { SITE_ORIGIN, absoluteUrl } from "@/lib/site/canonical";
 import "./globals.css";
 
-const siteUrl = "https://autodv8ions.com";
-const ogImageUrl = `${siteUrl}/images/autodv8ions-og.jpg`;
+const siteUrl = SITE_ORIGIN;
+const ogImageUrl = absoluteUrl("/images/autodv8ions-og.jpg");
 
 const defaultTitle =
   "AutoDV8ions | Window Tint, Remote Starters & Vehicle Upgrades in Altoona, PA";
 const defaultDescription =
-  "AutoDV8ions in Altoona, PA — window tint, remote starters, vehicle security, and select custom work. Same shop since 1998.";
+  "AutoDV8ions in Altoona, PA — window tint, remote starters, vehicle security, and select custom work for Altoona and Central Pennsylvania. Grinding since 1998.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -48,6 +50,9 @@ export const metadata: Metadata = {
     description: defaultDescription,
     images: [ogImageUrl],
   },
+  alternates: {
+    canonical: siteUrl,
+  },
 };
 
 export default function RootLayout({
@@ -58,6 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)]">
+        <LocalBusinessJsonLd />
         {children}
       </body>
     </html>

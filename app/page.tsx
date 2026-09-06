@@ -19,6 +19,9 @@ const HERO_IMAGE =
 export const metadata: Metadata = {
   title:
     "AutoDV8ions | Window Tint, Remote Starters & Vehicle Upgrades in Altoona, PA",
+  description:
+    "AutoDV8ions in Altoona, PA — window tint, remote starters, vehicle security, and select custom work for Altoona and Central Pennsylvania since 1998.",
+  alternates: { canonical: "/" },
 };
 
 export default async function Home() {

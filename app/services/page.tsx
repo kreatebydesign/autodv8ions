@@ -4,9 +4,10 @@ import ServiceCards from "@/components/site/ServiceCards";
 import ServicePageShell from "@/components/site/ServicePageShell";
 
 export const metadata: Metadata = {
-  title: "Services",
+  title: "Automotive Services in Altoona, PA",
   description:
-    "Window tint, remote starters, vehicle security, and select audio and custom upgrades from AutoDV8ions in Altoona, PA.",
+    "Window tint, remote starter installation, vehicle security, and select audio and custom upgrades from AutoDV8ions in Altoona, Pennsylvania.",
+  alternates: { canonical: "/services" },
 };
 
 export default function ServicesPage() {

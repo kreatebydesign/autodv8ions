@@ -9,9 +9,10 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: "Recent Tint Work",
+  title: "Recent Tint Work in Altoona, PA",
   description:
-    "Published window tint projects from AutoDV8ions in Altoona, PA — real installs from the bay.",
+    "Recent automotive window tint projects from AutoDV8ions in Altoona, PA — real installs from the bay.",
+  alternates: { canonical: "/recent-work" },
 };
 
 export default async function RecentWorkIndexPage() {

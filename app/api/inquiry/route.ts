@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createClient } from "@supabase/supabase-js";
+import {
+  asNullableString,
+  buildInquiryCustomerNotes,
+  inquiryServiceType,
+  syncWebsiteLeadToJob,
+  type WebsiteJobCreationResult,
+} from "@/lib/jobs/website-lead";
 
 type InquiryBody = Record<string, unknown>;
 
@@ -16,11 +23,6 @@ type InquiryType = (typeof ALLOWED_TYPES)[number];
 function asString(value: unknown) {
   if (value === undefined || value === null) return "";
   return String(value).trim();
-}
-
-function asNullableString(value: unknown) {
-  const text = asString(value);
-  return text || null;
 }
 
 function serviceLabel(type: InquiryType) {
@@ -72,9 +74,12 @@ function getSupabaseClient() {
 /**
  * General consultation / contact intake.
  * Reuses tint_quote_leads for storage (no schema change).
- * Does NOT create jobs — tint quotes remain on /api/tint-quote.
+ * Creates Jobs CRM records (same lead-ref dedupe path as tint quotes).
  */
 export async function POST(request: NextRequest) {
+  let jobResult: WebsiteJobCreationResult | null = null;
+  let leadCaptured = false;
+
   try {
     const body = (await request.json()) as InquiryBody;
     const type = asString(body.inquiryType) as InquiryType;
@@ -102,56 +107,67 @@ export async function POST(request: NextRequest) {
     const pageSource =
       asNullableString(body.pageSource) ||
       asNullableString(body.source) ||
-      "autodv8ions.com";
+      "www.autodv8ions.com";
+
+    const messageParts = buildInquiryCustomerNotes(body, type);
 
     const supabase = getSupabaseClient();
     if (supabase) {
-      const messageParts = [
-        asNullableString(body.message),
-        asNullableString(body.projectGoals)
-          ? `Goals: ${asString(body.projectGoals)}`
-          : null,
-        asNullableString(body.requestedUpgrade)
-          ? `Requested upgrade: ${asString(body.requestedUpgrade)}`
-          : null,
-        asNullableString(body.timeline)
-          ? `Timeline: ${asString(body.timeline)}`
-          : null,
-        asNullableString(body.budgetRange)
-          ? `Budget range: ${asString(body.budgetRange)}`
-          : null,
-        type === "audio_custom"
-          ? "Note: Project review submission does not guarantee acceptance."
-          : null,
-      ]
-        .filter(Boolean)
-        .join("\n");
-
-      const { error: dbError } = await supabase.from("tint_quote_leads").insert({
-        name: customerName,
-        email: asNullableString(email),
-        phone: asNullableString(phone),
-        vehicle_year: asNullableString(body.year),
-        vehicle_make: asNullableString(body.make),
-        vehicle_model: asNullableString(body.model),
-        service: serviceLabel(type),
-        preferred_date: asNullableString(body.timeline),
-        message: messageParts || null,
-        source: pageSource,
-        raw_submission: {
-          ...body,
-          inquiryType: type,
-          pageSource,
-        },
-      });
+      const { data: lead, error: dbError } = await supabase
+        .from("tint_quote_leads")
+        .insert({
+          name: customerName,
+          email: asNullableString(email),
+          phone: asNullableString(phone),
+          vehicle_year: asNullableString(body.year),
+          vehicle_make: asNullableString(body.make),
+          vehicle_model: asNullableString(body.model),
+          service: serviceLabel(type),
+          preferred_date: asNullableString(body.timeline),
+          message: messageParts || null,
+          source: pageSource,
+          raw_submission: {
+            ...body,
+            inquiryType: type,
+            pageSource,
+          },
+        })
+        .select("id")
+        .single();
 
       if (dbError) {
         console.error("[inquiry] lead insert failed:", dbError);
+      } else if (lead?.id) {
+        leadCaptured = true;
+        const leadId = String(lead.id);
+
+        jobResult = await syncWebsiteLeadToJob(supabase, {
+          body,
+          leadId,
+          serviceType: inquiryServiceType(type),
+          customerNotes: messageParts || null,
+          source: "website_inquiry",
+        });
+
+        if (jobResult.ok) {
+          console.log("[inquiry][job] Job created:", jobResult.jobId, {
+            duplicate: Boolean(jobResult.duplicate),
+            serviceType: inquiryServiceType(type),
+          });
+        } else {
+          console.error("[inquiry][job] Job creation failed:", jobResult);
+        }
       }
     }
 
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
+      if (leadCaptured) {
+        console.error(
+          "[inquiry] Email service missing after lead capture; returning success so the customer is not asked to resubmit.",
+        );
+        return NextResponse.json({ success: true, emailDelivered: false });
+      }
       return NextResponse.json(
         { success: false, error: "Email service is not configured." },
         { status: 500 },
@@ -176,13 +192,27 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("[inquiry] Resend error:", error);
+      if (leadCaptured) {
+        // Lead (and usually job) already captured — do not force a customer retry
+        // that could create another lead/job pair.
+        return NextResponse.json({ success: true, emailDelivered: false });
+      }
       return NextResponse.json(
         { success: false, error: "Email failed to send." },
         { status: 500 },
       );
     }
 
-    return NextResponse.json({ success: true });
+    const responseBody: Record<string, unknown> = {
+      success: true,
+      emailDelivered: true,
+    };
+
+    if (process.env.NODE_ENV === "development" && jobResult) {
+      responseBody.jobSync = jobResult;
+    }
+
+    return NextResponse.json(responseBody);
   } catch (error) {
     console.error("[inquiry] API error:", error);
     return NextResponse.json(

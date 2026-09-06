@@ -5,9 +5,10 @@ import SiteFooter from "@/components/site/SiteFooter";
 import SiteHeader from "@/components/site/SiteHeader";
 
 export const metadata: Metadata = {
-  title: "Contact",
+  title: "Contact — Altoona, PA",
   description:
-    "Contact AutoDV8ions in Altoona, PA for tint quotes, remote starter and security info, or select custom project reviews.",
+    "Contact AutoDV8ions in Altoona, PA for window tint quotes, remote starter installation info, vehicle security, or select custom project reviews.",
+  alternates: { canonical: "/contact" },
 };
 
 export default function ContactPage() {

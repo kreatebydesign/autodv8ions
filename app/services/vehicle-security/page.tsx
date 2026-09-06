@@ -4,9 +4,10 @@ import InquiryForm from "@/components/site/InquiryForm";
 import ServicePageShell from "@/components/site/ServicePageShell";
 
 export const metadata: Metadata = {
-  title: "Vehicle Security",
+  title: "Vehicle Security in Altoona, PA",
   description:
-    "Vehicle security installs from AutoDV8ions in Altoona, PA — recommended for your vehicle and how you use it.",
+    "Vehicle security installation in Altoona, PA from AutoDV8ions — deterrents and alerts recommended for your vehicle and how you use it.",
+  alternates: { canonical: "/services/vehicle-security" },
 };
 
 export default function VehicleSecurityPage() {

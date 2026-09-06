@@ -9,9 +9,10 @@ import { listHomepagePortfolio } from "@/lib/live-portfolio/public-portfolio";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Window Tint",
+  title: "Window Tint in Altoona, PA",
   description:
-    "Window tint in Altoona, PA — comfort, privacy, glare control, and a clean finish from AutoDV8ions.",
+    "Automotive window tint in Altoona, PA from AutoDV8ions — comfort, privacy, glare control, and a clean finish for Central Pennsylvania drivers.",
+  alternates: { canonical: "/services/window-tint" },
 };
 
 export default async function WindowTintPage() {

@@ -4,9 +4,10 @@ import InquiryForm from "@/components/site/InquiryForm";
 import ServicePageShell from "@/components/site/ServicePageShell";
 
 export const metadata: Metadata = {
-  title: "Audio + Select Custom Upgrades",
+  title: "Audio & Select Custom Upgrades in Altoona, PA",
   description:
-    "Select audio and custom upgrade projects from AutoDV8ions in Altoona, PA — accepted based on scope, vehicle, and schedule.",
+    "Select audio and custom automotive upgrade projects from AutoDV8ions in Altoona, PA — accepted based on scope, vehicle, and schedule.",
+  alternates: { canonical: "/services/audio-custom" },
 };
 
 export default function AudioCustomPage() {
