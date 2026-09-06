@@ -24,6 +24,55 @@
   backdrop-filter: blur(10px);
 }
 
+.admin-nav-badge {
+  display: inline-flex;
+  min-width: 1.35rem;
+  height: 1.2rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.35rem;
+  border: 1px solid rgba(211, 11, 11, 0.45);
+  background: rgba(211, 11, 11, 0.18);
+  color: #ffd0d0;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.gmail-reply-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--dv8-border);
+  padding-bottom: 0.75rem;
+  transition: background-color 0.15s ease;
+}
+
+.gmail-reply-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.gmail-reply-row:hover,
+.gmail-reply-row:focus-visible {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.gmail-reply-row:focus-visible {
+  outline: 1px solid rgba(211, 11, 11, 0.45);
+  outline-offset: 2px;
+}
+
+.gmail-reply-unread {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--dv8-red-bright);
+  flex-shrink: 0;
+}
+
 .admin-input {
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.16);

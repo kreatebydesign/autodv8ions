@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CustomerRepliesPanel from "@/components/admin/CustomerRepliesPanel";
 import StatCard from "@/components/admin/StatCard";
 import JobStatusBadge from "@/components/admin/JobStatusBadge";
 import {
@@ -69,6 +70,8 @@ export default async function AdminDashboardPage() {
           View Customers
         </Link>
       </div>
+
+      <CustomerRepliesPanel />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="admin-panel p-5">

@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useGmailNotificationsOptional } from "@/components/admin/GmailNotificationsProvider";
 
 const NAV = [
   { href: "/admin/dashboard", label: "Dashboard" },
-  { href: "/admin/jobs", label: "Jobs" },
+  { href: "/admin/jobs", label: "Jobs", badgeKey: "jobs" as const },
   { href: "/admin/customers", label: "Customers" },
   { href: "/admin/invoices", label: "Invoices" },
   { href: "/admin/content", label: "Content" },
@@ -19,6 +20,8 @@ const NAV = [
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const notifications = useGmailNotificationsOptional();
+  const jobsBadge = notifications?.badgeLabel || null;
 
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
@@ -47,17 +50,28 @@ export default function AdminSidebar() {
       <nav className="flex gap-1 overflow-x-auto px-3 py-4 lg:flex-col lg:overflow-visible">
         {NAV.map((item) => {
           const active = pathname.startsWith(item.href);
+          const showJobsBadge = item.badgeKey === "jobs" && Boolean(jobsBadge);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`whitespace-nowrap px-3 py-2.5 text-sm transition-colors ${
+              className={`flex items-center justify-between gap-2 whitespace-nowrap px-3 py-2.5 text-sm transition-colors ${
                 active
                   ? "border-l-2 border-[var(--dv8-red)] bg-[var(--dv8-red-soft)] text-white"
                   : "text-[var(--dv8-muted)] hover:text-white"
               }`}
+              aria-label={
+                showJobsBadge
+                  ? `Jobs, ${jobsBadge} unread customer replies`
+                  : undefined
+              }
             >
-              {item.label}
+              <span>{item.label}</span>
+              {showJobsBadge ? (
+                <span className="admin-nav-badge" aria-hidden="true">
+                  {jobsBadge}
+                </span>
+              ) : null}
             </Link>
           );
         })}

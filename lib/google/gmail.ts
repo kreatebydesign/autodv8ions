@@ -7,6 +7,7 @@ import {
   buildReplyMime,
   buildReplySubject,
   encodeGmailRaw,
+  getHeader,
   normalizeEmailAddress,
   parseGmailThread,
   pickReplyParentMessage,
@@ -16,6 +17,14 @@ import {
   type ParsedGmailMessage,
   type ParsedGmailThread,
 } from "@/lib/google/gmail-message";
+import {
+  GMAIL_NOTIFICATION_ITEM_LIMIT,
+  GMAIL_UNREAD_SCAN_MAX,
+  buildCustomerReplyNotifications,
+  type GmailNotificationsPayload,
+  type JobEmailCandidate,
+  type UnreadMessageCandidate,
+} from "@/lib/google/gmail-notifications";
 
 /**
  * Gmail OAuth — isolated from Calendar.
@@ -449,6 +458,83 @@ export async function getConversationForCustomerEmail(params: {
   }
 
   return { thread, mailboxEmail, candidateCount };
+}
+
+/**
+ * Bounded unread inbox scan → match known customer emails → compact notifications.
+ * Metadata/snippet only; no message bodies.
+ */
+export async function listUnreadCustomerReplyNotifications(params: {
+  emailToJob: Map<string, JobEmailCandidate>;
+  limit?: number;
+}): Promise<GmailNotificationsPayload> {
+  if (!isGoogleGmailConfigured()) {
+    return { configured: false, count: 0, items: [] };
+  }
+
+  if (params.emailToJob.size === 0) {
+    return { configured: true, count: 0, items: [] };
+  }
+
+  try {
+    const gmail = getGmailClient();
+    const mailboxEmail = await resolveMailboxEmail(gmail);
+    const userId = getGmailUserId();
+
+    const { data: listData } = await gmail.users.messages.list({
+      userId,
+      q: "is:unread in:inbox",
+      maxResults: GMAIL_UNREAD_SCAN_MAX,
+    });
+
+    const refs = (listData.messages || [])
+      .map((m) => ({ id: String(m.id || ""), threadId: String(m.threadId || "") }))
+      .filter((m) => m.id);
+
+    const candidates: UnreadMessageCandidate[] = [];
+
+    // Sequential gets keep Gmail quota predictable for Phase 1.
+    for (const ref of refs) {
+      const { data: message } = await gmail.users.messages.get({
+        userId,
+        id: ref.id,
+        format: "metadata",
+        metadataHeaders: ["From", "Subject", "Date"],
+      });
+
+      const headers = message.payload?.headers;
+      const fromHeader = getHeader(headers, "From");
+      const subject = getHeader(headers, "Subject");
+      const receivedAt = message.internalDate
+        ? new Date(Number(message.internalDate)).toISOString()
+        : null;
+
+      candidates.push({
+        gmailMessageId: String(message.id || ref.id),
+        gmailThreadId: String(message.threadId || ref.threadId),
+        fromHeader,
+        subject,
+        snippet: String(message.snippet || ""),
+        receivedAt,
+        labelIds: Array.isArray(message.labelIds) ? message.labelIds : [],
+        mailboxEmail,
+      });
+    }
+
+    const built = buildCustomerReplyNotifications({
+      messages: candidates,
+      emailToJob: params.emailToJob,
+      limit: params.limit ?? GMAIL_NOTIFICATION_ITEM_LIMIT,
+    });
+
+    return {
+      configured: true,
+      count: built.count,
+      items: built.items,
+    };
+  } catch (error) {
+    throw mapGmailApiError(error, "gmail_api_failed", "Gmail API request failed.");
+  }
 }
 
 // Re-export parse helpers that callers/tests may need.

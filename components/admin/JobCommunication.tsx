@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useGmailNotificationsOptional } from "@/components/admin/GmailNotificationsProvider";
 import {
   GMAIL_REPLY_BODY_MAX_CLIENT,
   buildGmailThreadUrl,
@@ -53,6 +54,7 @@ export default function JobCommunication({
   disabled = false,
 }: JobCommunicationProps) {
   const email = customerEmail?.trim() || "";
+  const notifications = useGmailNotificationsOptional();
 
   const [loading, setLoading] = useState(Boolean(email));
   const [refreshing, setRefreshing] = useState(false);
@@ -124,6 +126,8 @@ export default function JobCommunication({
       setCandidateCount(Number(data.candidateCount || 0));
       setThread(data.thread || null);
       setShowEarlier(false);
+      // Mark-read happens server-side on GET; refresh nav badge/panel counts.
+      void notifications?.refresh();
     } catch {
       setError("Could not load Gmail conversation. Check your connection and try again.");
       setThread(null);

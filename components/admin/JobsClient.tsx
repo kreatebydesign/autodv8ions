@@ -96,6 +96,17 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   }, [searchParams]);
 
   useEffect(() => {
+    if (!selectedId) return;
+    if (searchParams.get("section") !== "communication") return;
+    const timer = window.setTimeout(() => {
+      document
+        .getElementById("job-comm-heading")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [selectedId, searchParams]);
+
+  useEffect(() => {
     if (selected) {
       setDraftNotes(selected.internal_notes || "");
       setDraftAppointmentNotes(selected.appointment_notes || "");
