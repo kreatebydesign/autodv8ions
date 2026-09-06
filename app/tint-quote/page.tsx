@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { trackGenerateLead } from "@/lib/analytics/gtag";
 
 const LOGO =
   "https://static.wixstatic.com/media/24f460_b5d38d3540ae4048bacb5100c4adbac4f000.jpg/v1/fill/w_596,h_209,al_c,lg_1,q_80,usm_0.33_1.00_0.00,enc_avif,quality_auto/24f460_b5d38d3540ae4048bacb5100c4adbac4f000.jpg";
@@ -239,6 +240,7 @@ export default function TintQuotePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formTopRef = useRef<HTMLDivElement>(null);
   const hasMountedRef = useRef(false);
+  const leadTrackedRef = useRef(false);
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -372,6 +374,15 @@ export default function TintQuotePage() {
         throw new Error(
           data.error || "Unable to submit your quote request.",
         );
+      }
+
+      if (!leadTrackedRef.current) {
+        leadTrackedRef.current = true;
+        trackGenerateLead({
+          service_type: "tint_quote",
+          form_id: "tint_quote",
+          page_path: "/tint-quote",
+        });
       }
 
       setSubmitted(true);

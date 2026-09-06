@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { trackGenerateLead } from "@/lib/analytics/gtag";
+import { inquiryTypeToServiceType } from "@/lib/analytics/service-type";
 
 type InquiryType =
   | "remote_starter"
@@ -58,6 +60,7 @@ export default function InquiryForm({
   pageSource: string;
 }) {
   const config = CONFIG[inquiryType];
+  const leadTrackedRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -98,6 +101,17 @@ export default function InquiryForm({
       if (!res.ok || !data.success) {
         setError(data.error || "Unable to submit right now.");
         return;
+      }
+      if (!leadTrackedRef.current) {
+        leadTrackedRef.current = true;
+        trackGenerateLead({
+          service_type: inquiryTypeToServiceType(inquiryType),
+          form_id: "inquiry_form",
+          page_path:
+            typeof window !== "undefined"
+              ? window.location.pathname
+              : pageSource,
+        });
       }
       setDone(true);
     } catch {

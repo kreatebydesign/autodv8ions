@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import PublicGoogleAnalytics from "@/components/analytics/PublicGoogleAnalytics";
 import LocalBusinessJsonLd from "@/components/site/LocalBusinessJsonLd";
+import { shouldLoadGoogleAnalytics } from "@/lib/analytics/gtag";
 import { SITE_ORIGIN, absoluteUrl } from "@/lib/site/canonical";
 import "./globals.css";
 
@@ -65,6 +67,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)]">
         <LocalBusinessJsonLd />
         {children}
+        {shouldLoadGoogleAnalytics() ? <PublicGoogleAnalytics /> : null}
       </body>
     </html>
   );

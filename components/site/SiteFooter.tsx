@@ -1,5 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import {
+  TrackedMailtoLink,
+  TrackedTelLink,
+} from "@/components/analytics/TrackedContactLink";
 
 const LOGO = "/images/logos/dv8-logo.png";
 
@@ -74,20 +78,22 @@ export default function SiteFooter() {
               <p className="label-mono mb-4 text-white/30">Connect</p>
               <ul className="space-y-3">
                 <li>
-                  <a
+                  <TrackedTelLink
                     href="tel:8142012456"
+                    linkLocation="footer"
                     className="label-mono link-underline text-white/45 hover:text-white"
                   >
                     814.201.2456
-                  </a>
+                  </TrackedTelLink>
                 </li>
                 <li>
-                  <a
+                  <TrackedMailtoLink
                     href="mailto:sales@autodv8ions.com"
+                    linkLocation="footer"
                     className="label-mono link-underline text-white/45 hover:text-white"
                   >
                     sales@autodv8ions.com
-                  </a>
+                  </TrackedMailtoLink>
                 </li>
                 <li>
                   <a

@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import {
+  TrackedMailtoLink,
+  TrackedTelLink,
+} from "@/components/analytics/TrackedContactLink";
 import InquiryForm from "@/components/site/InquiryForm";
 import SiteFooter from "@/components/site/SiteFooter";
 import SiteHeader from "@/components/site/SiteHeader";
@@ -76,17 +80,22 @@ export default function ContactPage() {
               </h2>
               <div className="mt-6 space-y-3 text-sm text-white/45">
                 <p>
-                  <a href="tel:8142012456" className="link-underline">
+                  <TrackedTelLink
+                    href="tel:8142012456"
+                    linkLocation="contact"
+                    className="link-underline"
+                  >
                     814.201.2456
-                  </a>
+                  </TrackedTelLink>
                 </p>
                 <p>
-                  <a
+                  <TrackedMailtoLink
                     href="mailto:sales@autodv8ions.com"
+                    linkLocation="contact"
                     className="link-underline"
                   >
                     sales@autodv8ions.com
-                  </a>
+                  </TrackedMailtoLink>
                 </p>
                 <p className="label-mono text-white/30">Altoona, Pennsylvania</p>
               </div>
