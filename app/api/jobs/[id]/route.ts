@@ -24,6 +24,43 @@ async function loadJob(supabase: SupabaseClient, id: string) {
   return job as Job;
 }
 
+function parseAppointmentNotes(
+  body: Record<string, unknown>,
+  fallback: string | null | undefined,
+) {
+  if (body.appointmentNotes === undefined) {
+    return fallback ?? null;
+  }
+  if (body.appointmentNotes === null) return null;
+  const trimmed = String(body.appointmentNotes).trim();
+  return trimmed || null;
+}
+
+function getCalendarErrorMessage(calendarError: unknown) {
+  if (calendarError instanceof CalendarEventMissingError) {
+    return calendarError.message;
+  }
+
+  if (!calendarError || typeof calendarError !== "object") {
+    return "Google Calendar request failed.";
+  }
+
+  const err = calendarError as {
+    message?: string;
+    errors?: Array<{ message?: string }>;
+    response?: { data?: { error?: { message?: string } } };
+  };
+
+  const apiMessage =
+    err.response?.data?.error?.message ||
+    err.errors?.[0]?.message ||
+    err.message;
+
+  return typeof apiMessage === "string" && apiMessage.trim()
+    ? apiMessage
+    : "Google Calendar request failed.";
+}
+
 function calendarErrorResponse(calendarError: unknown) {
   if (calendarError instanceof CalendarEventMissingError) {
     return NextResponse.json(
@@ -32,11 +69,10 @@ function calendarErrorResponse(calendarError: unknown) {
     );
   }
 
-  const message =
-    calendarError instanceof Error
-      ? calendarError.message
-      : "Google Calendar request failed.";
-  return NextResponse.json({ error: message }, { status: 400 });
+  return NextResponse.json(
+    { error: getCalendarErrorMessage(calendarError) },
+    { status: 400 },
+  );
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -77,6 +113,13 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (body.customerNotes !== undefined) {
     updates.customer_notes =
       body.customerNotes === null ? null : String(body.customerNotes);
+  }
+
+  if (body.appointmentNotes !== undefined) {
+    updates.appointment_notes =
+      body.appointmentNotes === null
+        ? null
+        : String(body.appointmentNotes).trim() || null;
   }
 
   if (body.scheduledAt !== undefined) {
@@ -159,39 +202,85 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
-    try {
-      const event = await createCalendarEventForJob(job, startDateTime);
-      const { data: updatedJob, error: updateError } = await supabase
-        .from("jobs")
-        .update({
-          google_calendar_event_id: event.id,
-          google_calendar_event_url: event.htmlLink,
-          status:
-            job.status === "New" || job.status === "Contacted"
-              ? "Scheduled"
-              : job.status,
-          scheduled_at: event.start,
-        })
-        .eq("id", id)
-        .select("*, customers(*), vehicles(*)")
-        .single();
+    const appointmentNotes = parseAppointmentNotes(body, job.appointment_notes);
 
-      if (updateError) {
-        console.error("[jobs][calendar-create]", id, updateError);
-        return NextResponse.json(
-          {
-            error:
-              "Calendar event was created, but the job could not be updated. Refresh and check the appointment.",
-            event,
-          },
-          { status: 500 },
-        );
-      }
+    // Persist notes first so a Calendar failure never loses operational notes.
+    const { data: notesSavedJob, error: notesError } = await supabase
+      .from("jobs")
+      .update({ appointment_notes: appointmentNotes })
+      .eq("id", id)
+      .select("*, customers(*), vehicles(*)")
+      .single();
 
-      return NextResponse.json({ job: updatedJob, event });
-    } catch (calendarError) {
-      return calendarErrorResponse(calendarError);
+    if (notesError || !notesSavedJob) {
+      console.error("[jobs][calendar-create-notes]", id, notesError);
+      return NextResponse.json(
+        {
+          error:
+            notesError?.message ||
+            "Could not save appointment notes before creating the Calendar event.",
+        },
+        { status: 500 },
+      );
     }
+
+    const jobForCalendar: Job = {
+      ...(notesSavedJob as Job),
+      appointment_notes: appointmentNotes,
+    };
+
+    let event: Awaited<ReturnType<typeof createCalendarEventForJob>>;
+    try {
+      event = await createCalendarEventForJob(jobForCalendar, startDateTime);
+    } catch (calendarError) {
+      console.error("[jobs][calendar-create]", id, calendarError);
+      return NextResponse.json(
+        {
+          error: getCalendarErrorMessage(calendarError),
+          job: notesSavedJob,
+        },
+        { status: 400 },
+      );
+    }
+
+    const { data: updatedJob, error: updateError } = await supabase
+      .from("jobs")
+      .update({
+        google_calendar_event_id: event.id,
+        google_calendar_event_url: event.htmlLink,
+        status:
+          job.status === "New" || job.status === "Contacted"
+            ? "Scheduled"
+            : job.status,
+        scheduled_at: event.start,
+        appointment_notes: appointmentNotes,
+      })
+      .eq("id", id)
+      .select("*, customers(*), vehicles(*)")
+      .single();
+
+    if (updateError || !updatedJob) {
+      console.error("[jobs][calendar-create-link]", id, updateError);
+      // Avoid orphaned Google events when job linkage fails.
+      if (event.id) {
+        try {
+          await deleteCalendarEvent(event.id);
+        } catch (cleanupError) {
+          console.error("[jobs][calendar-create-cleanup]", id, cleanupError);
+        }
+      }
+      return NextResponse.json(
+        {
+          error:
+            updateError?.message ||
+            "Google Calendar event could not be linked to this job. Please try scheduling again.",
+          job: notesSavedJob,
+        },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ job: updatedJob, event });
   }
 
   if (action === "update-calendar-event") {
@@ -214,9 +303,15 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
+    const appointmentNotes = parseAppointmentNotes(body, job.appointment_notes);
+    const jobForCalendar: Job = {
+      ...job,
+      appointment_notes: appointmentNotes,
+    };
+
     try {
       const event = await updateCalendarEventForJob(
-        job,
+        jobForCalendar,
         job.google_calendar_event_id,
         startDateTime,
       );
@@ -229,6 +324,7 @@ export async function POST(request: Request, context: RouteContext) {
           google_calendar_event_url:
             event.htmlLink || job.google_calendar_event_url,
           scheduled_at: event.start,
+          appointment_notes: appointmentNotes,
         })
         .eq("id", id)
         .select("*, customers(*), vehicles(*)")
@@ -270,12 +366,15 @@ export async function POST(request: Request, context: RouteContext) {
     try {
       const result = await deleteCalendarEvent(eventId);
 
+      // Keep appointment_notes on the job for reuse after cancel.
+      // Only roll Scheduled → Contacted; leave any other manual status alone.
       const { data: updatedJob, error: updateError } = await supabase
         .from("jobs")
         .update({
           google_calendar_event_id: null,
           google_calendar_event_url: null,
           scheduled_at: null,
+          ...(job.status === "Scheduled" ? { status: "Contacted" } : {}),
         })
         .eq("id", id)
         .select("*, customers(*), vehicles(*)")

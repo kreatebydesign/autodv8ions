@@ -31,16 +31,36 @@ export function formatEmailLink(email?: string | null) {
 export function buildCalendarDetails(job: Job) {
   const customer = job.customers;
   const vehicle = job.vehicles;
+  const appointmentNotes = job.appointment_notes?.trim() || "";
 
-  return [
-    `Customer: ${formatCustomerName(customer)}`,
-    `Phone: ${customer?.phone || "—"}`,
-    `Email: ${customer?.email || "—"}`,
-    `Vehicle: ${formatVehicle(vehicle)}`,
-    `Service: ${job.service_type}`,
-    `Tint: ${job.tint_percentage || "—"}`,
-    `Notes: ${job.customer_notes || job.internal_notes || "—"}`,
-  ].join("\n");
+  const lines = [
+    "Customer:",
+    formatCustomerName(customer),
+    "",
+    "Phone:",
+    customer?.phone || "—",
+    "",
+    "Vehicle:",
+    formatVehicle(vehicle),
+    "",
+    "Service:",
+    job.tint_percentage
+      ? `${job.service_type} · ${job.tint_percentage}`
+      : job.service_type,
+  ];
+
+  if (appointmentNotes) {
+    lines.push("", "Appointment Notes:", appointmentNotes);
+  }
+
+  lines.push(
+    "",
+    "AutoDV8ions Job:",
+    `https://www.autodv8ions.com/admin/jobs?jobId=${job.id}`,
+  );
+
+  // Privacy: never include internal_notes or customer_notes in Calendar payloads.
+  return lines.join("\n");
 }
 
 export function slugify(value: string) {

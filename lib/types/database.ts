@@ -37,6 +37,7 @@ export type Job = {
   tint_percentage: string | null;
   customer_notes: string | null;
   internal_notes: string | null;
+  appointment_notes: string | null;
   source: string | null;
   tint_quote_lead_id: string | null;
   tint_quote_lead_ref: string | null;

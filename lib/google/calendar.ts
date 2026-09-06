@@ -225,6 +225,7 @@ export async function createCalendarEventForJob(
     calendarId,
     requestBody: {
       summary: `${customerName} — ${job.service_type}`,
+      // Operational Calendar copy only — never includes internal_notes.
       description: buildCalendarDetails(job),
       location: "AutoDV8ions, Altoona, PA",
       start: { dateTime: startWall, timeZone: CALENDAR_TIME_ZONE },
@@ -274,6 +275,7 @@ export async function updateCalendarEventForJob(
       eventId,
       requestBody: {
         summary: `${customerName} — ${job.service_type}`,
+        // Operational Calendar copy only — never includes internal_notes.
         description: buildCalendarDetails(job),
         location: "AutoDV8ions, Altoona, PA",
         start: { dateTime: startWall, timeZone: CALENDAR_TIME_ZONE },
