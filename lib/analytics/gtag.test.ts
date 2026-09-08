@@ -100,8 +100,8 @@ describe("gtag helpers", () => {
   });
 
   it("reads measurement id from env", () => {
-    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-4JHS85FNCR";
-    assert.equal(getGaMeasurementId(), "G-4JHS85FNCR");
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-CH2L3W0BF5";
+    assert.equal(getGaMeasurementId(), "G-CH2L3W0BF5");
   });
 
   it("does not load GA without measurement id", () => {
@@ -111,28 +111,28 @@ describe("gtag helpers", () => {
   });
 
   it("does not load GA on localhost (no VERCEL_ENV)", () => {
-    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-4JHS85FNCR";
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-CH2L3W0BF5";
     delete process.env.VERCEL_ENV;
     delete process.env.NEXT_PUBLIC_VERCEL_ENV;
     assert.equal(shouldLoadGoogleAnalytics(), false);
   });
 
   it("does not load GA on Vercel Preview", () => {
-    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-4JHS85FNCR";
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-CH2L3W0BF5";
     process.env.VERCEL_ENV = "preview";
     delete process.env.NEXT_PUBLIC_VERCEL_ENV;
     assert.equal(shouldLoadGoogleAnalytics(), false);
   });
 
   it("loads GA only on Vercel Production", () => {
-    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-4JHS85FNCR";
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-CH2L3W0BF5";
     process.env.VERCEL_ENV = "production";
     delete process.env.NEXT_PUBLIC_VERCEL_ENV;
     assert.equal(shouldLoadGoogleAnalytics(), true);
   });
 
   it("no-ops event helpers when gtag is unavailable", () => {
-    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-4JHS85FNCR";
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-CH2L3W0BF5";
     assert.doesNotThrow(() => {
       trackGenerateLead({ service_type: "tint_quote" });
       trackPhoneClick({ link_location: "footer" });
@@ -141,7 +141,7 @@ describe("gtag helpers", () => {
   });
 
   it("sends PII-safe events through window.gtag when available", () => {
-    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-4JHS85FNCR";
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-CH2L3W0BF5";
     const calls: unknown[][] = [];
     // @ts-expect-error test stub
     globalThis.window = {
@@ -176,7 +176,7 @@ describe("gtag helpers", () => {
 
 describe("one-shot lead guard pattern", () => {
   it("fires generate_lead only once when guarded by a ref flag", () => {
-    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-4JHS85FNCR";
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-CH2L3W0BF5";
     const calls: unknown[][] = [];
     // @ts-expect-error test stub
     globalThis.window = {
