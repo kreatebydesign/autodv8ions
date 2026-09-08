@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth/require-admin";
-import {
-  listMediaProcessingQueue,
-  runGalleryMediaProcessing,
-} from "@/lib/live-portfolio/media-process";
+import { listMediaProcessingQueue } from "@/lib/live-portfolio/media-queue";
 
 /**
  * Admin-only media processing status (Phase 2A).
  * Read-only. Never publishes.
+ * Does not import Asset Engine / sharp — queue listing is Supabase-only.
  */
 export async function GET() {
   const { error } = await requireAdminSession();
@@ -40,6 +38,7 @@ export async function GET() {
  * Admin-only media ingestion runner.
  * POST only. Requires { confirmMediaProcess: true }.
  * Private Blob storage. No public URLs. No publishing.
+ * Asset Engine (sharp / Drive / Blob) is loaded only for POST.
  */
 export async function POST(request: Request) {
   const { error } = await requireAdminSession();
@@ -62,6 +61,11 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  // Dynamic import keeps sharp out of the GET module graph.
+  const { runGalleryMediaProcessing } = await import(
+    "@/lib/live-portfolio/media-process"
+  );
 
   const result = await runGalleryMediaProcessing(
     (body && typeof body === "object" ? body : {}) as {

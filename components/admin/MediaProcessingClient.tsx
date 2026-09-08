@@ -26,10 +26,13 @@ type QueueCounts = {
   failed: number;
 };
 
+type QueueLoadState = "loading" | "ready" | "error";
+
 export default function MediaProcessingClient() {
   const [counts, setCounts] = useState<QueueCounts | null>(null);
   const [items, setItems] = useState<QueueItem[]>([]);
   const [status, setStatus] = useState("");
+  const [loadState, setLoadState] = useState<QueueLoadState>("loading");
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
 
@@ -39,18 +42,48 @@ export default function MediaProcessingClient() {
       const res = await fetch("/api/content/media-process", {
         credentials: "include",
       });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        setLoadState("error");
         setStatus(
-          `Failed to load media queue: ${data.error?.message || "unknown error"}`,
+          `Failed to load media queue: server returned HTTP ${res.status} (non-JSON). Inventory may still exist — this is not an empty queue.`,
         );
         return;
       }
-      setCounts(data.counts);
+
+      let data: {
+        ok?: boolean;
+        counts?: QueueCounts;
+        items?: QueueItem[];
+        error?: { message?: string };
+      };
+      try {
+        data = await res.json();
+      } catch {
+        setLoadState("error");
+        setStatus(
+          `Failed to load media queue: invalid JSON (HTTP ${res.status}). Inventory may still exist — this is not an empty queue.`,
+        );
+        return;
+      }
+
+      if (!res.ok || !data.ok) {
+        setLoadState("error");
+        setStatus(
+          `Failed to load media queue: ${data.error?.message || `HTTP ${res.status}`}. Inventory may still exist — this is not an empty queue.`,
+        );
+        return;
+      }
+
+      setCounts(data.counts ?? null);
       setItems(Array.isArray(data.items) ? data.items : []);
+      setLoadState("ready");
       setStatus("");
     } catch {
-      setStatus("Failed to load media queue: network error.");
+      setLoadState("error");
+      setStatus(
+        "Failed to load media queue: network error. Inventory may still exist — this is not an empty queue.",
+      );
     } finally {
       setLoading(false);
     }
@@ -96,6 +129,13 @@ export default function MediaProcessingClient() {
           mediaIds: options.mediaIds,
         }),
       });
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        setStatus(
+          `Media processing failed: server returned HTTP ${res.status} (non-JSON). No media was claimed from this response.`,
+        );
+        return;
+      }
       const data = await res.json();
       if (!res.ok || !data.ok) {
         setStatus(
@@ -188,7 +228,21 @@ export default function MediaProcessingClient() {
             </tr>
           </thead>
           <tbody>
-            {items.length === 0 ? (
+            {loadState === "loading" && items.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="text-[var(--dv8-muted)]">
+                  Loading media queue…
+                </td>
+              </tr>
+            ) : loadState === "error" ? (
+              <tr>
+                <td colSpan={9} className="text-[var(--dv8-muted)]">
+                  Queue could not be loaded. Existing media inventory is not
+                  shown while this error stands — use Refresh Queue after the
+                  issue is fixed. Do not treat this as an empty inventory.
+                </td>
+              </tr>
+            ) : items.length === 0 ? (
               <tr>
                 <td colSpan={9} className="text-[var(--dv8-muted)]">
                   No media inventory rows yet. Run pending import first.
