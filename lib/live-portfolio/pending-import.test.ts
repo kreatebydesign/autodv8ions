@@ -14,6 +14,7 @@ import {
   executePendingImportPlan,
   parsePendingImportRequest,
   selectRecentImportBatch,
+  shouldTrimReviewQueueAfterImport,
 } from "./pending-import";
 
 function emptyDiscovery(
@@ -124,6 +125,7 @@ describe("pending import request parsing", () => {
       assert.equal(parsed.limits.maxMonths, PENDING_IMPORT_DEFAULTS.maxMonths);
       assert.equal(parsed.limits.maxItems, PENDING_IMPORT_DEFAULTS.maxItems);
       assert.equal(parsed.limits.maxMedia, PENDING_IMPORT_DEFAULTS.maxMedia);
+      assert.equal(parsed.skipReviewQueueTrim, false);
     }
   });
 
@@ -139,7 +141,32 @@ describe("pending import request parsing", () => {
       assert.equal(parsed.limits.maxMonths, PENDING_IMPORT_DEFAULTS.hardMaxMonths);
       assert.equal(parsed.limits.maxItems, PENDING_IMPORT_DEFAULTS.hardMaxItems);
       assert.equal(parsed.limits.maxMedia, PENDING_IMPORT_DEFAULTS.hardMaxMedia);
+      assert.equal(parsed.skipReviewQueueTrim, false);
     }
+  });
+
+  it("accepts current-month limits and skipReviewQueueTrim", () => {
+    const parsed = parsePendingImportRequest({
+      confirmPendingImport: true,
+      maxMonths: 1,
+      maxItems: 60,
+      maxMedia: 150,
+      skipReviewQueueTrim: true,
+    });
+    assert.equal(parsed.ok, true);
+    if (parsed.ok) {
+      assert.equal(parsed.limits.maxMonths, 1);
+      assert.equal(parsed.limits.maxItems, 60);
+      assert.equal(parsed.limits.maxMedia, 150);
+      assert.equal(parsed.skipReviewQueueTrim, true);
+    }
+  });
+});
+
+describe("review queue trim flag", () => {
+  it("skips trim when skipReviewQueueTrim is true", () => {
+    assert.equal(shouldTrimReviewQueueAfterImport(true), false);
+    assert.equal(shouldTrimReviewQueueAfterImport(false), true);
   });
 });
 
@@ -212,6 +239,45 @@ describe("recent-first batch selection", () => {
     assert.equal(batch.mediaSelected, 2);
     assert.equal(batch.discoverySlice.months[0].jobs[0].media.length, 2);
     assert.equal(batch.truncatedByLimits, true);
+  });
+
+  it("current-month import selects only the newest month", () => {
+    const discovery = emptyDiscovery({
+      months: [
+        monthWithJobs("m-sep", "2026-09 SEPTEMBER", "2026-09", [
+          job("j1", "01 RAM", [mediaFile("f1", "a.jpg")]),
+          job("j2", "02 BMW", [mediaFile("f2", "b.jpg")]),
+        ]),
+        monthWithJobs("m-aug", "2026-08 AUGUST", "2026-08", [
+          job("j3", "03 GMC", [mediaFile("f3", "c.jpg")]),
+          job("j4", "04 Ford", [mediaFile("f4", "d.jpg")]),
+        ]),
+        monthWithJobs("m-jul", "2026-07 JULY", "2026-07", [
+          job("j5", "05 Tesla", [mediaFile("f5", "e.jpg")]),
+        ]),
+      ],
+      totals: {
+        monthFolderCount: 3,
+        jobFolderCount: 5,
+        mediaFileCount: 5,
+        ignoredCount: 0,
+        warningCount: 0,
+      },
+    });
+
+    const batch = selectRecentImportBatch(discovery, {
+      maxMonths: 1,
+      maxItems: 60,
+      maxMedia: 150,
+    });
+
+    assert.equal(batch.monthsSelected, 1);
+    assert.equal(batch.discoverySlice.months[0]?.sortKey, "2026-09");
+    assert.equal(batch.itemsSelected, 2);
+    assert.equal(batch.mediaSelected, 2);
+    assert.ok(
+      !batch.discoverySlice.months.some((m) => m.sortKey === "2026-08"),
+    );
   });
 });
 
@@ -598,7 +664,252 @@ describe("pending import execution", () => {
       true,
     );
     assert.equal(store.items.get("gi-1")?.vehicle, "Human Edited Title");
+    assert.equal(result.counts.createdMedia, 0);
+    assert.equal(plan.totals.newGalleryMediaCount, 0);
+    assert.ok(
+      plan.planned.skips.some(
+        (s) => s.reason === "new_media_withheld_curated_parent",
+      ),
+    );
+    assert.equal(store.snapshot().mediaIds.length, 0);
+  });
+
+  it("withholds new media for draft curated parent but attaches to provisional pending", () => {
+    const draftParent: ExistingGalleryItemSnapshot = {
+      id: "gi-draft",
+      slug: "draft-slug",
+      vehicle: "Draft Truck",
+      work_date: null,
+      status: "draft",
+      published: false,
+      provisional_vehicle: false,
+      drive_folder_id: "job-draft",
+      drive_folder_name: "Draft Truck",
+      source_month_folder_name: "2026-09 SEPTEMBER",
+      shade_percentage: null,
+      seo_title: null,
+      seo_description: null,
+    };
+    const pendingParent: ExistingGalleryItemSnapshot = {
+      id: "gi-pending",
+      slug: "pending-slug",
+      vehicle: "Pending SUV",
+      work_date: null,
+      status: "pending_review",
+      published: false,
+      provisional_vehicle: true,
+      drive_folder_id: "job-pending",
+      drive_folder_name: "Pending SUV",
+      source_month_folder_name: "2026-09 SEPTEMBER",
+      shade_percentage: null,
+      seo_title: null,
+      seo_description: null,
+    };
+
+    const discovery = emptyDiscovery({
+      months: [
+        monthWithJobs("m1", "2026-09 SEPTEMBER", "2026-09", [
+          job("job-draft", "Draft Truck", [mediaFile("f-draft", "d.jpg")]),
+          job("job-pending", "Pending SUV", [mediaFile("f-pending", "p.jpg")]),
+        ]),
+      ],
+      totals: {
+        monthFolderCount: 1,
+        jobFolderCount: 2,
+        mediaFileCount: 2,
+        ignoredCount: 0,
+        warningCount: 0,
+      },
+    });
+
+    const plan = buildImportPlan({
+      discovery,
+      existingItems: [draftParent, pendingParent],
+      existingMedia: [],
+    });
+
+    assert.equal(plan.totals.newGalleryMediaCount, 1);
+    assert.equal(
+      plan.planned.newGalleryMedia[0]?.parentDriveFolderId,
+      "job-pending",
+    );
+    assert.ok(
+      plan.planned.skips.some(
+        (s) =>
+          s.reason === "new_media_withheld_curated_parent" &&
+          s.subjectId === "f-draft",
+      ),
+    );
+
+    const store = createInMemoryPendingImportStore({
+      items: [
+        {
+          id: "gi-draft",
+          drive_folder_id: "job-draft",
+          vehicle: "Draft Truck",
+          provisional_vehicle: false,
+          status: "draft",
+          published: false,
+        },
+        {
+          id: "gi-pending",
+          drive_folder_id: "job-pending",
+          vehicle: "Pending SUV",
+          provisional_vehicle: true,
+          status: "pending_review",
+          published: false,
+        },
+      ],
+    });
+    const batch = selectRecentImportBatch(discovery, {
+      maxMonths: 1,
+      maxItems: 60,
+      maxMedia: 150,
+    });
+    const result = executePendingImportPlan(plan, store, {
+      batchLimits: batchLimitsFromSelection(batch),
+    });
+
     assert.equal(result.counts.createdMedia, 1);
+    assert.equal(store.snapshot().mediaIds.length, 1);
+    assert.ok(
+      [...store.media.values()].some((m) => m.gallery_item_id === "gi-pending"),
+    );
+    assert.ok(
+      ![...store.media.values()].some((m) => m.gallery_item_id === "gi-draft"),
+    );
+  });
+
+  it("current-month import matches published item without demoting or duplicating", () => {
+    const existing: ExistingGalleryItemSnapshot = {
+      id: "gi-live",
+      slug: "live-tesla",
+      vehicle: "Tesla Model Y",
+      work_date: "2026-09-01",
+      status: "published",
+      published: true,
+      provisional_vehicle: false,
+      drive_folder_id: "job-tesla",
+      drive_folder_name: "01 Tesla",
+      source_month_folder_name: "2026-09 SEPTEMBER",
+      shade_percentage: "20%",
+      seo_title: "Live SEO",
+      seo_description: "Live desc",
+    };
+
+    const existingMedia: ExistingGalleryMediaSnapshot[] = [
+      {
+        id: "gm-live",
+        gallery_item_id: "gi-live",
+        drive_file_id: "f-old",
+        drive_file_name: "old.jpg",
+        mime_type: "image/jpeg",
+        media_type: "image",
+        is_featured: true,
+        storage_url: null,
+      },
+    ];
+
+    const discovery = emptyDiscovery({
+      months: [
+        monthWithJobs("m-sep", "2026-09 SEPTEMBER", "2026-09", [
+          job("job-tesla", "01 Tesla", [mediaFile("f-new", "new.jpg")]),
+          job("job-new", "02 BMW", [mediaFile("f-bmw", "bmw.jpg")]),
+        ]),
+        monthWithJobs("m-aug", "2026-08 AUGUST", "2026-08", [
+          job("job-aug", "03 GMC", [mediaFile("f-gmc", "gmc.jpg")]),
+        ]),
+      ],
+      totals: {
+        monthFolderCount: 2,
+        jobFolderCount: 3,
+        mediaFileCount: 3,
+        ignoredCount: 0,
+        warningCount: 0,
+      },
+    });
+
+    const batch = selectRecentImportBatch(discovery, {
+      maxMonths: 1,
+      maxItems: 60,
+      maxMedia: 150,
+    });
+    assert.equal(batch.monthsSelected, 1);
+    assert.equal(batch.discoverySlice.months[0]?.sortKey, "2026-09");
+    assert.ok(
+      !batch.discoverySlice.months.some((m) => m.sortKey === "2026-08"),
+    );
+
+    const plan = buildImportPlan({
+      discovery: batch.discoverySlice,
+      existingItems: [existing],
+      existingMedia,
+    });
+    assert.equal(plan.totals.newGalleryItemCount, 1);
+    assert.equal(plan.totals.existingGalleryItemMatchCount, 1);
+    assert.equal(plan.totals.newGalleryMediaCount, 1);
+    assert.equal(
+      plan.planned.newGalleryMedia[0]?.parentDriveFolderId,
+      "job-new",
+    );
+    assert.ok(
+      plan.planned.skips.some(
+        (s) =>
+          s.reason === "new_media_withheld_curated_parent" &&
+          s.subjectId === "f-new",
+      ),
+    );
+    assert.equal(
+      plan.planned.existingGalleryItemMatches[0].existing.status,
+      "published",
+    );
+    assert.equal(
+      plan.planned.existingGalleryItemMatches[0].existing.published,
+      true,
+    );
+    assert.equal(plan.planned.newGalleryItems[0].defaults.status, "pending_review");
+    assert.equal(plan.planned.newGalleryItems[0].defaults.published, false);
+
+    const store = createInMemoryPendingImportStore({
+      items: [
+        {
+          id: "gi-live",
+          drive_folder_id: "job-tesla",
+          vehicle: "Tesla Model Y",
+          provisional_vehicle: false,
+          status: "published",
+          published: true,
+        },
+      ],
+      media: [
+        {
+          id: "gm-live",
+          gallery_item_id: "gi-live",
+          drive_file_id: "f-old",
+          is_featured: true,
+        },
+      ],
+    });
+    const result = executePendingImportPlan(plan, store, {
+      batchLimits: batchLimitsFromSelection(batch),
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.counts.createdGalleryItems, 1);
+    assert.equal(result.counts.matchedGalleryItems, 1);
+    assert.equal(result.counts.createdMedia, 1);
+    assert.equal(result.samples?.createdItems[0]?.status, "pending_review");
+    assert.equal(result.samples?.createdItems[0]?.published, false);
+    assert.equal(store.items.get("gi-live")?.status, "published");
+    assert.equal(store.items.get("gi-live")?.published, true);
+    assert.ok(store.media.has("gm-live"));
+    assert.equal(store.media.get("gm-live")?.drive_file_id, "f-old");
+    assert.equal(store.snapshot().itemIds.length, 2);
+    assert.equal(store.snapshot().mediaIds.length, 2);
+    assert.ok(
+      ![...store.media.values()].some((m) => m.drive_file_id === "f-new"),
+    );
+    assert.equal(shouldTrimReviewQueueAfterImport(true), false);
   });
 });
 

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 import { runPendingDriveImport } from "@/lib/google/drive-import-pending";
+import { parsePendingImportRequest, shouldTrimReviewQueueAfterImport } from "@/lib/live-portfolio/pending-import";
 import { trimReviewQueue } from "@/lib/portfolio-engine/rotation";
 
 /**
  * Admin-only controlled pending import.
- * After successful writes, trims Review Queue to portfolio engine limits.
+ * Review-queue trim is optional — Current Month imports skip it.
  */
 export async function POST(request: Request) {
   const { error } = await requireAdminSession();
@@ -28,14 +29,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await runPendingDriveImport(
-    (body && typeof body === "object" ? body : {}) as {
-      confirmPendingImport?: unknown;
-      maxMonths?: unknown;
-      maxItems?: unknown;
-      maxMedia?: unknown;
-    },
-  );
+  const requestBody =
+    body && typeof body === "object"
+      ? (body as {
+          confirmPendingImport?: unknown;
+          maxMonths?: unknown;
+          maxItems?: unknown;
+          maxMedia?: unknown;
+          skipReviewQueueTrim?: unknown;
+        })
+      : {};
+
+  const parsedFlags = parsePendingImportRequest(requestBody);
+  const skipReviewQueueTrim =
+    parsedFlags.ok && parsedFlags.skipReviewQueueTrim;
+
+  const result = await runPendingDriveImport(requestBody);
 
   if (!result.ok) {
     const status =
@@ -50,16 +59,30 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status });
   }
 
+  if (!shouldTrimReviewQueueAfterImport(skipReviewQueueTrim)) {
+    return NextResponse.json({
+      ...result,
+      reviewQueueTrim: {
+        skipped: true,
+        archivedIds: [],
+        queueSize: null,
+        detail:
+          "Review queue trim skipped for this import. Existing pending items were left intact.",
+      },
+    });
+  }
+
   const trim = await trimReviewQueue();
 
   return NextResponse.json({
     ...result,
     reviewQueueTrim: trim.ok
       ? {
+          skipped: false,
           archivedIds: trim.archivedIds,
           queueSize: trim.queueSize,
         }
-      : { error: trim.error },
+      : { skipped: false, error: trim.error },
   });
 }
 

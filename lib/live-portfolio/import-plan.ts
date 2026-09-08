@@ -23,6 +23,12 @@ import {
   parseVehicleFolder,
 } from "./parse-drive-folder";
 import { PORTFOLIO_SERVICE_TYPE } from "./constants";
+import {
+  NEW_MEDIA_WITHHELD_CURATED_PARENT_DETAIL,
+  NEW_MEDIA_WITHHELD_CURATED_PARENT_REASON,
+  shouldPreserveHumanEditedMetadata,
+  shouldWithholdNewMediaForParent,
+} from "./sync-preserve";
 import { slugify } from "@/lib/utils/format";
 
 const PENDING_DEFAULTS: PlannedGalleryDefaults = {
@@ -34,18 +40,7 @@ const PENDING_DEFAULTS: PlannedGalleryDefaults = {
 };
 
 function isHumanEdited(item: ExistingGalleryItemSnapshot): boolean {
-  if (item.provisional_vehicle === false) return true;
-  if (
-    item.status === "published" ||
-    item.status === "approved" ||
-    item.status === "failed" ||
-    item.status === "rejected" ||
-    item.status === "archived" ||
-    item.status === "archived_review"
-  ) {
-    return true;
-  }
-  return false;
+  return shouldPreserveHumanEditedMetadata(item);
 }
 
 export function buildSlugCandidate(
@@ -349,6 +344,22 @@ export function buildImportPlan(input: {
             existing: existingMedia,
             parentDriveFolderId: job.folderId,
             preserveFeaturedAndStorage: true,
+          });
+          continue;
+        }
+
+        // Never attach newly discovered Drive media onto curated/live parents.
+        if (
+          existingById &&
+          shouldWithholdNewMediaForParent(existingById)
+        ) {
+          skips.push({
+            kind: "skip",
+            subjectType: "media_file",
+            subjectId: media.fileId,
+            subjectName: media.fileName,
+            reason: NEW_MEDIA_WITHHELD_CURATED_PARENT_REASON,
+            detail: `${NEW_MEDIA_WITHHELD_CURATED_PARENT_DETAIL} (gallery item ${existingById.id}, status=${existingById.status}, published=${String(existingById.published)}).`,
           });
           continue;
         }

@@ -156,6 +156,22 @@ describe("import range / recency", () => {
     );
   });
 
+  it("current-month-only excludes previous month", () => {
+    const options = getDefaultSyncOptions({
+      mode: "current-month-only",
+      now,
+    });
+    assert.deepEqual(getRecentMonthKeys(now, false), ["2026-07"]);
+    assert.equal(
+      isMonthFolderInSyncRange(parseMonthFolder("2026-07 JULY"), options),
+      true,
+    );
+    assert.equal(
+      isMonthFolderInSyncRange(parseMonthFolder("2026-06 JUNE"), options),
+      false,
+    );
+  });
+
   it("labels recent vs historical import scope", () => {
     const options = getDefaultSyncOptions({ now });
     assert.equal(

@@ -228,6 +228,88 @@ export default function ContentClient({
     }
   }
 
+  async function importCurrentMonthAsPending() {
+    const confirmed = window.confirm(
+      [
+        "Import Current Month as Pending",
+        "",
+        "This will CREATE database records for the CURRENT month only",
+        "(max 1 month / 60 jobs / 150 media).",
+        "",
+        "• New gallery items = pending_review, unpublished",
+        "• Existing Drive matches are preserved (no status/publish changes)",
+        "• Existing Review queue is NOT trimmed/archived",
+        "• Nothing publishes to the website",
+        "• No media downloads or Blob uploads",
+        "",
+        "Continue?",
+      ].join("\n"),
+    );
+
+    if (!confirmed) {
+      setStatus("Current-month import cancelled — no records were written.");
+      return;
+    }
+
+    setImportingPending(true);
+    setStatus("");
+    try {
+      const res = await fetch("/api/content/drive-import-pending", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          confirmPendingImport: true,
+          maxMonths: 1,
+          maxItems: 60,
+          maxMedia: 150,
+          skipReviewQueueTrim: true,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        const detail =
+          data.error?.message || data.error || "Current-month import failed.";
+        setStatus(`Current-month import failed: ${detail}`);
+        return;
+      }
+
+      const trimNote = data.reviewQueueTrim?.skipped
+        ? " Review queue trim skipped — existing pending items left intact."
+        : "";
+
+      const withheld = Array.isArray(data.skips)
+        ? data.skips.filter(
+            (s: { reason?: string }) =>
+              s.reason === "new_media_withheld_curated_parent",
+          )
+        : [];
+      const withholdNote =
+        withheld.length > 0
+          ? ` Withheld ${withheld.length} new media file(s) on published/curated parents (live gallery unchanged).`
+          : "";
+
+      setStatus(
+        `Current-month pending import complete (writesPerformed=${String(data.writesPerformed)}): created items ${data.counts?.createdGalleryItems ?? 0} · matched items ${data.counts?.matchedGalleryItems ?? 0} · created media ${data.counts?.createdMedia ?? 0} · matched media ${data.counts?.matchedMedia ?? 0} · skips ${data.counts?.skipped ?? 0} · conflicts ${data.counts?.conflicts ?? 0}. Batch: ${data.batchLimits?.monthsSelected ?? 0} month(s) / ${data.batchLimits?.itemsSelected ?? 0} items / ${data.batchLimits?.mediaSelected ?? 0} media.${trimNote}${withholdNote} Nothing was published.`,
+      );
+
+      try {
+        const listRes = await fetch("/api/content", { credentials: "include" });
+        const listData = await listRes.json();
+        if (listRes.ok && Array.isArray(listData.items)) {
+          setItems(listData.items);
+        }
+      } catch {
+        // Status already shows import succeeded; list refresh is best-effort.
+      }
+    } catch {
+      setStatus("Current-month import failed: network or server error.");
+    } finally {
+      setImportingPending(false);
+    }
+  }
+
   async function syncDrive(mode?: string) {
     setLoading(true);
     setStatus("");
@@ -295,11 +377,12 @@ export default function ContentClient({
         </button>
         <button
           type="button"
-          className="admin-btn admin-btn-primary"
+          className="admin-btn"
           disabled={busy || !connected}
           onClick={() => syncDrive()}
+          title="Legacy metadata sync for current + previous month. Preserves published/curated status. Prefer Import Current Month as Pending for new photo drops."
         >
-          {loading ? "Syncing..." : "Sync Recent Tint Jobs"}
+          {loading ? "Syncing..." : "Sync Recent Tint Jobs (legacy)"}
         </button>
         <button
           type="button"
@@ -314,12 +397,32 @@ export default function ContentClient({
 
       <div className="admin-panel space-y-3 px-4 py-4">
         <div className="text-sm font-medium text-[var(--dv8-ink)]">
-          Phase 1D — Controlled pending import
+          Preferred — Current month pending import
         </div>
         <p className="text-sm text-[var(--dv8-muted)]">
-          Creates pending gallery items and media metadata for the newest month
-          folders only (max 3 months / 60 jobs / 150 media). Does not publish,
-          download files, or upload to Blob. Separate from Sync buttons above.
+          Day-to-day path for new Tint Jobs photo drops. Imports the newest
+          current-month Drive folders only as pending_review (unpublished). Does
+          not publish, download files, upload to Blob, or trim/archive the
+          existing Review queue.
+        </p>
+        <button
+          type="button"
+          className="admin-btn admin-btn-primary"
+          disabled={busy || !connected}
+          onClick={importCurrentMonthAsPending}
+        >
+          {importingPending ? "Importing..." : "Import Current Month as Pending"}
+        </button>
+      </div>
+
+      <div className="admin-panel space-y-3 px-4 py-4">
+        <div className="text-sm font-medium text-[var(--dv8-ink)]">
+          Broader pending import (3 months)
+        </div>
+        <p className="text-sm text-[var(--dv8-muted)]">
+          Creates pending gallery items for up to 3 newest months (max 60 jobs /
+          150 media). May trim the Review queue afterward. Prefer Current Month
+          for routine September-style drops.
         </p>
         <button
           type="button"

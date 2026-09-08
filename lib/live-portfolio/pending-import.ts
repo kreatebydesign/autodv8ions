@@ -20,13 +20,15 @@ export const PENDING_IMPORT_DEFAULTS = {
 } as const;
 
 export const PENDING_IMPORT_GUARANTEE =
-  "Pending-only metadata import. Records created as status=pending, published=false. No media downloads, Blob uploads, public URLs, or publishing.";
+  "Pending-only metadata import. Records created as status=pending_review, published=false. No media downloads, Blob uploads, public URLs, or publishing.";
 
 export type PendingImportRequestBody = {
   confirmPendingImport?: unknown;
   maxMonths?: unknown;
   maxItems?: unknown;
   maxMedia?: unknown;
+  /** When true, API must not call trimReviewQueue after import. */
+  skipReviewQueueTrim?: unknown;
 };
 
 export type PendingImportLimits = {
@@ -66,7 +68,7 @@ function clampInt(
 export function parsePendingImportRequest(
   body: PendingImportRequestBody | null | undefined,
 ):
-  | { ok: true; limits: PendingImportLimits }
+  | { ok: true; limits: PendingImportLimits; skipReviewQueueTrim: boolean }
   | { ok: false; code: string; message: string } {
   if (!body || body.confirmPendingImport !== true) {
     return {
@@ -96,7 +98,15 @@ export function parsePendingImportRequest(
         PENDING_IMPORT_DEFAULTS.hardMaxMedia,
       ),
     },
+    skipReviewQueueTrim: body.skipReviewQueueTrim === true,
   };
+}
+
+/** Current-month imports pass skipReviewQueueTrim=true so existing pending stay intact. */
+export function shouldTrimReviewQueueAfterImport(
+  skipReviewQueueTrim: boolean,
+): boolean {
+  return !skipReviewQueueTrim;
 }
 
 /**
@@ -545,38 +555,54 @@ export function executePendingImportPlan(
 
 /** Simple in-memory store for unit tests. */
 export function createInMemoryPendingImportStore(seed?: {
-  items?: Array<{ id: string; drive_folder_id: string; vehicle?: string; provisional_vehicle?: boolean }>;
+  items?: Array<{
+    id: string;
+    drive_folder_id: string;
+    vehicle?: string;
+    provisional_vehicle?: boolean;
+    status?: string;
+    published?: boolean;
+  }>;
   media?: Array<{ id: string; gallery_item_id: string; drive_file_id: string; storage_url?: string | null; is_featured?: boolean }>;
 }): PendingImportWriteStore & {
-  items: Map<string, GalleryItemWriteRow & { id: string }>;
+  items: Map<string, GalleryItemWriteRow & { id: string; status: string; published: boolean }>;
   media: Map<string, GalleryMediaWriteRow & { id: string }>;
   snapshot(): { itemIds: string[]; mediaIds: string[] };
 } {
-  const items = new Map<string, GalleryItemWriteRow & { id: string }>();
+  const items = new Map<
+    string,
+    GalleryItemWriteRow & { id: string; status: string; published: boolean }
+  >();
   const media = new Map<string, GalleryMediaWriteRow & { id: string }>();
   const byDriveFolder = new Map<string, string>();
   const byDriveFile = new Map<string, string>();
 
-  let txItems: Map<string, GalleryItemWriteRow & { id: string }> | null = null;
+  let txItems: Map<
+    string,
+    GalleryItemWriteRow & { id: string; status: string; published: boolean }
+  > | null = null;
   let txMedia: Map<string, GalleryMediaWriteRow & { id: string }> | null = null;
   let txByDriveFolder: Map<string, string> | null = null;
   let txByDriveFile: Map<string, string> | null = null;
   let seq = 0;
 
   for (const item of seed?.items || []) {
+    const base = buildGalleryItemWriteRow({
+      driveFolderId: item.drive_folder_id,
+      driveParentFolderId: null,
+      slug: `seed-${item.id}`,
+      vehicle: item.vehicle || "Seed",
+      workDate: null,
+      driveFolderName: item.vehicle || "Seed",
+      sourceMonthFolderName: null,
+    });
     const row = {
       id: item.id,
-      ...buildGalleryItemWriteRow({
-        driveFolderId: item.drive_folder_id,
-        driveParentFolderId: null,
-        slug: `seed-${item.id}`,
-        vehicle: item.vehicle || "Seed",
-        workDate: null,
-        driveFolderName: item.vehicle || "Seed",
-        sourceMonthFolderName: null,
-      }),
-      provisional_vehicle: (item.provisional_vehicle ?? true) as true,
-    };
+      ...base,
+      provisional_vehicle: item.provisional_vehicle ?? true,
+      status: item.status ?? base.status,
+      published: item.published ?? base.published,
+    } as GalleryItemWriteRow & { id: string; status: string; published: boolean };
     items.set(item.id, row);
     byDriveFolder.set(item.drive_folder_id, item.id);
   }

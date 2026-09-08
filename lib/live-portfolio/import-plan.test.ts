@@ -418,6 +418,110 @@ describe("import plan matching", () => {
     assert.match(a, /abcdef12/);
   });
 
+  it("withholds new media for published matched parents", () => {
+    const existing: ExistingGalleryItemSnapshot = {
+      id: "gi-live",
+      slug: "live",
+      vehicle: "Live Car",
+      work_date: "2026-09-01",
+      status: "published",
+      published: true,
+      provisional_vehicle: false,
+      drive_folder_id: "job-live",
+      drive_folder_name: "Live Car",
+      source_month_folder_name: "2026-09 SEPTEMBER",
+      shade_percentage: "15%",
+      seo_title: "Kept",
+      seo_description: "Kept",
+    };
+    const existingMedia: ExistingGalleryMediaSnapshot[] = [
+      {
+        id: "gm-1",
+        gallery_item_id: "gi-live",
+        drive_file_id: "file-old",
+        drive_file_name: "old.jpg",
+        mime_type: "image/jpeg",
+        media_type: "image",
+        is_featured: true,
+        storage_url: null,
+      },
+    ];
+
+    const discovery = emptyDiscovery({
+      months: [
+        {
+          folderId: "month-1",
+          folderName: "2026-09 SEPTEMBER",
+          year: 2026,
+          month: 9,
+          sortKey: "2026-09",
+          parseOk: true,
+          createdTime: null,
+          jobs: [
+            {
+              folderId: "job-live",
+              folderName: "Live Car",
+              createdTime: null,
+              media: [
+                {
+                  fileId: "file-old",
+                  fileName: "old.jpg",
+                  mimeType: "image/jpeg",
+                  extension: "jpg",
+                  mediaKind: "image" as const,
+                  createdTime: null,
+                  modifiedTime: null,
+                  webViewLink: null,
+                },
+                {
+                  fileId: "file-new",
+                  fileName: "new.jpg",
+                  mimeType: "image/jpeg",
+                  extension: "jpg",
+                  mediaKind: "image" as const,
+                  createdTime: null,
+                  modifiedTime: null,
+                  webViewLink: null,
+                },
+              ],
+              ignored: [],
+              warnings: [],
+              mediaTruncated: false,
+            },
+          ],
+          ignored: [],
+          warnings: [],
+          jobsTruncated: false,
+        },
+      ],
+      totals: {
+        monthFolderCount: 1,
+        jobFolderCount: 1,
+        mediaFileCount: 2,
+        ignoredCount: 0,
+        warningCount: 0,
+      },
+    });
+
+    const plan = buildImportPlan({
+      discovery,
+      existingItems: [existing],
+      existingMedia,
+    });
+
+    assert.equal(plan.totals.newGalleryItemCount, 0);
+    assert.equal(plan.totals.existingGalleryItemMatchCount, 1);
+    assert.equal(plan.totals.newGalleryMediaCount, 0);
+    assert.equal(plan.totals.existingGalleryMediaMatchCount, 1);
+    assert.ok(
+      plan.planned.skips.some(
+        (s) =>
+          s.reason === "new_media_withheld_curated_parent" &&
+          s.subjectId === "file-new",
+      ),
+    );
+  });
+
   it("candidate metadata uses folder name only", () => {
     const meta = buildCandidateMetadata({
       jobFolderId: "id-1",

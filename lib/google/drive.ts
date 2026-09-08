@@ -30,6 +30,11 @@ import {
   inventoryDriveMedia,
   isMonthFolderInSyncRange,
 } from "@/lib/live-portfolio/validation";
+import {
+  resolveSyncLifecycleFields,
+  resolveSyncVehicleAndWorkDate,
+  shouldPreserveHumanEditedMetadata,
+} from "@/lib/live-portfolio/sync-preserve";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { slugify } from "@/lib/utils/format";
 
@@ -491,31 +496,21 @@ export async function syncDriveContentUploads(
         .eq("drive_folder_id", folderId)
         .maybeSingle();
 
-      const lockedStatuses = new Set(["approved", "rejected", "archived"]);
-      const isLocked = existing && lockedStatuses.has(existing.status);
-
-      // Never invent SEO / marketing copy. Keep existing SEO if already set.
-      const nextVehicle =
-        isLocked || (existing && existing.provisional_vehicle === false)
-          ? existing.vehicle
-          : vehicleLabel || vehicleParsed.rawName || "Untitled vehicle";
-
-      const nextWorkDate =
-        isLocked || (existing && existing.provisional_vehicle === false)
-          ? existing.work_date
-          : vehicleParsed.workDate;
+      const preserveMeta = shouldPreserveHumanEditedMetadata(existing);
+      const lifecycle = resolveSyncLifecycleFields(existing);
+      const nextIdentity = resolveSyncVehicleAndWorkDate(existing, {
+        vehicle: vehicleLabel || vehicleParsed.rawName || "Untitled vehicle",
+        workDate: vehicleParsed.workDate,
+      });
 
       const nextShade =
         existing?.shade_percentage != null
           ? existing.shade_percentage
           : null;
 
-      const nextStatus = isLocked ? existing.status : "pending";
-      const nextPublished = isLocked ? existing.published : false;
-
       const slug =
         existing?.slug ||
-        buildStableSlug(folderId, nextVehicle, nextWorkDate);
+        buildStableSlug(folderId, nextIdentity.vehicle, nextIdentity.workDate);
 
       const upsertPayload: Record<string, unknown> = {
         slug,
@@ -523,37 +518,41 @@ export async function syncDriveContentUploads(
         drive_parent_folder_id: monthFolder.id || null,
         drive_folder_name: vehicleParsed.rawName,
         source_month_folder_name: monthParsed.rawName,
-        vehicle: nextVehicle,
+        vehicle: nextIdentity.vehicle,
         service_type: PORTFOLIO_SERVICE_TYPE,
-        work_date: nextWorkDate,
+        work_date: nextIdentity.workDate,
         shade_percentage: nextShade,
-        status: nextStatus,
-        published: nextPublished,
-        provisional_vehicle: isLocked
-          ? false
-          : existing?.provisional_vehicle === false
-            ? false
-            : true,
-        validation_errors: isLocked
-          ? mergeWarnings(existing.validation_errors, inventory.warnings)
+        status: lifecycle.status,
+        published: lifecycle.published,
+        provisional_vehicle: existing
+          ? preserveMeta
+            ? existing.provisional_vehicle === false
+              ? false
+              : existing.provisional_vehicle
+            : existing.provisional_vehicle === false
+              ? false
+              : true
+          : true,
+        validation_errors: preserveMeta
+          ? mergeWarnings(existing?.validation_errors, inventory.warnings)
           : validationErrors,
-        import_scope: isLocked ? existing.import_scope || importScope : importScope,
-        // Do not expose Drive URLs publicly via legacy JSONB on new syncs.
-        // Preserve existing approved media URL arrays if locked.
-        photos: isLocked ? existing.photos || [] : [],
-        videos: isLocked ? existing.videos || [] : [],
+        import_scope: existing?.import_scope || importScope,
+        // Never wipe curated media URL arrays; new rows stay empty (no public Drive URLs).
+        photos: existing ? existing.photos || [] : [],
+        videos: existing ? existing.videos || [] : [],
+        seo_title: existing?.seo_title ?? null,
+        seo_description: existing?.seo_description ?? null,
       };
 
-      // Never overwrite confirmed approval metadata
-      if (isLocked) {
+      if (existing) {
         upsertPayload.approved_at = existing.approved_at;
         upsertPayload.approved_by = existing.approved_by;
-        upsertPayload.seo_title = existing.seo_title;
-        upsertPayload.seo_description = existing.seo_description;
-      } else {
-        // Explicitly clear invented SEO on pending re-syncs
-        upsertPayload.seo_title = existing?.seo_title ?? null;
-        upsertPayload.seo_description = existing?.seo_description ?? null;
+        if (existing.description != null) {
+          upsertPayload.description = existing.description;
+        }
+        if (existing.pinned != null) {
+          upsertPayload.pinned = existing.pinned;
+        }
       }
 
       const { data: galleryItem, error: galleryError } = await supabase
@@ -580,9 +579,9 @@ export async function syncDriveContentUploads(
         const mediaType = media.mediaType;
         if (!mediaType) continue;
 
-        // Preserve admin featured choice on locked/approved items
+        // Preserve admin featured choice on existing curated/live items
         let isFeatured = media.isFeatured;
-        if (isLocked) {
+        if (existing && (preserveMeta || lifecycle.published)) {
           const { data: existingMedia } = await supabase
             .from("gallery_media")
             .select("is_featured")
@@ -619,9 +618,9 @@ export async function syncDriveContentUploads(
       result.items.push({
         driveFolderId: folderId,
         driveFolderName: vehicleParsed.rawName,
-        vehicle: nextVehicle,
-        workDate: nextWorkDate,
-        status: nextStatus,
+        vehicle: nextIdentity.vehicle,
+        workDate: nextIdentity.workDate,
+        status: lifecycle.status,
         importScope,
         imageCount: inventory.imageCount,
         videoCount: inventory.videoCount,
