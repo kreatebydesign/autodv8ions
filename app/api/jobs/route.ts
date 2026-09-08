@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth/require-admin";
+import { statusesMatchingFilter } from "@/lib/jobs/status-filter";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -21,7 +22,8 @@ export async function GET(request: Request) {
     .select("*, customers(*), vehicles(*)")
     .order("created_at", { ascending: false });
 
-  if (status) query = query.eq("status", status);
+  const matchingStatuses = statusesMatchingFilter(status);
+  if (matchingStatuses) query = query.in("status", matchingStatuses);
   if (serviceType) query = query.eq("service_type", serviceType);
 
   const { data, error: dbError } = await query;
