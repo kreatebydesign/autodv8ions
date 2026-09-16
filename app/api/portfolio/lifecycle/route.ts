@@ -3,12 +3,14 @@ import { requireAdminSession } from "@/lib/auth/require-admin";
 import { restoreGalleryItemToReview } from "@/lib/portfolio-engine/archive";
 import { setGalleryItemPinned } from "@/lib/portfolio-engine/stats";
 import { trimReviewQueue } from "@/lib/portfolio-engine/rotation";
-import { runGalleryMediaProcessing } from "@/lib/live-portfolio/media-process";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 /**
  * Restore / pin / trim helpers for the Portfolio Engine.
  * Restore never creates duplicate gallery items.
+ *
+ * Sharp / Asset Engine are NEVER statically imported here.
+ * Media reprocess is loaded dynamically only when restore needs it.
  */
 export async function POST(request: Request) {
   const { error } = await requireAdminSession();
@@ -72,6 +74,9 @@ export async function POST(request: Request) {
 
     const mediaIds = (media || []).map((m) => m.id);
     if (mediaIds.length > 0) {
+      const { runGalleryMediaProcessing } = await import(
+        "@/lib/live-portfolio/media-process"
+      );
       reprocess = await runGalleryMediaProcessing({
         confirmMediaProcess: true,
         mediaIds,
