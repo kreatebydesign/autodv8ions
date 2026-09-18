@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  buildGmailReconnectHref,
   buildGmailThreadUrl,
   displaySenderLabel,
   getVisibleMessages,
   hasRenderablePlainBody,
+  isGmailAuthorizationErrorCode,
+  isGmailTemporaryErrorCode,
 } from "./gmail-ui";
 
 describe("gmail-ui helpers", () => {
@@ -59,6 +62,22 @@ describe("gmail-ui helpers", () => {
         unread: false,
       }),
       false,
+    );
+  });
+
+  it("shows reconnect for auth failures and retry only for temporary failures", () => {
+    assert.equal(isGmailAuthorizationErrorCode("gmail_auth_failed"), true);
+    assert.equal(isGmailTemporaryErrorCode("gmail_auth_failed"), false);
+    assert.equal(isGmailTemporaryErrorCode("gmail_temporarily_unavailable"), true);
+    assert.equal(isGmailAuthorizationErrorCode("gmail_temporarily_unavailable"), false);
+    assert.equal(isGmailAuthorizationErrorCode("calendar_auth_failed"), true);
+    assert.equal(
+      buildGmailReconnectHref("/admin/jobs?jobId=abc"),
+      "/api/admin/google/oauth/start?returnTo=%2Fadmin%2Fjobs%3FjobId%3Dabc",
+    );
+    assert.equal(
+      buildGmailReconnectHref("https://evil.example"),
+      "/api/admin/google/oauth/start?returnTo=%2Fadmin%2Fjobs",
     );
   });
 });

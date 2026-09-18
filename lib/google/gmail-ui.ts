@@ -37,7 +37,10 @@ export function getVisibleMessages<T>(
   };
 }
 
-export function displaySenderLabel(from: string, direction: "incoming" | "outgoing"): string {
+export function displaySenderLabel(
+  from: string,
+  direction: "incoming" | "outgoing",
+): string {
   if (direction === "outgoing") return "AutoDV8ions";
   const trimmed = from.trim();
   if (!trimmed) return "Customer";
@@ -62,4 +65,48 @@ export function formatMessageTimestamp(sentAt: string | null): string {
 
 export function hasRenderablePlainBody(message: CommMessageLike): boolean {
   return Boolean(message.plainTextBody?.trim());
+}
+
+export function isGmailAuthorizationErrorCode(
+  code: string | null | undefined,
+): boolean {
+  return (
+    code === "gmail_auth_failed" ||
+    code === "gmail_reconnect_required" ||
+    code === "gmail_wrong_account" ||
+    code === "gmail_refresh_token_missing" ||
+    code === "gmail_insufficient_scope" ||
+    code === "google_auth_failed" ||
+    code === "google_wrong_account" ||
+    code === "google_refresh_token_missing" ||
+    code === "google_insufficient_scope" ||
+    code === "calendar_auth_failed" ||
+    code === "calendar_wrong_account"
+  );
+}
+
+export function isGmailTemporaryErrorCode(
+  code: string | null | undefined,
+): boolean {
+  return (
+    code === "gmail_temporarily_unavailable" ||
+    code === "gmail_api_failed" ||
+    code === "gmail_reply_failed" ||
+    code === "calendar_temporarily_unavailable" ||
+    code === "calendar_api_failed"
+  );
+}
+
+export function buildGoogleWorkspaceReconnectHref(returnTo: string): string {
+  const safe =
+    returnTo.startsWith("/admin") && !returnTo.startsWith("//")
+      ? returnTo
+      : "/admin/jobs";
+  const params = new URLSearchParams({ returnTo: safe });
+  return `/api/admin/google/oauth/start?${params.toString()}`;
+}
+
+/** @deprecated Use buildGoogleWorkspaceReconnectHref */
+export function buildGmailReconnectHref(returnTo: string): string {
+  return buildGoogleWorkspaceReconnectHref(returnTo);
 }

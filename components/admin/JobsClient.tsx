@@ -7,10 +7,15 @@ import JobStatusBadge from "@/components/admin/JobStatusBadge";
 import { JOB_STATUSES, SERVICE_TYPES } from "@/lib/constants/jobs";
 import type { Job } from "@/lib/types/database";
 import { buildCalendarDetails, formatCustomerName, formatDate, formatDateTimeNy, formatVehicleShort } from "@/lib/utils/format";
+import {
+  buildGoogleWorkspaceReconnectHref,
+  isGmailAuthorizationErrorCode,
+} from "@/lib/google/gmail-ui";
 
 type Feedback = {
   type: "success" | "error";
   text: string;
+  code?: string | null;
 };
 
 /** Default picker value: tomorrow 10:00 local (treated as America/New_York wall time on create). */
@@ -283,7 +288,12 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
         }),
       });
 
-      let data: { job?: Job; event?: unknown; error?: string } = {};
+      let data: {
+        job?: Job;
+        event?: unknown;
+        error?: string;
+        code?: string;
+      } = {};
       try {
         data = await res.json();
       } catch {
@@ -299,6 +309,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
           text:
             data.error ||
             "Calendar event failed. Appointment notes may still be saved on this job.",
+          code: data.code || null,
         });
         return;
       }
@@ -368,6 +379,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       setFeedback({
         type: "error",
         text: data.error || "Could not reschedule appointment.",
+        code: data.code || null,
       });
       return;
     }
@@ -403,6 +415,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       setFeedback({
         type: "error",
         text: data.error || "Could not cancel appointment.",
+        code: data.code || null,
       });
       return;
     }
@@ -473,6 +486,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
           text:
             data.error ||
             "Notes saved on the job, but Google Calendar could not be updated.",
+          code: data.code || null,
         });
       }
       setSavingAppointmentNotes(false);
@@ -493,6 +507,10 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     savingAppointmentNotes;
   const hasAppointment = Boolean(selected?.google_calendar_event_id);
   const detailMode = Boolean(selectedId);
+  const needsGoogleReconnect = isGmailAuthorizationErrorCode(feedback?.code);
+  const googleReconnectHref = buildGoogleWorkspaceReconnectHref(
+    selectedId ? `/admin/jobs?jobId=${selectedId}` : "/admin/jobs",
+  );
 
   if (detailMode) {
     if (!selected) {
@@ -581,7 +599,14 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                 : "border-[rgba(239,68,68,0.35)] text-red-300"
             }`}
           >
-            {feedback.text}
+            <p>{feedback.text}</p>
+            {needsGoogleReconnect ? (
+              <p className="mt-3">
+                <a className="admin-btn admin-btn-primary" href={googleReconnectHref}>
+                  Reconnect Google Workspace
+                </a>
+              </p>
+            ) : null}
           </div>
         )}
 

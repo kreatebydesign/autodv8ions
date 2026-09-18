@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import { useGmailNotificationsOptional } from "@/components/admin/GmailNotificationsProvider";
 import {
   GMAIL_REPLY_BODY_MAX_CLIENT,
+  buildGoogleWorkspaceReconnectHref,
   buildGmailThreadUrl,
   displaySenderLabel,
   formatMessageTimestamp,
   getVisibleMessages,
   hasRenderablePlainBody,
+  isGmailAuthorizationErrorCode,
+  isGmailTemporaryErrorCode,
 } from "@/lib/google/gmail-ui";
 
 type GmailMessage = {
@@ -59,6 +62,7 @@ export default function JobCommunication({
   const [loading, setLoading] = useState(Boolean(email));
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [configured, setConfigured] = useState(true);
   const [thread, setThread] = useState<GmailThread | null>(null);
   const [candidateCount, setCandidateCount] = useState(0);
@@ -92,6 +96,7 @@ export default function JobCommunication({
     if (options?.soft) setRefreshing(true);
     else setLoading(true);
     setError(null);
+    setErrorCode(null);
 
     try {
       const res = await fetch(`/api/jobs/${jobId}/gmail`, {
@@ -111,6 +116,7 @@ export default function JobCommunication({
         setThread(null);
         setCandidateCount(0);
         setError(null);
+        setErrorCode(null);
         return;
       }
 
@@ -119,6 +125,7 @@ export default function JobCommunication({
       if (!res.ok) {
         setThread(null);
         setError(data.error || "Could not load Gmail conversation.");
+        setErrorCode(data.code || "gmail_api_failed");
         return;
       }
 
@@ -126,10 +133,12 @@ export default function JobCommunication({
       setCandidateCount(Number(data.candidateCount || 0));
       setThread(data.thread || null);
       setShowEarlier(false);
+      setErrorCode(null);
       // Mark-read happens server-side on GET; refresh nav badge/panel counts.
       void notifications?.refresh();
     } catch {
       setError("Could not load Gmail conversation. Check your connection and try again.");
+      setErrorCode("gmail_temporarily_unavailable");
       setThread(null);
     } finally {
       setLoading(false);
@@ -256,6 +265,12 @@ export default function JobCommunication({
     !sendingReply &&
     !disabled;
 
+  const needsReconnect = isGmailAuthorizationErrorCode(errorCode);
+  const canRetry = isGmailTemporaryErrorCode(errorCode);
+  const reconnectHref = buildGoogleWorkspaceReconnectHref(
+    `/admin/jobs?jobId=${jobId}`,
+  );
+
   return (
     <section className="job-section job-section--comm" aria-labelledby="job-comm-heading">
       <div className="job-section-head">
@@ -283,10 +298,20 @@ export default function JobCommunication({
           <div>
             <p className="job-comm-empty-title">Gmail is not connected</p>
             <p className="job-comm-empty-copy">
-              Connect the AutoDV8ions Gmail mailbox on the server to view and reply
-              to conversations here.
+              Connect the AutoDV8ions Gmail mailbox to view and reply to conversations
+              here.
             </p>
           </div>
+          <a
+            className="admin-btn admin-btn-primary"
+            href={reconnectHref}
+            aria-disabled={disabled ? true : undefined}
+            onClick={(event) => {
+              if (disabled) event.preventDefault();
+            }}
+          >
+            Reconnect Google Workspace
+          </a>
         </div>
       ) : loading ? (
         <div className="job-comm-loading" role="status" aria-live="polite">
@@ -299,15 +324,37 @@ export default function JobCommunication({
           <div>
             <p className="job-comm-empty-title">Could not load conversation</p>
             <p className="job-comm-empty-copy">{error}</p>
+            {needsReconnect ? (
+              <p className="job-comm-empty-copy">
+                Sign in with sales@autodv8ions.com when Google asks which account to
+                connect. This reconnects Gmail and Calendar together.
+              </p>
+            ) : null}
           </div>
-          <button
-            type="button"
-            className="admin-btn"
-            disabled={disabled || refreshing}
-            onClick={() => void loadThread()}
-          >
-            Retry
-          </button>
+          <div className="job-comm-empty-actions">
+            {needsReconnect ? (
+              <a
+                className="admin-btn admin-btn-primary"
+                href={reconnectHref}
+                aria-disabled={disabled ? true : undefined}
+                onClick={(event) => {
+                  if (disabled) event.preventDefault();
+                }}
+              >
+                Reconnect Google Workspace
+              </a>
+            ) : null}
+            {canRetry ? (
+              <button
+                type="button"
+                className="admin-btn"
+                disabled={disabled || refreshing}
+                onClick={() => void loadThread()}
+              >
+                Retry
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : !thread ? (
         <div className="job-comm-shell">

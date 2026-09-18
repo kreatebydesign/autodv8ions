@@ -1,6 +1,15 @@
 import { google } from "googleapis";
 import type { Job } from "@/lib/types/database";
 import { buildCalendarDetails, formatCustomerName } from "@/lib/utils/format";
+import {
+  CalendarIntegrationError,
+  mapCalendarApiError,
+} from "@/lib/google/calendar-errors";
+import {
+  hasEnvCalendarRefreshToken,
+  isGoogleOAuthClientConfigured,
+  resolveWorkspaceRefreshToken,
+} from "@/lib/google/workspace-credentials";
 
 export const CALENDAR_TIME_ZONE = "America/New_York";
 export const DEFAULT_APPOINTMENT_DURATION_HOURS = 2;
@@ -32,22 +41,38 @@ export class CalendarEventMissingError extends Error {
   }
 }
 
-export function isGoogleCalendarConfigured() {
+export function isGoogleCalendarClientConfigured() {
   return Boolean(
-    process.env.GOOGLE_CLIENT_ID &&
-      process.env.GOOGLE_CLIENT_SECRET &&
-      process.env.GOOGLE_REFRESH_TOKEN &&
-      process.env.GOOGLE_CALENDAR_ID,
+    isGoogleOAuthClientConfigured() && process.env.GOOGLE_CALENDAR_ID?.trim(),
   );
 }
 
-function getOAuthClient() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+/**
+ * Sync gate: OAuth client + calendar id, plus env bootstrap token or Supabase
+ * (for reconnect-stored Workspace credentials).
+ */
+export function isGoogleCalendarConfigured() {
+  if (!isGoogleCalendarClientConfigured()) return false;
+  if (hasEnvCalendarRefreshToken()) return true;
+  return Boolean(
+    process.env.SUPABASE_URL?.trim() &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
+  );
+}
+
+async function getOAuthClient() {
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const refreshToken = await resolveWorkspaceRefreshToken(
+    process.env.GOOGLE_REFRESH_TOKEN || null,
+  );
 
   if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error("Google Calendar is not configured");
+    throw new CalendarIntegrationError(
+      "calendar_not_configured",
+      "Google Calendar is not connected yet.",
+      503,
+    );
   }
 
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
@@ -55,11 +80,19 @@ function getOAuthClient() {
   return oauth2Client;
 }
 
-function getCalendarClient() {
-  const auth = getOAuthClient();
+async function getCalendarClient() {
+  const auth = await getOAuthClient();
+  const calendarId = process.env.GOOGLE_CALENDAR_ID?.trim();
+  if (!calendarId) {
+    throw new CalendarIntegrationError(
+      "calendar_not_configured",
+      "Google Calendar is not connected yet.",
+      503,
+    );
+  }
   return {
     calendar: google.calendar({ version: "v3", auth }),
-    calendarId: process.env.GOOGLE_CALENDAR_ID!,
+    calendarId,
   };
 }
 
@@ -143,41 +176,49 @@ export async function listUpcomingCalendarEvents(
 ): Promise<CalendarEventSummary[]> {
   if (!isGoogleCalendarConfigured()) return [];
 
-  const { calendar, calendarId } = getCalendarClient();
+  try {
+    const { calendar, calendarId } = await getCalendarClient();
 
-  const { data } = await calendar.events.list({
-    calendarId,
-    timeMin: new Date().toISOString(),
-    maxResults,
-    singleEvents: true,
-    orderBy: "startTime",
-    fields:
-      "items(id,summary,start,end,htmlLink,extendedProperties/private)",
-  });
+    const { data } = await calendar.events.list({
+      calendarId,
+      timeMin: new Date().toISOString(),
+      maxResults,
+      singleEvents: true,
+      orderBy: "startTime",
+      fields:
+        "items(id,summary,start,end,htmlLink,extendedProperties/private)",
+    });
 
-  return (data.items || []).map((event) => ({
-    id: event.id || "",
-    title: event.summary || "Untitled",
-    start: event.start?.dateTime || event.start?.date || "",
-    end: event.end?.dateTime || event.end?.date || "",
-    htmlLink: event.htmlLink || "",
-    jobId: event.extendedProperties?.private?.jobId || null,
-  }));
+    return (data.items || []).map((event) => ({
+      id: event.id || "",
+      title: event.summary || "Untitled",
+      start: event.start?.dateTime || event.start?.date || "",
+      end: event.end?.dateTime || event.end?.date || "",
+      htmlLink: event.htmlLink || "",
+      jobId: event.extendedProperties?.private?.jobId || null,
+    }));
+  } catch (error) {
+    throw mapCalendarApiError(error);
+  }
 }
 
 export async function getCalendarEvent(
   eventId: string,
 ): Promise<CalendarEventDetail> {
   if (!isGoogleCalendarConfigured()) {
-    throw new Error("Google Calendar is not connected yet.");
+    throw new CalendarIntegrationError(
+      "calendar_not_configured",
+      "Google Calendar is not connected yet.",
+      503,
+    );
   }
   if (!eventId?.trim()) {
     throw new Error("Calendar event id is required.");
   }
 
-  const { calendar, calendarId } = getCalendarClient();
-
   try {
+    const { calendar, calendarId } = await getCalendarClient();
+
     const { data } = await calendar.events.get({
       calendarId,
       eventId,
@@ -199,7 +240,7 @@ export async function getCalendarEvent(
     if (isGoogleNotFoundError(error)) {
       throw new CalendarEventMissingError();
     }
-    throw error;
+    throw mapCalendarApiError(error);
   }
 }
 
@@ -209,41 +250,49 @@ export async function createCalendarEventForJob(
   durationHours = DEFAULT_APPOINTMENT_DURATION_HOURS,
 ) {
   if (!isGoogleCalendarConfigured()) {
-    throw new Error("Google Calendar is not connected yet.");
+    throw new CalendarIntegrationError(
+      "calendar_not_configured",
+      "Google Calendar is not connected yet.",
+      503,
+    );
   }
 
   if (!startDateTime?.trim()) {
     throw new Error("Appointment date and time are required.");
   }
 
-  const { calendar, calendarId } = getCalendarClient();
-  const customerName = formatCustomerName(job.customers);
-  const startWall = normalizeWallDateTime(startDateTime);
-  const endWall = addHoursToWallDateTime(startWall, durationHours);
+  try {
+    const { calendar, calendarId } = await getCalendarClient();
+    const customerName = formatCustomerName(job.customers);
+    const startWall = normalizeWallDateTime(startDateTime);
+    const endWall = addHoursToWallDateTime(startWall, durationHours);
 
-  const { data } = await calendar.events.insert({
-    calendarId,
-    requestBody: {
-      summary: `${customerName} — ${job.service_type}`,
-      // Operational Calendar copy only — never includes internal_notes.
-      description: buildCalendarDetails(job),
-      location: "AutoDV8ions, Altoona, PA",
-      start: { dateTime: startWall, timeZone: CALENDAR_TIME_ZONE },
-      end: { dateTime: endWall, timeZone: CALENDAR_TIME_ZONE },
-      extendedProperties: {
-        private: {
-          jobId: job.id,
+    const { data } = await calendar.events.insert({
+      calendarId,
+      requestBody: {
+        summary: `${customerName} — ${job.service_type}`,
+        // Operational Calendar copy only — never includes internal_notes.
+        description: buildCalendarDetails(job),
+        location: "AutoDV8ions, Altoona, PA",
+        start: { dateTime: startWall, timeZone: CALENDAR_TIME_ZONE },
+        end: { dateTime: endWall, timeZone: CALENDAR_TIME_ZONE },
+        extendedProperties: {
+          private: {
+            jobId: job.id,
+          },
         },
       },
-    },
-  });
+    });
 
-  return {
-    id: data.id || "",
-    htmlLink: data.htmlLink || "",
-    start: data.start?.dateTime || startWall,
-    end: data.end?.dateTime || endWall,
-  };
+    return {
+      id: data.id || "",
+      htmlLink: data.htmlLink || "",
+      start: data.start?.dateTime || startWall,
+      end: data.end?.dateTime || endWall,
+    };
+  } catch (error) {
+    throw mapCalendarApiError(error);
+  }
 }
 
 export async function updateCalendarEventForJob(
@@ -252,7 +301,11 @@ export async function updateCalendarEventForJob(
   startDateTime: string,
 ) {
   if (!isGoogleCalendarConfigured()) {
-    throw new Error("Google Calendar is not connected yet.");
+    throw new CalendarIntegrationError(
+      "calendar_not_configured",
+      "Google Calendar is not connected yet.",
+      503,
+    );
   }
 
   if (!eventId?.trim()) {
@@ -264,12 +317,13 @@ export async function updateCalendarEventForJob(
   }
 
   const existing = await getCalendarEvent(eventId);
-  const { calendar, calendarId } = getCalendarClient();
-  const customerName = formatCustomerName(job.customers);
-  const startWall = normalizeWallDateTime(startDateTime);
-  const endWall = addDurationToWallDateTime(startWall, existing.durationMs);
 
   try {
+    const { calendar, calendarId } = await getCalendarClient();
+    const customerName = formatCustomerName(job.customers);
+    const startWall = normalizeWallDateTime(startDateTime);
+    const endWall = addDurationToWallDateTime(startWall, existing.durationMs);
+
     const { data } = await calendar.events.patch({
       calendarId,
       eventId,
@@ -298,7 +352,7 @@ export async function updateCalendarEventForJob(
     if (isGoogleNotFoundError(error)) {
       throw new CalendarEventMissingError();
     }
-    throw error;
+    throw mapCalendarApiError(error);
   }
 }
 
@@ -308,16 +362,20 @@ export async function updateCalendarEventForJob(
  */
 export async function deleteCalendarEvent(eventId: string) {
   if (!isGoogleCalendarConfigured()) {
-    throw new Error("Google Calendar is not connected yet.");
+    throw new CalendarIntegrationError(
+      "calendar_not_configured",
+      "Google Calendar is not connected yet.",
+      503,
+    );
   }
 
   if (!eventId?.trim()) {
     throw new Error("This job has no linked calendar appointment.");
   }
 
-  const { calendar, calendarId } = getCalendarClient();
-
   try {
+    const { calendar, calendarId } = await getCalendarClient();
+
     await calendar.events.delete({
       calendarId,
       eventId,
@@ -327,7 +385,7 @@ export async function deleteCalendarEvent(eventId: string) {
     if (isGoogleNotFoundError(error)) {
       return { alreadyMissing: true as const };
     }
-    throw error;
+    throw mapCalendarApiError(error);
   }
 }
 

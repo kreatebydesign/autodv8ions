@@ -204,18 +204,25 @@ Jobs still work. Manual calendar workflow unchanged.
 
 Use the **same** Google Cloud project and OAuth client as Calendar.
 
-1. Google Cloud Console → APIs & Services → Library → enable **Gmail API**
-2. OAuth consent screen → add scope  
-   `https://www.googleapis.com/auth/gmail.modify`  
-   (Testing mode: add `sales@autodv8ions.com` as a test user)
-3. Confirm Authorized redirect URI includes:  
-   `http://localhost:3001/api/auth/google/callback`
-4. Run `node scripts/get-google-gmail-refresh-token.js` while logged in as **sales@autodv8ions.com**
-5. Add `GOOGLE_GMAIL_REFRESH_TOKEN` to `.env.local` and Vercel  
-   Optionally set `GOOGLE_GMAIL_USER=sales@autodv8ions.com`
-6. Verify with `node scripts/test-google-gmail.js` (prints email + totals only)
+1. Google Cloud Console → APIs & Services → Library → enable **Gmail API** and **Google Calendar API**
+2. OAuth consent screen → add scopes  
+   - `https://www.googleapis.com/auth/gmail.modify`  
+   - `https://www.googleapis.com/auth/calendar`  
+   **Important:** apps left in Testing mode expire refresh tokens after 7 days.
+   Publish the consent screen (or re-auth before expiry). While testing, add
+   `sales@autodv8ions.com` as a test user.
+3. Confirm Authorized redirect URIs include:  
+   - `http://localhost:3001/api/auth/google/callback` (local token scripts)  
+   - `http://localhost:3000/api/auth/google/callback` (local admin reconnect)  
+   - `https://www.autodv8ions.com/api/auth/google/callback` (production reconnect)
+4. Apply migrations `010_google_gmail_credentials.sql` and `011_google_workspace_credentials.sql`
+5. Optionally set bootstrap env tokens (`GOOGLE_GMAIL_REFRESH_TOKEN`, `GOOGLE_REFRESH_TOKEN`)  
+   and `GOOGLE_GMAIL_USER=sales@autodv8ions.com` / `GOOGLE_CALENDAR_ID=...`
+6. In admin, use **Reconnect Google Workspace** (one consent for Gmail + Calendar)
+7. Verify Job Communication + Schedule Appointment work
 
-**Isolation rule:** never overwrite `GOOGLE_REFRESH_TOKEN` for Gmail. Calendar and legacy Drive continue to use that variable unchanged.
+**Isolation rule:** Calendar and Gmail share one Workspace reconnect token in Supabase.
+Legacy env bootstrap tokens remain fallbacks only. Do not overwrite Drive WIF config.
 
 ---
 

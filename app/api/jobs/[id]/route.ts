@@ -7,6 +7,7 @@ import {
   deleteCalendarEvent,
   updateCalendarEventForJob,
 } from "@/lib/google/calendar";
+import { CalendarIntegrationError } from "@/lib/google/calendar-errors";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import type { Job } from "@/lib/types/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -40,38 +41,47 @@ function getCalendarErrorMessage(calendarError: unknown) {
   if (calendarError instanceof CalendarEventMissingError) {
     return calendarError.message;
   }
-
-  if (!calendarError || typeof calendarError !== "object") {
-    return "Google Calendar request failed.";
+  if (calendarError instanceof CalendarIntegrationError) {
+    return calendarError.message;
   }
-
-  const err = calendarError as {
-    message?: string;
-    errors?: Array<{ message?: string }>;
-    response?: { data?: { error?: { message?: string } } };
-  };
-
-  const apiMessage =
-    err.response?.data?.error?.message ||
-    err.errors?.[0]?.message ||
-    err.message;
-
-  return typeof apiMessage === "string" && apiMessage.trim()
-    ? apiMessage
-    : "Google Calendar request failed.";
+  return "Google Calendar request failed.";
 }
 
-function calendarErrorResponse(calendarError: unknown) {
+function calendarErrorResponse(
+  calendarError: unknown,
+  extras?: { job?: Job | null },
+) {
   if (calendarError instanceof CalendarEventMissingError) {
     return NextResponse.json(
-      { error: calendarError.message, code: "calendar_event_missing" },
+      {
+        error: calendarError.message,
+        code: "calendar_event_missing",
+        ...(extras?.job ? { job: extras.job } : {}),
+      },
       { status: 404 },
     );
   }
 
+  if (calendarError instanceof CalendarIntegrationError) {
+    console.error(`[jobs/calendar] ${calendarError.code}`);
+    return NextResponse.json(
+      {
+        error: calendarError.message,
+        code: calendarError.code,
+        ...(extras?.job ? { job: extras.job } : {}),
+      },
+      { status: calendarError.status },
+    );
+  }
+
+  console.error("[jobs/calendar] unexpected_error");
   return NextResponse.json(
-    { error: getCalendarErrorMessage(calendarError) },
-    { status: 400 },
+    {
+      error: getCalendarErrorMessage(calendarError),
+      code: "calendar_api_failed",
+      ...(extras?.job ? { job: extras.job } : {}),
+    },
+    { status: 502 },
   );
 }
 
@@ -233,14 +243,7 @@ export async function POST(request: Request, context: RouteContext) {
     try {
       event = await createCalendarEventForJob(jobForCalendar, startDateTime);
     } catch (calendarError) {
-      console.error("[jobs][calendar-create]", id, calendarError);
-      return NextResponse.json(
-        {
-          error: getCalendarErrorMessage(calendarError),
-          job: notesSavedJob,
-        },
-        { status: 400 },
-      );
+      return calendarErrorResponse(calendarError, { job: notesSavedJob as Job });
     }
 
     const { data: updatedJob, error: updateError } = await supabase

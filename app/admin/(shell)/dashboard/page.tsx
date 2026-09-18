@@ -12,6 +12,8 @@ import {
   isGoogleCalendarConfigured,
   listUpcomingCalendarEvents,
 } from "@/lib/google/calendar";
+import { CalendarIntegrationError } from "@/lib/google/calendar-errors";
+import { buildGoogleWorkspaceReconnectHref } from "@/lib/google/gmail-ui";
 import { listContentUploadsFromDb } from "@/lib/google/drive";
 import {
   formatCustomerName,
@@ -24,16 +26,27 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminDashboardPage() {
+  let calendarAuthFailed = false;
   const [stats, recentJobs, recentContent, calendarEvents] = await Promise.all([
     getDashboardStats(),
     getRecentJobs(6),
     listContentUploadsFromDb(),
     isGoogleCalendarConfigured()
-      ? listUpcomingCalendarEvents(6).catch(() => [])
+      ? listUpcomingCalendarEvents(6).catch((error) => {
+          if (
+            error instanceof CalendarIntegrationError &&
+            (error.code === "calendar_auth_failed" ||
+              error.code === "calendar_wrong_account")
+          ) {
+            calendarAuthFailed = true;
+          }
+          return [];
+        })
       : Promise.resolve([]),
   ]);
 
-  const calendarConnected = isGoogleCalendarConfigured();
+  const calendarConnected = isGoogleCalendarConfigured() && !calendarAuthFailed;
+  const reconnectHref = buildGoogleWorkspaceReconnectHref("/admin/dashboard");
   const jobsByEventId = await getJobIdsByCalendarEventIds(
     calendarEvents.map((event) => event.id),
   );
@@ -145,9 +158,16 @@ export default async function AdminDashboardPage() {
         </div>
 
         {!calendarConnected ? (
-          <p className="text-sm text-[var(--dv8-muted)]">
-            Google Calendar is not connected yet.
-          </p>
+          <div className="space-y-3">
+            <p className="text-sm text-[var(--dv8-muted)]">
+              {calendarAuthFailed
+                ? "Google Calendar authorization failed. Reconnect sales@autodv8ions.com."
+                : "Google Calendar is not connected yet."}
+            </p>
+            <a className="admin-btn admin-btn-primary" href={reconnectHref}>
+              Reconnect Google Workspace
+            </a>
+          </div>
         ) : appointments.length === 0 ? (
           <p className="text-sm text-[var(--dv8-muted)]">No upcoming appointments.</p>
         ) : (

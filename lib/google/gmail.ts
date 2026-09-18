@@ -1,4 +1,15 @@
 import { google, type gmail_v1 } from "googleapis";
+import { getRequiredWorkspaceMailbox } from "@/lib/google/gmail-auth";
+import {
+  hasEnvGmailRefreshToken,
+  loadStoredGmailCredential,
+  resolveGmailRefreshToken,
+} from "@/lib/google/gmail-credentials";
+import {
+  GmailIntegrationError,
+  mapGmailApiError,
+} from "@/lib/google/gmail-errors";
+import { isGoogleOAuthClientConfigured } from "@/lib/google/workspace-credentials";
 import {
   GMAIL_REPLY_BODY_MAX,
   GMAIL_THREAD_SEARCH_MAX,
@@ -27,10 +38,14 @@ import {
 } from "@/lib/google/gmail-notifications";
 
 /**
- * Gmail OAuth — isolated from Calendar.
+ * Gmail OAuth — isolated from Calendar *API usage*, shares Workspace reconnect token.
  *
- * Uses GOOGLE_GMAIL_REFRESH_TOKEN only.
- * Never reads GOOGLE_REFRESH_TOKEN (Calendar / legacy Drive).
+ * Refresh token sources (in order):
+ * 1) Encrypted DB `google_workspace` credential (admin reconnect)
+ * 2) Legacy encrypted DB `gmail` credential
+ * 3) GOOGLE_GMAIL_REFRESH_TOKEN env (bootstrap / legacy)
+ *
+ * Never reads GOOGLE_REFRESH_TOKEN for Gmail API calls.
  */
 
 export type GmailProfileSummary = {
@@ -45,23 +60,22 @@ export type GmailSendReplyResult = {
   message: ParsedGmailMessage | null;
 };
 
-export class GmailIntegrationError extends Error {
-  code: string;
-  status: number;
+export { GmailIntegrationError } from "@/lib/google/gmail-errors";
 
-  constructor(code: string, message: string, status = 400) {
-    super(message);
-    this.name = "GmailIntegrationError";
-    this.code = code;
-    this.status = status;
-  }
+export function isGoogleGmailClientConfigured() {
+  return isGoogleOAuthClientConfigured();
 }
 
+/**
+ * Sync gate for routes: OAuth client present and either an env refresh token
+ * or Supabase (so a reconnect-stored token can be loaded asynchronously).
+ */
 export function isGoogleGmailConfigured() {
+  if (!isGoogleGmailClientConfigured()) return false;
+  if (hasEnvGmailRefreshToken()) return true;
   return Boolean(
-    process.env.GOOGLE_CLIENT_ID &&
-      process.env.GOOGLE_CLIENT_SECRET &&
-      process.env.GOOGLE_GMAIL_REFRESH_TOKEN,
+    process.env.SUPABASE_URL?.trim() &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
   );
 }
 
@@ -69,10 +83,10 @@ function getGmailUserId() {
   return process.env.GOOGLE_GMAIL_USER?.trim() || "me";
 }
 
-function getGmailOAuthClient() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_GMAIL_REFRESH_TOKEN;
+async function getGmailOAuthClient() {
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const refreshToken = await resolveGmailRefreshToken();
 
   if (!clientId || !clientSecret || !refreshToken) {
     throw new GmailIntegrationError(
@@ -88,50 +102,16 @@ function getGmailOAuthClient() {
 }
 
 /** Authenticated Gmail API client for the connected mailbox. */
-export function getGmailClient(): gmail_v1.Gmail {
-  const auth = getGmailOAuthClient();
+export async function getGmailClient(): Promise<gmail_v1.Gmail> {
+  const auth = await getGmailOAuthClient();
   return google.gmail({ version: "v1", auth });
 }
 
-function mapGmailApiError(error: unknown, fallbackCode: string, fallbackMessage: string) {
-  if (error instanceof GmailIntegrationError) return error;
-
-  const err = error as {
-    code?: number | string;
-    status?: number;
-    response?: { status?: number; data?: { error?: { message?: string; status?: string } } };
-    message?: string;
-  };
-
-  const status = Number(err.code ?? err.status ?? err.response?.status ?? 0);
-  const apiMessage = err.response?.data?.error?.message || err.message || "";
-
-  if (status === 401 || status === 403) {
-    return new GmailIntegrationError(
-      "gmail_auth_failed",
-      "Gmail authorization failed.",
-      502,
-    );
-  }
-
-  if (status === 404) {
-    return new GmailIntegrationError(
-      "gmail_thread_missing",
-      "Thread no longer exists.",
-      404,
-    );
-  }
-
-  // Avoid logging bodies; surface only a short safe message.
-  if (apiMessage && /invalid_grant|invalid credentials/i.test(apiMessage)) {
-    return new GmailIntegrationError(
-      "gmail_auth_failed",
-      "Gmail authorization failed.",
-      502,
-    );
-  }
-
-  return new GmailIntegrationError(fallbackCode, fallbackMessage, 502);
+export async function hasUsableGmailCredential(): Promise<boolean> {
+  if (!isGoogleGmailClientConfigured()) return false;
+  if (hasEnvGmailRefreshToken()) return true;
+  const stored = await loadStoredGmailCredential();
+  return Boolean(stored?.refreshToken);
 }
 
 /**
@@ -140,7 +120,7 @@ function mapGmailApiError(error: unknown, fallbackCode: string, fallbackMessage:
  */
 export async function getGmailProfile(): Promise<GmailProfileSummary> {
   try {
-    const gmail = getGmailClient();
+    const gmail = await getGmailClient();
     const { data } = await gmail.users.getProfile({ userId: getGmailUserId() });
 
     const emailAddress = String(data.emailAddress || "").trim();
@@ -149,6 +129,15 @@ export async function getGmailProfile(): Promise<GmailProfileSummary> {
         "gmail_api_failed",
         "Gmail API request failed.",
         502,
+      );
+    }
+
+    const required = getRequiredWorkspaceMailbox();
+    if (normalizeEmailAddress(emailAddress) !== required) {
+      throw new GmailIntegrationError(
+        "gmail_wrong_account",
+        `Gmail must be connected as ${required}.`,
+        401,
       );
     }
 
@@ -163,9 +152,7 @@ export async function getGmailProfile(): Promise<GmailProfileSummary> {
 }
 
 async function resolveMailboxEmail(gmail: gmail_v1.Gmail): Promise<string> {
-  const configured = process.env.GOOGLE_GMAIL_USER?.trim();
-  if (configured?.includes("@")) return normalizeEmailAddress(configured);
-
+  const required = getRequiredWorkspaceMailbox();
   const { data } = await gmail.users.getProfile({ userId: getGmailUserId() });
   const email = String(data.emailAddress || "").trim();
   if (!email) {
@@ -175,7 +162,15 @@ async function resolveMailboxEmail(gmail: gmail_v1.Gmail): Promise<string> {
       502,
     );
   }
-  return normalizeEmailAddress(email);
+  const normalized = normalizeEmailAddress(email);
+  if (normalized !== required) {
+    throw new GmailIntegrationError(
+      "gmail_wrong_account",
+      `Gmail must be connected as ${required}.`,
+      401,
+    );
+  }
+  return normalized;
 }
 
 /**
@@ -188,7 +183,7 @@ export async function findThreadsForEmail(
   const query = buildCustomerEmailSearchQuery(customerEmail);
 
   try {
-    const gmail = getGmailClient();
+    const gmail = await getGmailClient();
     const { data } = await gmail.users.threads.list({
       userId: getGmailUserId(),
       q: query,
@@ -234,7 +229,7 @@ export async function getGmailThread(threadId: string): Promise<{
   }
 
   try {
-    const gmail = getGmailClient();
+    const gmail = await getGmailClient();
     const mailboxEmail = await resolveMailboxEmail(gmail);
     const { data } = await gmail.users.threads.get({
       userId: getGmailUserId(),
@@ -265,7 +260,7 @@ export async function getGmailThread(threadId: string): Promise<{
  */
 export async function markThreadRead(threadId: string): Promise<void> {
   try {
-    const gmail = getGmailClient();
+    const gmail = await getGmailClient();
     const { data } = await gmail.users.threads.get({
       userId: getGmailUserId(),
       id: threadId,
@@ -364,7 +359,7 @@ export async function sendGmailReply(params: {
   });
 
   try {
-    const gmail = getGmailClient();
+    const gmail = await getGmailClient();
     const { data } = await gmail.users.messages.send({
       userId: getGmailUserId(),
       requestBody: {
@@ -477,7 +472,7 @@ export async function listUnreadCustomerReplyNotifications(params: {
   }
 
   try {
-    const gmail = getGmailClient();
+    const gmail = await getGmailClient();
     const mailboxEmail = await resolveMailboxEmail(gmail);
     const userId = getGmailUserId();
 

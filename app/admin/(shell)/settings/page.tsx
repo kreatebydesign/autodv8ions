@@ -2,10 +2,16 @@ import {
   getGoogleCalendarUrl,
   isGoogleCalendarConfigured,
 } from "@/lib/google/calendar";
+import { isGoogleGmailConfigured } from "@/lib/google/gmail";
+import { buildGoogleWorkspaceReconnectHref } from "@/lib/google/gmail-ui";
 import { isGoogleDriveConfigured } from "@/lib/google/drive";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export default function AdminSettingsPage() {
+  const calendarConnected = isGoogleCalendarConfigured();
+  const gmailConfigured = isGoogleGmailConfigured();
+  const reconnectHref = buildGoogleWorkspaceReconnectHref("/admin/settings");
+
   return (
     <div className="space-y-6">
       <div>
@@ -22,9 +28,15 @@ export default function AdminSettingsPage() {
             <p>Supabase: {isSupabaseConfigured() ? "Connected" : "Not configured"}</p>
             <p>
               Google Calendar:{" "}
-              {isGoogleCalendarConfigured()
-                ? "Connected"
+              {calendarConnected
+                ? "Configured"
                 : "Google Calendar is not connected yet."}
+            </p>
+            <p>
+              Gmail:{" "}
+              {gmailConfigured
+                ? "Configured"
+                : "Gmail is not connected yet."}
             </p>
             <p>
               Google Drive:{" "}
@@ -32,6 +44,16 @@ export default function AdminSettingsPage() {
                 ? "Connected"
                 : "Google Drive is not connected yet."}
             </p>
+            {(!calendarConnected || !gmailConfigured) && (
+              <div className="pt-2">
+                <a className="admin-btn admin-btn-primary" href={reconnectHref}>
+                  Reconnect Google Workspace
+                </a>
+                <p className="mt-2 text-xs text-[var(--dv8-muted)]">
+                  Authorize sales@autodv8ions.com for Gmail and Calendar in one step.
+                </p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -48,6 +70,9 @@ export default function AdminSettingsPage() {
               className="admin-btn"
             >
               Open Google Drive
+            </a>
+            <a className="admin-btn" href={reconnectHref}>
+              Reconnect Google Workspace
             </a>
           </div>
         </section>
