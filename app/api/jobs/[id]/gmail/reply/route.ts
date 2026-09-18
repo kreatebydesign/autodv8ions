@@ -5,6 +5,7 @@ import {
   isGoogleGmailConfigured,
   sendGmailReply,
 } from "@/lib/google/gmail";
+import { assertAdminForGmailReply } from "@/lib/google/gmail-reply-access";
 import { GMAIL_REPLY_BODY_MAX } from "@/lib/google/gmail-message";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
@@ -52,7 +53,13 @@ function customerEmailFromJob(job: {
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  const { error } = await requireAdminSession();
+  const { email, error } = await requireAdminSession();
+  const adminGate = assertAdminForGmailReply(email);
+  if (!adminGate.ok) {
+    return noStoreJson(adminGate.response.body, {
+      status: adminGate.response.status,
+    });
+  }
   if (error) return error;
 
   if (!isGoogleGmailConfigured()) {

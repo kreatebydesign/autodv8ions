@@ -85,6 +85,8 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   const [cancelling, setCancelling] = useState(false);
   const [showReschedule, setShowReschedule] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingJob, setDeletingJob] = useState(false);
   const [draftAppointmentNotes, setDraftAppointmentNotes] = useState("");
   const [savingAppointmentNotes, setSavingAppointmentNotes] = useState(false);
 
@@ -128,7 +130,37 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     setCancelling(false);
     setShowReschedule(false);
     setShowCancelConfirm(false);
+    setShowDeleteConfirm(false);
+    setDeletingJob(false);
     setSavingAppointmentNotes(false);
+  }
+
+  async function handleDeleteJob(jobId: string) {
+    setDeletingJob(true);
+    setFeedback(null);
+    try {
+      const response = await fetch(`/api/jobs/${jobId}`, { method: "DELETE" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setFeedback({
+          type: "error",
+          text: data.error || "Job could not be deleted.",
+        });
+        return;
+      }
+      setJobs((current) => current.filter((job) => job.id !== jobId));
+      resetDetailChrome();
+      setSelectedId(null);
+      setFeedback({
+        type: "success",
+        text: "Job deleted. Related invoices and appointment notes for that job were removed.",
+      });
+      router.push(buildJobsHref(null));
+    } catch {
+      setFeedback({ type: "error", text: "Network error while deleting job." });
+    } finally {
+      setDeletingJob(false);
+    }
   }
 
   function buildJobsHref(jobId?: string | null) {
@@ -504,6 +536,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     scheduling ||
     rescheduling ||
     cancelling ||
+    deletingJob ||
     savingAppointmentNotes;
   const hasAppointment = Boolean(selected?.google_calendar_event_id);
   const detailMode = Boolean(selectedId);
@@ -906,6 +939,78 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
             </div>
           </section>
         </div>
+
+        <section className="job-section border-[rgba(239,68,68,0.25)]">
+          <h2 className="job-section-title text-red-300">Delete Job</h2>
+          {!showDeleteConfirm ? (
+            <div className="space-y-3">
+              <p className="job-meta">
+                Permanently remove this job from Command Center. The customer
+                record stays unless you archive it separately.
+              </p>
+              <button
+                type="button"
+                className="admin-btn"
+                disabled={detailDisabled}
+                onClick={() => {
+                  setShowCancelConfirm(false);
+                  setShowReschedule(false);
+                  setShowDeleteConfirm(true);
+                }}
+              >
+                Delete Job…
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-red-200">
+                Delete job for{" "}
+                <span className="text-white">
+                  {formatCustomerName(selected.customers)}
+                </span>
+                {" — "}
+                <span className="text-white">{selected.service_type}</span>?
+              </p>
+              <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--dv8-muted)]">
+                <li>
+                  This job row and its customer / internal / appointment notes
+                  will be removed.
+                </li>
+                <li>Any invoices linked to this job will be deleted.</li>
+                <li>
+                  Linked Google Calendar appointment
+                  {selected.google_calendar_event_id || selected.scheduled_at
+                    ? " will be removed when possible"
+                    : " (none on this job)"}
+                  .
+                </li>
+                <li>
+                  Gmail messages stay in the sales mailbox (not stored on the
+                  job).
+                </li>
+                <li>Customer, vehicle, and website lead records are kept.</li>
+              </ul>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="admin-btn admin-btn-primary"
+                  disabled={detailDisabled}
+                  onClick={() => handleDeleteJob(selected.id)}
+                >
+                  {deletingJob ? "Deleting…" : "Confirm Delete Job"}
+                </button>
+                <button
+                  type="button"
+                  className="admin-btn"
+                  disabled={detailDisabled}
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Keep Job
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
     );
   }

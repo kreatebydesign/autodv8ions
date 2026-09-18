@@ -14,6 +14,7 @@ export async function GET() {
   const { data: customers, error: customersError } = await supabase
     .from("customers")
     .select("*")
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
   if (customersError) {
@@ -29,6 +30,7 @@ export async function GET() {
             .from("jobs")
             .select("*, vehicles(*)")
             .eq("customer_id", customer.id)
+            .is("archived_at", null)
             .order("created_at", { ascending: false }),
           supabase
             .from("invoices")

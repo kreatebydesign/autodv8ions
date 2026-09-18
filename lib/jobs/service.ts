@@ -109,21 +109,25 @@ export async function getDashboardStats() {
       supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
-        .eq("status", "New"),
+        .eq("status", "New")
+        .is("archived_at", null),
       supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
         .eq("status", "Scheduled")
+        .is("archived_at", null)
         .gte("scheduled_at", startOfDay.toISOString())
         .lt("scheduled_at", endOfDay.toISOString()),
       supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
-        .eq("status", "Ready for Pickup"),
+        .eq("status", "Ready for Pickup")
+        .is("archived_at", null),
       supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
         .eq("status", "Completed")
+        .is("archived_at", null)
         .gte("completed_at", startOfMonth.toISOString()),
     ]);
 
@@ -142,6 +146,7 @@ export async function getRecentJobs(limit = 8) {
   const { data } = await supabase
     .from("jobs")
     .select("*, customers(*), vehicles(*)")
+    .is("archived_at", null)
     .order("created_at", { ascending: false })
     .limit(limit);
 

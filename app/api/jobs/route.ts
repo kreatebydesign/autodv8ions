@@ -20,6 +20,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from("jobs")
     .select("*, customers(*), vehicles(*)")
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
   const matchingStatuses = statusesMatchingFilter(status);

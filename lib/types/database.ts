@@ -13,6 +13,7 @@ export type Customer = {
   last_name: string;
   phone: string | null;
   email: string | null;
+  archived_at?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -45,6 +46,7 @@ export type Job = {
   google_calendar_event_url: string | null;
   scheduled_at: string | null;
   completed_at: string | null;
+  archived_at?: string | null;
   created_at: string;
   updated_at: string;
   customers?: Customer | null;

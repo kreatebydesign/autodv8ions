@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 import { JOB_STATUSES } from "@/lib/constants/jobs";
+import { deleteJobTransactional } from "@/lib/crm/delete";
 import {
   CalendarEventMissingError,
   createCalendarEventForJob,
@@ -406,4 +407,61 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+}
+
+/**
+ * Permanently delete a job and its related invoices (transactional RPC).
+ * Best-effort Google Calendar cleanup afterward. Customer/vehicle/lead rows remain.
+ */
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { error } = await requireAdminSession();
+  if (error) return error;
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });
+  }
+
+  const { id } = await context.params;
+
+  const existing = await loadJob(supabase, id);
+  if (!existing) {
+    return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  }
+
+  const calendarEventId = existing.google_calendar_event_id;
+
+  const result = await deleteJobTransactional(supabase, id);
+  if (!result.ok) {
+    if (result.error === "not_found") {
+      return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    }
+    console.error("[jobs][delete] rpc_failed", id);
+    return NextResponse.json(
+      { error: "Job could not be deleted. Try again." },
+      { status: 500 },
+    );
+  }
+
+  if (calendarEventId) {
+    try {
+      await deleteCalendarEvent(calendarEventId);
+    } catch {
+      console.error("[jobs][delete] calendar_cleanup_failed", id);
+      // Job is already removed — report success with a non-blocking warning.
+      return NextResponse.json({
+        success: true,
+        jobId: result.jobId,
+        invoicesDeleted: result.invoicesDeleted,
+        calendarCleanupFailed: true,
+      });
+    }
+  }
+
+  return NextResponse.json({
+    success: true,
+    jobId: result.jobId,
+    invoicesDeleted: result.invoicesDeleted,
+    calendarCleanupFailed: false,
+  });
 }

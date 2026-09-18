@@ -308,11 +308,21 @@ export async function assertThreadBelongsToCustomer(
   return { thread, mailboxEmail };
 }
 
-export async function sendGmailReply(params: {
-  threadId: string;
-  customerEmail: string;
-  body: string;
-}): Promise<GmailSendReplyResult> {
+export async function sendGmailReply(
+  params: {
+    threadId: string;
+    customerEmail: string;
+    body: string;
+  },
+  deps?: {
+    getClient?: () => Promise<gmail_v1.Gmail>;
+    resolveThread?: (
+      threadId: string,
+      customerEmail: string,
+    ) => Promise<{ thread: ParsedGmailThread; mailboxEmail: string }>;
+    refreshThread?: typeof getGmailThread;
+  },
+): Promise<GmailSendReplyResult> {
   const body = params.body.trim();
   if (!body) {
     throw new GmailIntegrationError(
@@ -330,7 +340,8 @@ export async function sendGmailReply(params: {
   }
 
   const customerEmail = normalizeEmailAddress(params.customerEmail);
-  const { thread, mailboxEmail } = await assertThreadBelongsToCustomer(
+  const resolveThread = deps?.resolveThread ?? assertThreadBelongsToCustomer;
+  const { thread, mailboxEmail } = await resolveThread(
     params.threadId,
     customerEmail,
   );
@@ -359,7 +370,8 @@ export async function sendGmailReply(params: {
   });
 
   try {
-    const gmail = await getGmailClient();
+    const getClient = deps?.getClient ?? getGmailClient;
+    const gmail = await getClient();
     const { data } = await gmail.users.messages.send({
       userId: getGmailUserId(),
       requestBody: {
@@ -382,7 +394,8 @@ export async function sendGmailReply(params: {
     let message: ParsedGmailMessage | null = null;
     if (gmailMessageId) {
       try {
-        const refreshed = await getGmailThread(responseThreadId);
+        const refreshThread = deps?.refreshThread ?? getGmailThread;
+        const refreshed = await refreshThread(responseThreadId);
         message =
           refreshed.thread.messages.find((m) => m.gmailMessageId === gmailMessageId) ||
           null;
