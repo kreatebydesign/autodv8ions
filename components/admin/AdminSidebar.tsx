@@ -30,8 +30,8 @@ export default function AdminSidebar() {
   }
 
   return (
-    <aside className="admin-no-print flex w-full flex-col border-b border-[var(--dv8-border)] bg-[var(--dv8-charcoal)] lg:fixed lg:inset-y-0 lg:w-64 lg:border-b-0 lg:border-r">
-      <div className="flex items-center gap-3 border-b border-[var(--dv8-border)] px-5 py-5">
+    <aside className="dash-rail admin-no-print">
+      <div className="dash-rail-brand">
         <Image
           src="/images/logos/dv8-logo.png"
           alt="AutoDV8ions"
@@ -39,15 +39,13 @@ export default function AdminSidebar() {
           height={40}
           className="h-10 w-10 object-contain"
         />
-        <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--dv8-muted)]">
-            Workspace
-          </p>
-          <p className="text-sm font-light">AutoDV8ions</p>
+        <div className="dash-rail-brand-copy">
+          <p className="dash-rail-kicker">Workspace</p>
+          <p className="dash-rail-title">AutoDV8ions</p>
         </div>
       </div>
 
-      <nav className="flex gap-1 overflow-x-auto px-3 py-4 lg:flex-col lg:overflow-visible">
+      <nav className="dash-rail-nav">
         {NAV.map((item) => {
           const active = pathname.startsWith(item.href);
           const showJobsBadge = item.badgeKey === "jobs" && Boolean(jobsBadge);
@@ -55,11 +53,7 @@ export default function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center justify-between gap-2 whitespace-nowrap px-3 py-2.5 text-sm transition-colors ${
-                active
-                  ? "border-l-2 border-[var(--dv8-red)] bg-[var(--dv8-red-soft)] text-white"
-                  : "text-[var(--dv8-muted)] hover:text-white"
-              }`}
+              className={`dash-rail-link${active ? " is-active" : ""}`}
               aria-label={
                 showJobsBadge
                   ? `Jobs, ${jobsBadge} unread customer replies`
@@ -68,7 +62,7 @@ export default function AdminSidebar() {
             >
               <span>{item.label}</span>
               {showJobsBadge ? (
-                <span className="admin-nav-badge" aria-hidden="true">
+                <span className="dash-rail-badge" aria-hidden="true">
                   {jobsBadge}
                 </span>
               ) : null}
@@ -77,11 +71,11 @@ export default function AdminSidebar() {
         })}
       </nav>
 
-      <div className="mt-auto hidden border-t border-[var(--dv8-border)] p-4 lg:block">
+      <div className="dash-rail-footer">
         <button
           type="button"
           onClick={handleLogout}
-          className="admin-btn w-full"
+          className="dash-rail-signout"
         >
           Sign Out
         </button>

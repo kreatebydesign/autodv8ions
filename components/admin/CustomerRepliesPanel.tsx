@@ -8,21 +8,32 @@ export default function CustomerRepliesPanel() {
   const { configured, items, loading, error, count, refresh } =
     useGmailNotifications();
 
+  const hasUnread = count > 0 && items.length > 0;
+
   return (
-    <section className="admin-panel p-5" aria-labelledby="customer-replies-heading">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <section
+      className={`dash-panel is-primary dash-replies${hasUnread ? " is-attention" : ""}`}
+      aria-labelledby="customer-replies-heading"
+    >
+      <div className="dash-panel-head">
         <div>
-          <h2 id="customer-replies-heading" className="text-lg font-light">
-            Customer Replies
-          </h2>
-          <p className="mt-1 text-xs text-[var(--dv8-muted)]">
+          <div className="dash-replies-title-row">
+            <h2 id="customer-replies-heading" className="dash-panel-title">
+              Customer Replies
+            </h2>
+            {hasUnread ? (
+              <span className="dash-replies-count" aria-label={`${count} unread`}>
+                {count} unread
+              </span>
+            ) : null}
+          </div>
+          <p className="dash-panel-meta">
             Unread Gmail replies from known customers
-            {count > 0 ? ` · ${count}` : ""}
           </p>
         </div>
         <button
           type="button"
-          className="admin-btn"
+          className="dash-replies-refresh"
           disabled={loading}
           onClick={() => void refresh()}
         >
@@ -31,55 +42,57 @@ export default function CustomerRepliesPanel() {
       </div>
 
       {!configured ? (
-        <p className="text-sm text-[var(--dv8-muted)]">
-          Gmail is not connected yet.
-        </p>
+        <div className="dash-replies-empty">
+          <p className="dash-replies-empty-title">Gmail not connected</p>
+          <p className="dash-replies-empty-copy">
+            Connect sales@autodv8ions.com in Settings to surface customer replies
+            here.
+          </p>
+        </div>
       ) : loading && items.length === 0 && !error ? (
-        <p className="text-sm text-[var(--dv8-muted)]" role="status">
+        <p className="dash-empty" role="status">
           Checking for customer replies…
         </p>
       ) : error ? (
-        <div className="space-y-3" role="alert">
-          <p className="text-sm text-[var(--dv8-muted)]">{error}</p>
+        <div className="dash-replies-error" role="alert">
+          <p className="dash-replies-error-copy">{error}</p>
           <button
             type="button"
-            className="admin-btn"
+            className="dash-replies-refresh"
             onClick={() => void refresh()}
           >
             Retry
           </button>
         </div>
       ) : items.length === 0 ? (
-        <p className="text-sm text-[var(--dv8-muted)]">
-          No unread customer replies.
-        </p>
+        <div className="dash-replies-empty">
+          <p className="dash-replies-empty-title">Inbox clear</p>
+          <p className="dash-replies-empty-copy">
+            No unread customer replies right now. New messages will appear here
+            automatically.
+          </p>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="dash-replies-rows">
           {items.map((item) => (
             <Link
               key={`${item.gmailThreadId}-${item.jobId}`}
               href={`/admin/jobs?jobId=${item.jobId}&section=communication`}
-              className="gmail-reply-row"
+              className="dash-replies-row"
             >
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="gmail-reply-unread" aria-hidden="true" />
-                  <p className="truncate text-[0.95rem] text-[#f2f2f4]">
-                    {item.customerName}
-                  </p>
+                <div className="dash-replies-identity">
+                  <span className="dash-replies-unread" aria-hidden="true" />
+                  <p className="dash-replies-name truncate">{item.customerName}</p>
                   <span className="sr-only">Unread</span>
                 </div>
-                <p className="mt-1 truncate text-sm text-[#d8d8de]">
-                  {item.subject}
-                </p>
+                <p className="dash-replies-subject truncate">{item.subject}</p>
                 {item.preview ? (
-                  <p className="mt-1 line-clamp-2 text-sm text-[var(--dv8-muted)]">
-                    {item.preview}
-                  </p>
+                  <p className="dash-replies-preview">{item.preview}</p>
                 ) : null}
               </div>
               <time
-                className="shrink-0 text-xs text-[var(--dv8-muted)]"
+                className="dash-replies-time"
                 dateTime={item.receivedAt || undefined}
               >
                 {item.receivedAt ? formatDateTimeNy(item.receivedAt) : "—"}

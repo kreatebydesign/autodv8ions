@@ -1,17 +1,17 @@
 export default function JobStatusBadge({ status }: { status: string }) {
-  const tone =
+  const toneClass =
     status === "Completed"
-      ? "text-green-400"
+      ? "is-complete"
       : status === "Ready for Pickup"
-        ? "text-yellow-300"
+        ? "is-ready"
         : status === "Not Sold"
-          ? "text-[var(--dv8-muted)]"
+          ? "is-muted"
           : status === "Scheduled" || status === "In Shop"
-            ? "text-[var(--dv8-red-bright)]"
-            : "text-white";
+            ? "is-active"
+            : "";
 
   return (
-    <span className={`text-xs uppercase tracking-[0.14em] ${tone}`}>
+    <span className={`dash-status${toneClass ? ` ${toneClass}` : ""}`}>
       {status}
     </span>
   );

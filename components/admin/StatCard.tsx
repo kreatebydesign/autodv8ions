@@ -6,9 +6,9 @@ export default function StatCard({
   value: number | string;
 }) {
   return (
-    <div className="admin-panel p-5">
-      <p className="admin-label">{label}</p>
-      <p className="mt-2 text-3xl font-light tracking-tight">{value}</p>
+    <div className="dash-stat">
+      <p className="dash-stat-label">{label}</p>
+      <p className="dash-stat-value">{value}</p>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AdminNotifications from "@/components/admin/AdminNotifications";
 import CustomerRepliesPanel from "@/components/admin/CustomerRepliesPanel";
 import StatCard from "@/components/admin/StatCard";
 import JobStatusBadge from "@/components/admin/JobStatusBadge";
@@ -57,51 +58,62 @@ export default async function AdminDashboardPage() {
   });
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-xs uppercase tracking-[0.18em] text-[var(--dv8-muted)]">
-          Operations Workspace
-        </p>
-        <h1 className="mt-2 text-3xl font-light tracking-tight">Dashboard</h1>
-      </div>
+    <div className="dash-page">
+      <header className="dash-header">
+        <div className="dash-header-copy">
+          <p className="dash-header-eyebrow">Operations</p>
+          <h1 className="dash-header-title">Dashboard</h1>
+          <p className="dash-header-lede">Overview of your business</p>
+        </div>
+        <AdminNotifications placement="dashboard" />
+      </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="dash-kpi-grid">
         <StatCard label="New Jobs" value={stats.newJobs} />
         <StatCard label="Scheduled Today" value={stats.scheduledToday} />
         <StatCard label="Ready For Pickup" value={stats.readyForPickup} />
         <StatCard label="Completed This Month" value={stats.completedThisMonth} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Link href="/admin/invoices/new" className="admin-btn admin-btn-primary">
+      <nav className="dash-actions" aria-label="Quick actions">
+        <Link href="/admin/invoices/new" className="dash-action is-primary">
           New Invoice
         </Link>
-        <Link href="/admin/jobs" className="admin-btn">
+        <Link href="/admin/jobs" className="dash-action">
           View Jobs
         </Link>
-        <Link href="/admin/customers" className="admin-btn">
+        <Link href="/admin/customers" className="dash-action">
           View Customers
         </Link>
-      </div>
+      </nav>
 
       <CustomerRepliesPanel />
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <section className="admin-panel p-5">
-          <h2 className="mb-4 text-lg font-light">Recent Jobs</h2>
-          <div className="space-y-3">
+      <div className="dash-split">
+        <section
+          className="dash-panel is-standard"
+          aria-labelledby="recent-jobs-heading"
+        >
+          <div className="dash-panel-head">
+            <h2 id="recent-jobs-heading" className="dash-panel-title">
+              Recent Jobs
+            </h2>
+          </div>
+          <div className="dash-list">
             {recentJobs.length === 0 ? (
-              <p className="text-sm text-[var(--dv8-muted)]">No jobs yet.</p>
+              <p className="dash-empty">No jobs yet.</p>
             ) : (
               recentJobs.map((job) => (
                 <Link
                   key={job.id}
                   href={`/admin/jobs?jobId=${job.id}`}
-                  className="flex items-center justify-between gap-4 border-b border-[var(--dv8-border)] pb-3 last:border-0 transition-colors hover:bg-white/[0.03] focus-visible:bg-white/[0.03] focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[rgba(211,11,11,0.45)]"
+                  className="dash-list-row"
                 >
-                  <div>
-                    <p>{formatCustomerName(job.customers)}</p>
-                    <p className="text-sm text-[var(--dv8-muted)]">
+                  <div className="min-w-0">
+                    <p className="dash-list-primary truncate">
+                      {formatCustomerName(job.customers)}
+                    </p>
+                    <p className="dash-list-secondary truncate">
                       {formatVehicleShort(job.vehicles)} · {job.service_type}
                     </p>
                   </div>
@@ -112,24 +124,29 @@ export default async function AdminDashboardPage() {
           </div>
         </section>
 
-        <section className="admin-panel p-5">
-          <h2 className="mb-4 text-lg font-light">Recent Content Uploads</h2>
-          <div className="space-y-3">
+        <section
+          className={`dash-panel is-secondary${recentContent.slice(0, 6).length === 0 ? " is-empty" : ""}`}
+          aria-labelledby="recent-content-heading"
+        >
+          <div className="dash-panel-head">
+            <h2 id="recent-content-heading" className="dash-panel-title">
+              Recent Content
+            </h2>
+          </div>
+          <div className="dash-list">
             {recentContent.slice(0, 6).length === 0 ? (
-              <p className="text-sm text-[var(--dv8-muted)]">No content synced yet.</p>
+              <p className="dash-empty">No content synced yet.</p>
             ) : (
               recentContent.slice(0, 6).map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between gap-4 border-b border-[var(--dv8-border)] pb-3 last:border-0"
-                >
-                  <div>
-                    <p>{item.vehicle_name}</p>
-                    <p className="text-sm text-[var(--dv8-muted)]">
-                      {item.service_type} · {item.photos_count} photos · {item.videos_count} videos
+                <div key={item.id} className="dash-list-row">
+                  <div className="min-w-0">
+                    <p className="dash-list-primary truncate">{item.vehicle_name}</p>
+                    <p className="dash-list-secondary truncate">
+                      {item.service_type} · {item.photos_count} photos ·{" "}
+                      {item.videos_count} videos
                     </p>
                   </div>
-                  <span className="text-xs text-[var(--dv8-muted)]">
+                  <span className="dash-list-meta">
                     {formatDate(item.upload_date)}
                   </span>
                 </div>
@@ -139,19 +156,19 @@ export default async function AdminDashboardPage() {
         </section>
       </div>
 
-      <section className="admin-panel p-5">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <section className="dash-panel is-secondary" aria-labelledby="appointments-heading">
+        <div className="dash-panel-head">
           <div>
-            <h2 className="text-lg font-light">Upcoming Appointments</h2>
-            <p className="mt-1 text-xs text-[var(--dv8-muted)]">
-              Times shown in America/New_York
-            </p>
+            <h2 id="appointments-heading" className="dash-panel-title">
+              Upcoming Appointments
+            </h2>
+            <p className="dash-panel-meta">Times shown in America/New_York</p>
           </div>
           <a
             href={getGoogleCalendarUrl()}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-[var(--dv8-muted)] underline-offset-2 hover:text-white hover:underline"
+            className="dash-panel-link"
           >
             Open Google Calendar
           </a>
@@ -159,48 +176,43 @@ export default async function AdminDashboardPage() {
 
         {!calendarConnected ? (
           <div className="space-y-3">
-            <p className="text-sm text-[var(--dv8-muted)]">
+            <p className="dash-empty">
               {calendarAuthFailed
                 ? "Google Calendar authorization failed. Reconnect sales@autodv8ions.com."
                 : "Google Calendar is not connected yet."}
             </p>
-            <a className="admin-btn admin-btn-primary" href={reconnectHref}>
+            <a className="dash-action is-primary" href={reconnectHref}>
               Reconnect Google Workspace
             </a>
           </div>
         ) : appointments.length === 0 ? (
-          <p className="text-sm text-[var(--dv8-muted)]">No upcoming appointments.</p>
+          <p className="dash-empty">No upcoming appointments.</p>
         ) : (
-          <div className="space-y-3">
+          <div className="dash-list">
             {appointments.map((event) => {
-              const rowClassName =
-                "flex items-center justify-between gap-4 border-b border-[var(--dv8-border)] pb-3 last:border-0";
-
               if (event.matchedJobId) {
                 return (
                   <Link
                     key={event.id}
                     href={`/admin/jobs?jobId=${event.matchedJobId}`}
-                    className={`${rowClassName} transition-colors hover:bg-white/[0.03] focus-visible:bg-white/[0.03] focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[rgba(211,11,11,0.45)]`}
+                    className="dash-list-row"
                   >
-                    <div>
-                      <p>{event.title}</p>
-                      <p className="text-sm text-[var(--dv8-muted)]">
+                    <div className="min-w-0">
+                      <p className="dash-list-primary truncate">{event.title}</p>
+                      <p className="dash-list-secondary">
                         {formatDateTimeNy(event.start)}
                       </p>
                     </div>
-                    <span className="shrink-0 text-xs uppercase tracking-[0.12em] text-[var(--dv8-red-bright)]">
-                      View Job
-                    </span>
+                    <span className="dash-list-cta">View Job</span>
                   </Link>
                 );
               }
 
               return (
-                <div key={event.id} className={rowClassName}>
-                  <div>
-                    <p>{event.title}</p>
-                    <p className="text-sm text-[var(--dv8-muted)]">
+                <div key={event.id} className="dash-list-row">
+                  <div className="min-w-0">
+                    <p className="dash-list-primary truncate">{event.title}</p>
+                    <p className="dash-list-secondary">
                       {formatDateTimeNy(event.start)}
                     </p>
                   </div>
@@ -209,7 +221,7 @@ export default async function AdminDashboardPage() {
                       href={event.htmlLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="shrink-0 text-xs text-[var(--dv8-muted)] underline-offset-2 hover:underline"
+                      className="dash-panel-link"
                     >
                       Calendar
                     </a>
