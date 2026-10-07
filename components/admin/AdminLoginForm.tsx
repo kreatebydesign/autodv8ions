@@ -4,6 +4,9 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+const EASTER_EGG_SRC = "/images/marlboro-lights-easter-egg.png";
+const LOGO_SRC = "/images/logos/autodv8ions-fb-pic-logo.png";
+
 export default function AdminLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -36,54 +39,82 @@ export default function AdminLoginForm() {
   }
 
   return (
-    <div className="admin-theme flex min-h-screen items-center justify-center px-5">
-      <div className="admin-panel w-full max-w-md p-8">
-        <div className="mb-8 text-center">
-          <Image
-            src="/images/logos/autodv8ions-fb-pic-logo.png"
-            alt="AutoDV8ions"
-            width={96}
-            height={96}
-            className="mx-auto mb-4 h-24 w-24 object-contain"
-          />
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--dv8-muted)]">
-            AutoDV8ions Workspace
-          </p>
-          <h1 className="mt-2 text-2xl font-light">Sign in</h1>
+    <div className="admin-theme admin-login">
+      <div className="admin-login-atmosphere" aria-hidden="true">
+        <div className="admin-login-easter-zone">
+          <div className="admin-login-easter">
+            <Image
+              src={EASTER_EGG_SRC}
+              alt=""
+              fill
+              sizes="(max-width: 1024px) 38vw, 28rem"
+              className="admin-login-easter-img"
+              priority={false}
+            />
+          </div>
+          <div className="admin-login-glints">
+            <span className="admin-login-glint admin-login-glint--a" />
+            <span className="admin-login-glint admin-login-glint--b" />
+            <span className="admin-login-glint admin-login-glint--c" />
+          </div>
         </div>
+        <div className="admin-login-vignette" />
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="admin-label" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              className="admin-input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+      <div className="admin-login-stage">
+        <div className="admin-login-card">
+          <div className="admin-login-brand">
+            <Image
+              src={LOGO_SRC}
+              alt="AutoDV8ions"
+              width={128}
+              height={128}
+              className="admin-login-logo"
+              priority
             />
+            <p className="admin-login-kicker">Private Workspace</p>
+            <h1 className="admin-login-title">Sign in</h1>
           </div>
-          <div>
-            <label className="admin-label" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              className="admin-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          {error && <p className="text-sm text-[var(--dv8-red-bright)]">{error}</p>}
-          <button type="submit" className="admin-btn admin-btn-primary w-full" disabled={loading}>
-            {loading ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
+
+          <form onSubmit={handleSubmit} className="admin-login-form">
+            <div className="admin-login-field">
+              <label className="admin-login-label" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                className="admin-login-input"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="username"
+                required
+              />
+            </div>
+            <div className="admin-login-field">
+              <label className="admin-login-label" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                className="admin-login-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </div>
+            {error ? <p className="admin-login-error">{error}</p> : null}
+            <button
+              type="submit"
+              className="admin-login-submit"
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign In"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
