@@ -1,14 +1,22 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  GMAIL_NOTIFICATIONS_POLL_INTERVAL_MS,
+  applyGmailNotificationsRefreshResult,
   buildCustomerReplyNotifications,
   buildEmailToJobMap,
   extractSenderEmail,
   formatNotificationBadgeCount,
   isIncomingFromKnownCustomer,
+  mergeDeferredRefreshSilent,
   messageLooksUnread,
+  noteOverlappingGmailRefresh,
   pickBestJobForEmail,
+  shouldRefreshGmailNotificationsOnVisibility,
+  shouldScheduleGmailNotificationPoll,
   truncatePreview,
+  type GmailNotificationItem,
+  type GmailNotificationsUiState,
   type JobEmailCandidate,
   type UnreadMessageCandidate,
 } from "./gmail-notifications";
@@ -224,5 +232,166 @@ describe("notification build / badge / preview", () => {
     assert.equal(formatNotificationBadgeCount(100), "99+");
     assert.equal(truncatePreview("a".repeat(200)).endsWith("…"), true);
     assert.ok(truncatePreview("a".repeat(200)).length <= 120);
+  });
+});
+
+describe("gmail notification idle polling helpers", () => {
+  it("uses a 60s poll interval", () => {
+    assert.equal(GMAIL_NOTIFICATIONS_POLL_INTERVAL_MS, 60_000);
+  });
+
+  it("schedules polling only when the document is visible", () => {
+    assert.equal(shouldScheduleGmailNotificationPoll(false), true);
+    assert.equal(shouldScheduleGmailNotificationPoll(true), false);
+  });
+
+  it("refreshes when visibility returns to visible", () => {
+    assert.equal(shouldRefreshGmailNotificationsOnVisibility("visible"), true);
+    assert.equal(shouldRefreshGmailNotificationsOnVisibility("hidden"), false);
+    assert.equal(shouldRefreshGmailNotificationsOnVisibility("prerender"), false);
+  });
+
+  it("keeps a deferred follow-up non-silent if any queued call requested loading", () => {
+    assert.equal(mergeDeferredRefreshSilent(true, true), true);
+    assert.equal(mergeDeferredRefreshSilent(true, false), false);
+    assert.equal(mergeDeferredRefreshSilent(false, true), false);
+    assert.equal(mergeDeferredRefreshSilent(false, false), false);
+  });
+
+  it("defers overlapping refreshes and upgrades silent follow-ups when needed", () => {
+    const idle = noteOverlappingGmailRefresh({
+      inFlight: false,
+      pending: false,
+      pendingSilent: true,
+      incomingSilent: true,
+    });
+    assert.deepEqual(idle, {
+      accepted: true,
+      pending: false,
+      pendingSilent: true,
+    });
+
+    const firstDefer = noteOverlappingGmailRefresh({
+      inFlight: true,
+      pending: false,
+      pendingSilent: true,
+      incomingSilent: true,
+    });
+    assert.deepEqual(firstDefer, {
+      accepted: false,
+      pending: true,
+      pendingSilent: true,
+    });
+
+    const upgrade = noteOverlappingGmailRefresh({
+      inFlight: true,
+      pending: true,
+      pendingSilent: true,
+      incomingSilent: false,
+    });
+    assert.deepEqual(upgrade, {
+      accepted: false,
+      pending: true,
+      pendingSilent: false,
+    });
+  });
+});
+
+describe("gmail notification silent refresh resilience", () => {
+  const sampleItem: GmailNotificationItem = {
+    jobId: "job-1",
+    customerName: "Pat Customer",
+    customerEmail: "customer@example.com",
+    subject: "Re: Quote",
+    preview: "Sounds good",
+    receivedAt: "2026-01-02T10:00:00.000Z",
+    gmailThreadId: "thread-1",
+  };
+
+  const previous: GmailNotificationsUiState = {
+    configured: true,
+    count: 1,
+    items: [sampleItem],
+    error: null,
+  };
+
+  it("clears previous notifications when a successful poll returns zero unread", () => {
+    const next = applyGmailNotificationsRefreshResult({
+      previous,
+      silent: true,
+      outcome: { kind: "success", count: 0, items: [] },
+    });
+    assert.deepEqual(next, {
+      configured: true,
+      count: 0,
+      items: [],
+      error: null,
+    });
+  });
+
+  it("preserves previous notifications when a silent poll fails", () => {
+    const afterNetwork = applyGmailNotificationsRefreshResult({
+      previous,
+      silent: true,
+      outcome: { kind: "network_error" },
+    });
+    assert.equal(afterNetwork, previous);
+    assert.equal(afterNetwork.count, 1);
+    assert.equal(afterNetwork.items[0]?.gmailThreadId, "thread-1");
+    assert.equal(afterNetwork.error, null);
+
+    const afterHttp = applyGmailNotificationsRefreshResult({
+      previous,
+      silent: true,
+      outcome: { kind: "http_error", message: "Gmail API request failed." },
+    });
+    assert.equal(afterHttp, previous);
+    assert.equal(afterHttp.error, null);
+  });
+
+  it("updates notifications after a later successful poll", () => {
+    const preserved = applyGmailNotificationsRefreshResult({
+      previous,
+      silent: true,
+      outcome: { kind: "network_error" },
+    });
+
+    const updatedItem: GmailNotificationItem = {
+      ...sampleItem,
+      gmailThreadId: "thread-2",
+      subject: "New reply",
+      preview: "Updated",
+    };
+
+    const next = applyGmailNotificationsRefreshResult({
+      previous: preserved,
+      silent: true,
+      outcome: {
+        kind: "success",
+        count: 1,
+        items: [updatedItem],
+      },
+    });
+
+    assert.deepEqual(next, {
+      configured: true,
+      count: 1,
+      items: [updatedItem],
+      error: null,
+    });
+  });
+
+  it("still clears on explicit non-silent refresh failure", () => {
+    const next = applyGmailNotificationsRefreshResult({
+      previous,
+      silent: false,
+      outcome: { kind: "network_error" },
+    });
+    assert.deepEqual(next, {
+      configured: true,
+      count: 0,
+      items: [],
+      error: "Could not load customer replies.",
+    });
   });
 });

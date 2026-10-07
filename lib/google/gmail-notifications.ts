@@ -4,6 +4,37 @@ export const GMAIL_NOTIFICATION_ITEM_LIMIT = 8;
 export const GMAIL_UNREAD_SCAN_MAX = 40;
 export const GMAIL_PREVIEW_MAX_CHARS = 120;
 
+/** Idle poll interval while the admin shell is mounted and the tab is visible. */
+export const GMAIL_NOTIFICATIONS_POLL_INTERVAL_MS = 60_000;
+
+/**
+ * Whether the idle poll timer should be scheduled.
+ * Hidden tabs skip polling to avoid wasted Gmail quota.
+ */
+export function shouldScheduleGmailNotificationPoll(
+  documentHidden: boolean,
+): boolean {
+  return !documentHidden;
+}
+
+/** Refresh promptly when the tab returns to the foreground. */
+export function shouldRefreshGmailNotificationsOnVisibility(
+  visibilityState: string,
+): boolean {
+  return visibilityState === "visible";
+}
+
+/**
+ * Merge a deferred refresh's silent flag with any already-queued follow-up.
+ * If any queued call wants a full (non-silent) refresh, the follow-up is non-silent.
+ */
+export function mergeDeferredRefreshSilent(
+  currentPendingSilent: boolean,
+  incomingSilent: boolean,
+): boolean {
+  return currentPendingSilent && incomingSilent;
+}
+
 export type JobEmailCandidate = {
   jobId: string;
   customerEmail: string;
@@ -39,6 +70,112 @@ export type GmailNotificationsPayload = {
   count: number;
   items: GmailNotificationItem[];
 };
+
+/** UI snapshot used by the admin notification provider. */
+export type GmailNotificationsUiState = {
+  configured: boolean;
+  count: number;
+  items: GmailNotificationItem[];
+  error: string | null;
+};
+
+export type GmailNotificationsFetchOutcome =
+  | { kind: "network_error" }
+  | { kind: "not_configured" }
+  | { kind: "http_error"; message: string }
+  | {
+      kind: "success";
+      count: number;
+      items: GmailNotificationItem[];
+    };
+
+/**
+ * Apply a refresh fetch outcome to the previous notification UI state.
+ *
+ * Silent background failures preserve the last successful snapshot (no badge/panel
+ * clear, no error flicker). Successful responses — including zero unread — replace
+ * state normally for both silent and explicit refreshes.
+ */
+export function applyGmailNotificationsRefreshResult(params: {
+  previous: GmailNotificationsUiState;
+  silent: boolean;
+  outcome: GmailNotificationsFetchOutcome;
+}): GmailNotificationsUiState {
+  const { previous, silent, outcome } = params;
+
+  if (
+    silent &&
+    (outcome.kind === "network_error" || outcome.kind === "http_error")
+  ) {
+    return previous;
+  }
+
+  if (outcome.kind === "not_configured") {
+    return {
+      configured: false,
+      count: 0,
+      items: [],
+      error: null,
+    };
+  }
+
+  if (outcome.kind === "network_error") {
+    return {
+      configured: previous.configured,
+      count: 0,
+      items: [],
+      error: "Could not load customer replies.",
+    };
+  }
+
+  if (outcome.kind === "http_error") {
+    return {
+      configured: true,
+      count: 0,
+      items: [],
+      error: outcome.message || "Could not load customer replies.",
+    };
+  }
+
+  return {
+    configured: true,
+    count: outcome.count,
+    items: outcome.items,
+    error: null,
+  };
+}
+
+/**
+ * Pure overlap gate: while a refresh is in flight, additional calls defer one
+ * follow-up and merge silent flags (any non-silent upgrades the follow-up).
+ */
+export function noteOverlappingGmailRefresh(params: {
+  inFlight: boolean;
+  pending: boolean;
+  pendingSilent: boolean;
+  incomingSilent: boolean;
+}): {
+  accepted: boolean;
+  pending: boolean;
+  pendingSilent: boolean;
+} {
+  if (!params.inFlight) {
+    return {
+      accepted: true,
+      pending: params.pending,
+      pendingSilent: params.pendingSilent,
+    };
+  }
+
+  return {
+    accepted: false,
+    pending: true,
+    pendingSilent: mergeDeferredRefreshSilent(
+      params.pendingSilent,
+      params.incomingSilent,
+    ),
+  };
+}
 
 const CLOSED_JOB_STATUSES = new Set(["Completed", "Not Sold"]);
 
