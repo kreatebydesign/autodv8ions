@@ -1,5 +1,6 @@
 import CustomersClient from "@/components/admin/CustomersClient";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import "../../admin-customers.css";
 
 type CustomerRow = {
   id: string;
