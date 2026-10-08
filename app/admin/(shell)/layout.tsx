@@ -1,3 +1,4 @@
+import AdminBrandLockup from "@/components/admin/AdminBrandLockup";
 import AdminNotifications from "@/components/admin/AdminNotifications";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import GmailNotificationsProvider from "@/components/admin/GmailNotificationsProvider";
@@ -16,10 +17,7 @@ export default function AdminShellLayout({
           <AdminSidebar />
           <main className="dash-main min-h-screen flex-1 lg:pl-64">
             <div className="dash-mobile-bar lg:hidden">
-              <div className="dash-mobile-bar-copy">
-                <p className="dash-mobile-bar-kicker">Workspace</p>
-                <p className="dash-mobile-bar-title">AutoDV8ions</p>
-              </div>
+              <AdminBrandLockup size="mobile" />
               <AdminNotifications placement="mobile" />
             </div>
             <div className="dash-content">{children}</div>
