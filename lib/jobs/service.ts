@@ -153,6 +153,21 @@ export async function getRecentJobs(limit = 8) {
   return data || [];
 }
 
+/** Load one active job by id (deep links outside the initial index). */
+export async function getJobById(id: string) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase || !id) return null;
+
+  const { data } = await supabase
+    .from("jobs")
+    .select("*, customers(*), vehicles(*)")
+    .eq("id", id)
+    .is("archived_at", null)
+    .maybeSingle();
+
+  return data || null;
+}
+
 /** Map Google Calendar event IDs → job IDs (for dashboard appointment links). */
 export async function getJobIdsByCalendarEventIds(eventIds: string[]) {
   const uniqueIds = [...new Set(eventIds.filter(Boolean))];

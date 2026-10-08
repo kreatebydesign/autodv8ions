@@ -3,7 +3,7 @@
 ## Source of truth (production-approved)
 
 1. **Login** — atmospheric, private entry
-2. **Dashboard** — command-center elevation (`.dash-*`)
+2. **Dashboard** — elevated shell (`.dash-*`)
 3. **Customers** — dense CRM master/detail (`.crm-*`)
 
 Phase 1 elevates the **shared shell** to match that quality without redesigning those pages.
@@ -36,7 +36,7 @@ Phase 1 elevates the **shared shell** to match that quality without redesigning 
 |--------|------|------|
 | `--dv8-*` | `admin.css` | Base admin theme |
 | `--dash-*` | `admin-dashboard.css` | Shell + dashboard |
-| `--crm-*` | `admin-customers.css` | Customers workspace |
+| `--crm-*` | `admin-customers.css` | Clients record workspace |
 | `--login-*` | `admin-login.css` | Login |
 
 **Phase 2** consolidates aliases. Phase 1 only adds shell lockup/nav styles; does not delete or globally replace variables.
@@ -46,6 +46,6 @@ Phase 1 elevates the **shared shell** to match that quality without redesigning 
 ## Shell brand lockup
 
 - Recognizable square mark (~52px rail / ~36px mobile)
-- `WORKSPACE` kicker + brand name
+- Brand name only (no client-facing kicker)
 - Quiet mark frame (hairline + charcoal), no glow
-- System Tools section visually secondary to daily operations
+- Secondary advanced links sit beneath a quiet divider, visually secondary to daily operations

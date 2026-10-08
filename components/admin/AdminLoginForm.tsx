@@ -72,7 +72,7 @@ export default function AdminLoginForm() {
               className="admin-login-logo"
               priority
             />
-            <p className="admin-login-kicker">Private Workspace</p>
+
             <h1 className="admin-login-title">Sign in</h1>
           </div>
 

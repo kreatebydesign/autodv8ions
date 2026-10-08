@@ -184,10 +184,9 @@ export default function CustomersClient({
     <div className="crm-customers">
       <div className="crm-customers-header">
         <div>
-          <p className="crm-customers-kicker">Workspace</p>
-          <h1 className="crm-customers-title">Customers</h1>
+          <h1 className="crm-customers-title">Clients</h1>
           <p className="crm-customers-count">
-            {customers.length} active customer
+            {customers.length} active client
             {customers.length === 1 ? "" : "s"}
             {normalizedQuery
               ? ` · ${visibleCustomers.length} match${visibleCustomers.length === 1 ? "" : "es"}`
@@ -196,7 +195,7 @@ export default function CustomersClient({
         </div>
         <div className="crm-customers-search">
           <label className="sr-only" htmlFor="customer-search">
-            Search customers
+            Search clients
           </label>
           <input
             id="customer-search"
@@ -236,13 +235,13 @@ export default function CustomersClient({
           mobileShowDetail && selected ? " is-detail" : ""
         }`}
       >
-        <div className="crm-customers-list" role="listbox" aria-label="Customers">
+        <div className="crm-customers-list" role="listbox" aria-label="Clients">
           {customers.length === 0 ? (
             <p className="crm-customers-empty">
-              No customers yet. Jobs and website quotes will populate this list.
+              No clients yet. Jobs and website quotes will populate this list.
             </p>
           ) : visibleCustomers.length === 0 ? (
-            <p className="crm-customers-empty">No customers match that search.</p>
+            <p className="crm-customers-empty">No clients match that search.</p>
           ) : (
             visibleCustomers.map((customer) => {
               const vehicle = primaryVehicle(customer);
@@ -292,14 +291,14 @@ export default function CustomersClient({
               setConfirmText("");
             }}
           >
-            ← Customers
+            ← Clients
           </button>
 
           {!selected ? (
             <p className="crm-customers-placeholder">
               {visibleCustomers.length === 0
-                ? "No customers match that search."
-                : "Select a customer to view vehicles, jobs, and invoices."}
+                ? "No clients match that search."
+                : "Select a client to view vehicles, jobs, and invoices."}
             </p>
           ) : (
             <div className="crm-customers-record">
@@ -423,7 +422,7 @@ export default function CustomersClient({
               <section className="crm-customers-status">
                 <h3 className="crm-customers-status-title">Customer Status</h3>
                 <p className="crm-customers-status-copy">
-                  Removes this customer from the active customer list without
+                  Removes this customer from the active client list without
                   removing their job history.
                 </p>
 

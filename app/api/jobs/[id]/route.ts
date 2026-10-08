@@ -86,6 +86,25 @@ function calendarErrorResponse(
   );
 }
 
+/** Single-job fetch for deep links outside the initial jobs index. */
+export async function GET(_request: Request, context: RouteContext) {
+  const { error } = await requireAdminSession();
+  if (error) return error;
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });
+  }
+
+  const { id } = await context.params;
+  const job = await loadJob(supabase, id);
+  if (!job || job.archived_at) {
+    return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ job });
+}
+
 export async function PATCH(request: Request, context: RouteContext) {
   const { error } = await requireAdminSession();
   if (error) return error;

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   const { error } = await requireAdminSession();
   if (error) return error;
 
@@ -11,10 +11,18 @@ export async function GET() {
     return NextResponse.json({ invoices: [], configured: false });
   }
 
-  const { data, error: dbError } = await supabase
+  const jobId = new URL(request.url).searchParams.get("jobId")?.trim();
+
+  let query = supabase
     .from("invoices")
     .select("*, customers(*)")
     .order("created_at", { ascending: false });
+
+  if (jobId) {
+    query = query.eq("job_id", jobId);
+  }
+
+  const { data, error: dbError } = await query;
 
   if (dbError) {
     return NextResponse.json({ error: dbError.message }, { status: 500 });

@@ -165,6 +165,7 @@ export default function ReviewWorkspace({
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset virtual window when filters change
     setRenderLimit(RENDER_CHUNK);
   }, [query, month, status, intelligenceFilter, sort]);
 
@@ -313,8 +314,8 @@ export default function ReviewWorkspace({
     <div className={`review-workspace ${selectedIds.size > 0 ? "has-selection" : ""}`}>
       <header className="review-workspace-header">
         <div className="review-workspace-intro">
-          <p className="review-eyebrow">Portfolio</p>
-          <h1 className="review-workspace-title">Review Workspace</h1>
+          <p className="review-eyebrow">Studio</p>
+          <h1 className="review-workspace-title">Review</h1>
           <p className="review-workspace-lede">
             Curate at scale with bulk selection, AI recommendations, and
             photography-first quick preview.

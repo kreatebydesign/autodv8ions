@@ -4,7 +4,7 @@
 
 ```
 /admin/login          → public login (outside shell)
-/admin/(shell)/*      → authenticated workspace
+/admin/(shell)/*      → authenticated admin shell
 ```
 
 Shell layout (`app/admin/(shell)/layout.tsx`):
@@ -18,7 +18,7 @@ CSS layers:
 - `admin.css` — base `.admin-theme` primitives (`--dv8-*`)
 - `admin-dashboard.css` — shell chrome (`.dash-*`)
 - `admin-login.css` — login only
-- `admin-customers.css` — Customers workspace only
+- `admin-customers.css` — Clients record workspace only
 
 **Phase 1:** brand config (`lib/workspace/brand.ts`) + `AdminBrandLockup` feed the rail and mobile bar. Full token consolidation is deferred.
 
@@ -30,7 +30,7 @@ CSS layers:
 
 - Single nested Supabase select: customers → vehicles, jobs(+vehicles), invoices
 - Active-only filter (`archived_at IS NULL`); archived jobs filtered client-side
-- Master/detail operator UI; client-side search
+- Master/detail admin UI; client-side search
 - Soft archive via `DELETE /api/customers/[id]` (no hard delete)
 
 Preserve: nested query architecture from `ed00a5a`, UX from `8872c4a`.

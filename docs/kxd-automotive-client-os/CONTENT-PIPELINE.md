@@ -19,7 +19,7 @@ Media processing
   → processing_status → ready_for_review | failed
         │
         ▼
-Review workspace
+Review
   → curate, optional AI scores, save / publish / archive / pin
         │
         ▼
@@ -40,9 +40,9 @@ Public website
 | Route | Nav label (Phase 1) | Audience intent |
 |-------|---------------------|-----------------|
 | `/admin/content` | Incoming | Bring Drive jobs into the review queue |
-| `/admin/media` | Media Processing | System Tools — Blob download/process queue |
+| `/admin/media` | Media Processing | secondary advanced links — Blob download/process queue |
 | `/admin/review` | Review | Curate and publish |
-| `/admin/portfolio` | Portfolio Engine | System Tools — limits, retention, cleanup |
+| `/admin/portfolio` | Showcase | secondary advanced links — limits, retention, cleanup |
 
 Future client IA may introduce a safer **Live Work** view; Portfolio Engine must not be deceptively labeled Live Work while it exposes cleanup/retention controls.
 

@@ -8,7 +8,7 @@ export default function AdminMediaProcessingPage() {
     <div className="space-y-6">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-[var(--dv8-muted)]">
-          Media Workspace
+          Processing
         </p>
         <h1 className="mt-2 text-3xl font-light tracking-tight">
           Media

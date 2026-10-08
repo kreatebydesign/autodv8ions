@@ -90,6 +90,7 @@ export default function MediaProcessingClient() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial Processing status load
     void refresh();
   }, [refresh]);
 
@@ -99,7 +100,7 @@ export default function MediaProcessingClient() {
   }) {
     const confirmed = window.confirm(
       [
-        "Media Workspace",
+        "Processing",
         "",
         "This will download media from Google Drive into private Blob storage.",
         "• Nothing will publish",
@@ -161,7 +162,7 @@ export default function MediaProcessingClient() {
     <div className="space-y-6">
       <div className="admin-panel space-y-3 px-4 py-4">
         <div className="text-sm font-medium text-[var(--dv8-ink)]">
-          Media Workspace
+          Processing
         </div>
         <p className="text-sm text-[var(--dv8-muted)]">
           Downloads pending gallery media into private managed storage via the

@@ -1,6 +1,6 @@
 # KXD Automotive Client OS
 
-Internal product name for the authenticated automotive operations workspace that KXD designs, builds, and deploys for shop clients.
+Internal product name for the authenticated automotive operations product that KXD designs, builds, and deploys for shop clients.
 
 **AutoDV8ions** is the first production implementation — a branded deployment of this OS, not the product definition itself.
 
@@ -8,7 +8,7 @@ Internal product name for the authenticated automotive operations workspace that
 
 ## Product purpose
 
-Give shop owners and operators a **private, premium command surface** to run:
+Give shop owners and operators a **private, premium operations surface** to run:
 
 - customers and vehicles
 - jobs and scheduling
@@ -55,9 +55,9 @@ See [DESIGN.md](./DESIGN.md).
 | Login | Approved production | Including AD8-specific Marlboro easter egg |
 | Dashboard | Approved production | Ops glance + Gmail replies |
 | Customers | Approved production | Master/detail + nested query |
-| Shell / nav | Phase 1 elevated | Brand config + IA grouping |
-| Jobs | Functional, visually behind | Phase 3 candidate |
-| Invoices | MVP billing | Phase 4 candidate |
+| Shell / nav | Phase 1 elevated | Brand config + approved product vocabulary |
+| Jobs | Phase 2 elevated | Master/detail + deep-link + Messages |
+| Invoices | MVP billing | Billing nav label; Phase 4 candidate |
 | Content pipeline | Powerful, engineer-facing | Phase 5 client IA |
 | Auth roles | None | Single admin credential (Phase 7) |
 

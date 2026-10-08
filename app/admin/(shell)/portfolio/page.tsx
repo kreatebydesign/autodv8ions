@@ -11,10 +11,10 @@ export default async function PortfolioSettingsPage() {
     <div className="space-y-6">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-[var(--dv8-muted)]">
-          Portfolio Workspace
+          Showcase
         </p>
         <h1 className="mt-2 text-3xl font-light tracking-tight">
-          Portfolio Settings
+          Showcase Settings
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--dv8-muted)]">
           Rolling showcase limits, pinned capacity, and Blob retention for the

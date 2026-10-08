@@ -18,7 +18,7 @@ Session payload is effectively `{ email, exp }` only.
 
 ## UI hiding is not authorization
 
-Phase 1 navigation groups **System Tools** (Media Processing, Portfolio Engine) as visually secondary. That is **presentation only**.
+Phase 1 navigation groups **secondary advanced links** (Processing, Showcase) as visually secondary. That is **presentation only**.
 
 Anyone with a valid admin session can still open those URLs and call those APIs.
 

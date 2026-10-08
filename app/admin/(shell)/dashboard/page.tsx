@@ -61,8 +61,8 @@ export default async function AdminDashboardPage() {
     <div className="dash-page">
       <header className="dash-header">
         <div className="dash-header-copy">
-          <p className="dash-header-eyebrow">Operations</p>
-          <h1 className="dash-header-title">Dashboard</h1>
+          <p className="dash-header-eyebrow">Service</p>
+          <h1 className="dash-header-title">Overview</h1>
           <p className="dash-header-lede">Overview of your business</p>
         </div>
         <AdminNotifications placement="dashboard" />
@@ -83,7 +83,7 @@ export default async function AdminDashboardPage() {
           View Jobs
         </Link>
         <Link href="/admin/customers" className="dash-action">
-          View Customers
+          View Clients
         </Link>
       </nav>
 

@@ -147,15 +147,10 @@ export default function JobCommunication({
   }
 
   useEffect(() => {
-    setShowEarlier(false);
-    setReplyBody("");
-    setReplyFeedback(null);
-    setShowFirstContact(false);
-    setEmailSubject("");
-    setEmailMessage("");
-    setFirstContactFeedback(null);
+    // Async Gmail load; setState occurs inside loadThread after await boundaries.
+    // Parent remounts with key={jobId} so draft UI resets without sync effect resets.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- external mailbox fetch on job change
     void loadThread();
-    // Reload when job or customer email changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional job-scoped reload
   }, [jobId, email]);
 
@@ -276,10 +271,10 @@ export default function JobCommunication({
       <div className="job-section-head">
         <div>
           <h2 id="job-comm-heading" className="job-section-title">
-            Communication
+            Messages
           </h2>
           <p className="job-section-lede">
-            Customer conversation for this job via sales@autodv8ions.com.
+            Conversation for this job via sales@autodv8ions.com.
           </p>
         </div>
       </div>
@@ -298,7 +293,7 @@ export default function JobCommunication({
           <div>
             <p className="job-comm-empty-title">Gmail is not connected</p>
             <p className="job-comm-empty-copy">
-              Connect the AutoDV8ions Gmail mailbox to view and reply to conversations
+              Connect the shop Gmail mailbox to view and reply to conversations
               here.
             </p>
           </div>

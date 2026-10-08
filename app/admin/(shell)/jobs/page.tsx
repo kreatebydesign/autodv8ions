@@ -1,13 +1,31 @@
 import { Suspense } from "react";
 import JobsClient from "@/components/admin/JobsClient";
-import { getRecentJobs } from "@/lib/jobs/service";
+import { getJobById, getRecentJobs } from "@/lib/jobs/service";
+import "../../admin-jobs.css";
 
-export default async function AdminJobsPage() {
-  const jobs = await getRecentJobs(100);
+type JobsPageProps = {
+  searchParams?: Promise<{ jobId?: string }>;
+};
+
+export default async function AdminJobsPage({ searchParams }: JobsPageProps) {
+  const params = (await searchParams) || {};
+  const jobs = await getRecentJobs(150);
+
+  const deepLinkId = params.jobId?.trim() || null;
+  let initialJobs = jobs;
+
+  if (deepLinkId && !jobs.some((job) => job.id === deepLinkId)) {
+    const linked = await getJobById(deepLinkId);
+    if (linked) {
+      initialJobs = [linked, ...jobs];
+    }
+  }
 
   return (
-    <Suspense fallback={<div className="admin-panel p-5 job-meta">Loading jobs…</div>}>
-      <JobsClient initialJobs={jobs} />
+    <Suspense
+      fallback={<div className="jobs-shell-loading">Loading jobs…</div>}
+    >
+      <JobsClient initialJobs={initialJobs} />
     </Suspense>
   );
 }

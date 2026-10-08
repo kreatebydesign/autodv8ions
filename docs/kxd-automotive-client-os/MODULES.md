@@ -6,10 +6,10 @@
 |--------|--------|
 | Authenticated shell | Route group, rail, mobile bar, notifications provider |
 | Brand lockup pattern | Driven by `lib/workspace/brand.ts` |
-| Navigation IA pattern | Operations / Content / Workspace / System Tools |
+| Navigation IA pattern | Overview · Jobs · Clients · Billing / Media · Review / Settings + secondary Processing · Showcase |
 | Design language | Charcoal, hairlines, restrained accent (see DESIGN.md) |
-| Customers workspace | Master/detail + nested query pattern |
-| Jobs operational model | Status, schedule, notes, comms hooks |
+| Clients master/detail | Master/detail + nested query pattern |
+| Jobs master/detail | Status, schedule, notes, messages, billing |
 | Invoice MVP model | Line items, deposit, balance, paid flag |
 | Gmail notification pattern | Polling, bell, replies → job |
 | Calendar appointment pattern | Create/update/cancel from job |

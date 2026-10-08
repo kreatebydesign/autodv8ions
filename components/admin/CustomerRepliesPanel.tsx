@@ -19,7 +19,7 @@ export default function CustomerRepliesPanel() {
         <div>
           <div className="dash-replies-title-row">
             <h2 id="customer-replies-heading" className="dash-panel-title">
-              Customer Replies
+              Replies
             </h2>
             {hasUnread ? (
               <span className="dash-replies-count" aria-label={`${count} unread`}>
@@ -28,7 +28,7 @@ export default function CustomerRepliesPanel() {
             ) : null}
           </div>
           <p className="dash-panel-meta">
-            Unread Gmail replies from known customers
+            Unread Gmail replies from known clients
           </p>
         </div>
         <button
@@ -51,7 +51,7 @@ export default function CustomerRepliesPanel() {
         </div>
       ) : loading && items.length === 0 && !error ? (
         <p className="dash-empty" role="status">
-          Checking for customer replies…
+          Checking for replies…
         </p>
       ) : error ? (
         <div className="dash-replies-error" role="alert">

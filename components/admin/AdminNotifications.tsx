@@ -71,8 +71,8 @@ export default function AdminNotifications({
   }, [open]);
 
   const ariaLabel = hasUnread
-    ? `Customer replies, ${badgeLabel || count} unread`
-    : "Customer replies, no unread";
+    ? `Replies, ${badgeLabel || count} unread`
+    : "Replies, no unread";
 
   return (
     <div
@@ -101,11 +101,11 @@ export default function AdminNotifications({
           id={panelId}
           className="dash-notify-panel"
           role="dialog"
-          aria-label="Customer reply notifications"
+          aria-label="Reply notifications"
         >
           <div className="dash-notify-panel-head">
             <div className="min-w-0">
-              <p className="dash-notify-panel-title">Customer Replies</p>
+              <p className="dash-notify-panel-title">Replies</p>
               <p className="dash-notify-panel-meta">
                 {!configured
                   ? "Gmail not connected"
@@ -129,7 +129,7 @@ export default function AdminNotifications({
               <div className="dash-notify-empty">
                 <p className="dash-notify-empty-title">Gmail not connected</p>
                 <p className="dash-notify-empty-copy">
-                  Connect the workspace mailbox in Settings to receive reply
+                  Connect the shop mailbox in Settings to receive reply
                   alerts here.
                 </p>
               </div>
@@ -152,7 +152,7 @@ export default function AdminNotifications({
               <div className="dash-notify-empty">
                 <p className="dash-notify-empty-title">You&apos;re caught up</p>
                 <p className="dash-notify-empty-copy">
-                  No unread customer replies.
+                  No unread replies.
                 </p>
               </div>
             ) : (

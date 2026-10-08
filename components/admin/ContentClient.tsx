@@ -459,12 +459,12 @@ export default function ContentClient({
             </span>
           </p>
           <p className="mt-2 max-w-lg text-sm text-[var(--dv8-muted)]">
-            Gallery review moved to the editorial Review Workspace. Import and
+            Gallery review lives in Review. Import and
             sync tools stay here.
           </p>
         </div>
         <Link href="/admin/review" className="admin-btn admin-btn-primary">
-          Open Review Workspace
+          Open Review
         </Link>
       </div>
     </div>

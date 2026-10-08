@@ -315,7 +315,7 @@ export default function ReviewDetailWorkspace({
       <div className="review-detail-top">
         <div>
           <Link href="/admin/review" className="review-back-link">
-            ← Review Workspace
+            ← Review
           </Link>
           <div className="review-detail-heading">
             <h1 className="review-detail-title">{item.vehicle}</h1>

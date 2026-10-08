@@ -40,6 +40,7 @@ export default function PortfolioSettingsClient({
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync Showcase props after server refresh
     setStats(initialStats);
   }, [initialStats]);
 
@@ -166,7 +167,7 @@ export default function PortfolioSettingsClient({
         <div>
           <h2 className="text-lg font-light">Showcase limits</h2>
         <p className="mt-2 max-w-2xl text-sm text-[var(--dv8-muted)]">
-          Configurable KXD Portfolio Engine defaults. Drive stays the
+          Showcase capacity and retention defaults. Drive stays the
           permanent archive; the website stays a curated rolling showcase.
           Use dry-run before any Blob cleanup.
         </p>

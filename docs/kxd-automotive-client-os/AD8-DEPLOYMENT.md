@@ -7,7 +7,7 @@ Deployment-specific facts for the first production OS instance. **No secrets.**
 | Field | Value |
 |-------|--------|
 | brandName | AutoDV8ions |
-| workspaceLabel | Workspace |
+| workspaceLabel | (unused in shell UI) |
 | logoMark | `/images/logos/autodv8ions-hero-logo.png` |
 | logoWordmark | `/images/logos/dv8-logo.png` |
 | accent | `#d30b0b` |
@@ -21,7 +21,7 @@ Deployment-specific facts for the first production OS instance. **No secrets.**
 
 ## Mailbox / Workspace
 
-- Primary operator mailbox identity: sales@autodv8ions.com
+- Primary shop mailbox identity: sales@autodv8ions.com
 - Cookie name historically: `dv8_admin_session`
 
 ## Drive taxonomy
@@ -43,10 +43,10 @@ Deployment-specific facts for the first production OS instance. **No secrets.**
 ## Approved production commits (protect)
 
 - Gmail polling / notifications
-- Dashboard command center
+- Dashboard elevation
 - Admin login elevation
 - Sidebar z-index hotfix
 - Customers nested-query performance
-- Customers workspace UX
+- Clients record workspace UX
 
 Do not regress these while productizing the shared shell.

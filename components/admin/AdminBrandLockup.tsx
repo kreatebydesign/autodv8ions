@@ -13,11 +13,8 @@ const MARK_INTRINSIC = {
 } as const;
 
 /**
- * Shared authenticated-shell brand lockup.
- * Driven by workspace brand config — not a multi-tenant theme system.
- *
- * On viewports <1024px, the rail lockup is CSS-quieted so the persistent
- * mobile bar remains the primary brand moment (desktop rail stays 52px).
+ * Authenticated-shell brand lockup.
+ * Mark + brand name only — no user-facing "Workspace" kicker.
  */
 export default function AdminBrandLockup({
   size = "rail",
@@ -38,7 +35,6 @@ export default function AdminBrandLockup({
         />
       </div>
       <div className="dash-brand-lockup-copy">
-        <p className="dash-brand-lockup-kicker">{brand.workspaceLabel}</p>
         <p className="dash-brand-lockup-title">{brand.brandName}</p>
       </div>
     </div>

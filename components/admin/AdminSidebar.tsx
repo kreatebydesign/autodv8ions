@@ -13,49 +13,46 @@ type NavItem = {
 
 type NavSection = {
   id: string;
-  label: string;
+  label?: string;
   tone?: "primary" | "system";
   items: NavItem[];
 };
 
 /**
- * Presentation-only navigation IA.
- * All routes remain reachable; no capability gating in Phase 1.
+ * Presentation-only navigation.
+ * Routes unchanged; labels follow locked KXD product language.
+ * No capability gating in this phase.
  */
 const NAV_SECTIONS: NavSection[] = [
   {
-    id: "operations",
-    label: "Operations",
+    id: "primary",
     tone: "primary",
     items: [
-      { href: "/admin/dashboard", label: "Dashboard" },
+      { href: "/admin/dashboard", label: "Overview" },
       { href: "/admin/jobs", label: "Jobs", badgeKey: "jobs" },
-      { href: "/admin/customers", label: "Customers" },
-      { href: "/admin/invoices", label: "Invoices" },
+      { href: "/admin/customers", label: "Clients" },
+      { href: "/admin/invoices", label: "Billing" },
     ],
   },
   {
-    id: "content",
-    label: "Content",
+    id: "media",
     tone: "primary",
     items: [
-      { href: "/admin/content", label: "Incoming" },
+      { href: "/admin/content", label: "Media" },
       { href: "/admin/review", label: "Review" },
     ],
   },
   {
-    id: "workspace",
-    label: "Workspace",
+    id: "settings",
     tone: "primary",
     items: [{ href: "/admin/settings", label: "Settings" }],
   },
   {
-    id: "system",
-    label: "System Tools",
+    id: "advanced",
     tone: "system",
     items: [
-      { href: "/admin/media", label: "Media Processing" },
-      { href: "/admin/portfolio", label: "Portfolio Engine" },
+      { href: "/admin/media", label: "Processing" },
+      { href: "/admin/portfolio", label: "Showcase" },
     ],
   },
 ];
@@ -78,7 +75,7 @@ export default function AdminSidebar() {
         <AdminBrandLockup size="rail" />
       </div>
 
-      <nav className="dash-rail-nav" aria-label="Admin workspace">
+      <nav className="dash-rail-nav" aria-label="Navigation">
         {NAV_SECTIONS.map((section) => (
           <div
             key={section.id}
@@ -86,7 +83,9 @@ export default function AdminSidebar() {
               section.tone === "system" ? " is-system" : ""
             }`}
           >
-            <p className="dash-rail-section-label">{section.label}</p>
+            {section.label ? (
+              <p className="dash-rail-section-label">{section.label}</p>
+            ) : null}
             <div className="dash-rail-section-links">
               {section.items.map((item) => {
                 const active = pathname.startsWith(item.href);
@@ -99,7 +98,7 @@ export default function AdminSidebar() {
                     className={`dash-rail-link${active ? " is-active" : ""}`}
                     aria-label={
                       showJobsBadge
-                        ? `Jobs, ${jobsBadge} unread customer replies`
+                        ? `Jobs, ${jobsBadge} unread replies`
                         : undefined
                     }
                   >

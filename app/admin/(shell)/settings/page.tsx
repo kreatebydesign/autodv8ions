@@ -16,7 +16,7 @@ export default function AdminSettingsPage() {
     <div className="space-y-6">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-[var(--dv8-muted)]">
-          System
+          Account
         </p>
         <h1 className="mt-2 text-3xl font-light tracking-tight">Settings</h1>
       </div>

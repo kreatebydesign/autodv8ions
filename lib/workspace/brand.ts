@@ -16,7 +16,10 @@ export type WorkspaceBusinessType =
 export type WorkspaceBrand = {
   /** Primary shop / product name shown in the shell. */
   brandName: string;
-  /** Restrained editorial kicker above the brand name. */
+  /**
+   * Optional kicker — reserved for future deploy config.
+   * Not shown in the AutoDV8ions shell (mark + brandName only).
+   */
   workspaceLabel: string;
   /** Square or compact mark for rail / mobile identity. */
   logoMark: string;
@@ -36,7 +39,7 @@ export type WorkspaceBrand = {
  */
 export const workspaceBrand: WorkspaceBrand = {
   brandName: "AutoDV8ions",
-  workspaceLabel: "Workspace",
+  workspaceLabel: "",
   /** Square mark — readable at ~52–56px in the shell rail. */
   logoMark: "/images/logos/autodv8ions-hero-logo.png",
   /** Wide wordmark — print / marketing surfaces. */

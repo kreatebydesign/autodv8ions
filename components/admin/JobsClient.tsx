@@ -1,12 +1,29 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import JobCommunication from "@/components/admin/JobCommunication";
 import JobStatusBadge from "@/components/admin/JobStatusBadge";
 import { JOB_STATUSES, SERVICE_TYPES } from "@/lib/constants/jobs";
-import type { Job } from "@/lib/types/database";
-import { buildCalendarDetails, formatCustomerName, formatDate, formatDateTimeNy, formatVehicleShort } from "@/lib/utils/format";
+import { statusesMatchingFilter } from "@/lib/jobs/status-filter";
+import type { Invoice, Job } from "@/lib/types/database";
+import {
+  buildCalendarDetails,
+  formatCurrency,
+  formatCustomerName,
+  formatDate,
+  formatDateTimeNy,
+  formatEmailLink,
+  formatPhoneDisplay,
+  formatPhoneLink,
+  formatVehicleShort,
+} from "@/lib/utils/format";
 import {
   buildGoogleWorkspaceReconnectHref,
   isGmailAuthorizationErrorCode,
@@ -18,7 +35,6 @@ type Feedback = {
   code?: string | null;
 };
 
-/** Default picker value: tomorrow 10:00 local (treated as America/New_York wall time on create). */
 function defaultAppointmentLocalValue() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -31,12 +47,10 @@ function defaultAppointmentLocalValue() {
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
 }
 
-/** Prefill datetime-local from an ISO timestamp in America/New_York. */
 function toNyDatetimeLocal(value?: string | null) {
   if (!value) return defaultAppointmentLocalValue();
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return defaultAppointmentLocalValue();
-
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York",
     year: "numeric",
@@ -46,40 +60,174 @@ function toNyDatetimeLocal(value?: string | null) {
     minute: "2-digit",
     hourCycle: "h23",
   }).formatToParts(date);
-
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value || "";
-
   const year = get("year");
   const month = get("month");
   const day = get("day");
   let hour = get("hour");
   const minute = get("minute");
   if (hour === "24") hour = "00";
-
   if (!year || !month || !day || !hour || !minute) {
     return defaultAppointmentLocalValue();
   }
-
   return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+function normalizeSearch(value: unknown) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function digitsOnly(value: unknown) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function matchesJob(job: Job, query: string) {
+  if (!query) return true;
+  const customer = job.customers;
+  const vehicle = job.vehicles;
+  const haystack = [
+    formatCustomerName(customer),
+    customer?.phone,
+    customer?.email,
+    digitsOnly(customer?.phone),
+    vehicle?.year,
+    vehicle?.make,
+    vehicle?.model,
+    formatVehicleShort(vehicle),
+    job.service_type,
+  ]
+    .map(normalizeSearch)
+    .join(" ");
+  return haystack.includes(query);
+}
+
+function jobSubline(job: Job) {
+  const parts = [
+    formatVehicleShort(job.vehicles),
+    job.service_type,
+    job.tint_percentage || null,
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
+function PrivateNotesEditor({
+  savedNotes,
+  disabled,
+  saving,
+  onSave,
+}: {
+  savedNotes: string;
+  disabled: boolean;
+  saving: boolean;
+  onSave: (notes: string) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState(savedNotes);
+  const dirty = draft !== (savedNotes || "");
+
+  return (
+    <>
+      <textarea
+        className="admin-input mt-2"
+        value={draft}
+        disabled={disabled}
+        onChange={(event) => setDraft(event.target.value)}
+        placeholder="Shop notes visible only to the team…"
+      />
+      <div className="jobs-actions jobs-actions--tight">
+        <button
+          type="button"
+          className="admin-btn admin-btn-primary"
+          disabled={disabled || !dirty}
+          onClick={() => onSave(draft)}
+        >
+          {saving ? "Saving…" : "Save private notes"}
+        </button>
+        {dirty && !saving ? (
+          <span className="text-xs text-[var(--dv8-muted)]">Unsaved changes</span>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+function AppointmentNotesField({
+  savedNotes,
+  disabled,
+  saving,
+  onDraftChange,
+  onSave,
+}: {
+  savedNotes: string;
+  disabled: boolean;
+  saving: boolean;
+  onDraftChange: (draft: string) => void;
+  onSave: (draft: string) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState(savedNotes);
+  const dirty = draft !== (savedNotes || "");
+
+  const handleChange = (value: string) => {
+    setDraft(value);
+    onDraftChange(value);
+  };
+
+  return (
+    <>
+      <textarea
+        id="appointment-notes"
+        className="admin-input mt-2 min-h-[4.5rem]"
+        value={draft}
+        disabled={disabled}
+        onChange={(event) => handleChange(event.target.value)}
+        placeholder="Drop off at 8:00 · Needs vehicle back by 3:00"
+      />
+      {dirty ? (
+        <div className="jobs-actions jobs-actions--tight">
+          <button
+            type="button"
+            className="admin-btn"
+            disabled={disabled}
+            onClick={() => onSave(draft)}
+          >
+            {saving ? "Saving…" : "Save appointment notes"}
+          </button>
+        </div>
+      ) : null}
+    </>
+  );
 }
 
 export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const selectedId = searchParams.get("jobId");
+  const statusFilter = searchParams.get("status") || "";
+  const serviceFilter = searchParams.get("serviceType") || "";
   const [jobs, setJobs] = useState(initialJobs);
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => searchParams.get("jobId"),
-  );
-  const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [status, setStatus] = useState(searchParams.get("status") || "");
-  const [serviceType, setServiceType] = useState(searchParams.get("serviceType") || "");
+  const [query, setQuery] = useState("");
+  const urlJobId = searchParams.get("jobId");
+  const [mobileUi, setMobileUi] = useState(() => ({
+    detailHidden: !urlJobId,
+    seenUrlJobId: urlJobId,
+  }));
+  if (urlJobId !== mobileUi.seenUrlJobId) {
+    setMobileUi({
+      seenUrlJobId: urlJobId,
+      detailHidden: urlJobId ? false : mobileUi.detailHidden,
+    });
+  }
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loading, setLoading] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
-  const [draftNotes, setDraftNotes] = useState("");
-  const [appointmentLocal, setAppointmentLocal] = useState("");
+  const [appointmentNotesDraft, setAppointmentNotesDraft] = useState("");
+  const [appointmentLocal, setAppointmentLocal] = useState(
+    defaultAppointmentLocalValue,
+  );
   const [scheduling, setScheduling] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -87,20 +235,54 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingJob, setDeletingJob] = useState(false);
-  const [draftAppointmentNotes, setDraftAppointmentNotes] = useState("");
   const [savingAppointmentNotes, setSavingAppointmentNotes] = useState(false);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
+  const [fetchingJob, setFetchingJob] = useState(false);
 
-  const selected = jobs.find((job) => job.id === selectedId) || null;
-  const notesDirty =
-    selected !== null && draftNotes !== (selected.internal_notes || "");
-  const appointmentNotesDirty =
-    selected !== null &&
-    draftAppointmentNotes !== (selected.appointment_notes || "");
+  const normalizedQuery = normalizeSearch(query);
+  const matchingStatuses = useMemo(
+    () => statusesMatchingFilter(statusFilter || null),
+    [statusFilter],
+  );
 
-  useEffect(() => {
-    const fromUrl = searchParams.get("jobId");
-    setSelectedId(fromUrl);
-  }, [searchParams]);
+  const visibleJobs = useMemo(
+    () =>
+      jobs.filter((job) => {
+        if (
+          matchingStatuses &&
+          !matchingStatuses.includes(String(job.status))
+        ) {
+          return false;
+        }
+        if (serviceFilter && job.service_type !== serviceFilter) {
+          return false;
+        }
+        return matchesJob(job, normalizedQuery);
+      }),
+    [jobs, matchingStatuses, serviceFilter, normalizedQuery],
+  );
+
+  const selected = useMemo(() => {
+    if (selectedId) {
+      return (
+        jobs.find((job) => job.id === selectedId) ??
+        visibleJobs.find((job) => job.id === selectedId) ??
+        null
+      );
+    }
+    return visibleJobs[0] ?? null;
+  }, [selectedId, jobs, visibleJobs]);
+
+  const jobMissing = Boolean(
+    selectedId && !jobs.some((job) => job.id === selectedId),
+  );
+  const detailLoading = fetchingJob || jobMissing;
+  const mobileShowDetail = Boolean(selected) && !mobileUi.detailHidden;
+
+  const handleAppointmentNotesDraft = useCallback((draft: string) => {
+    setAppointmentNotesDraft(draft);
+  }, []);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -114,14 +296,74 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   }, [selectedId, searchParams]);
 
   useEffect(() => {
-    if (selected) {
-      setDraftNotes(selected.internal_notes || "");
-      setDraftAppointmentNotes(selected.appointment_notes || "");
-    } else {
-      setDraftNotes("");
-      setDraftAppointmentNotes("");
+    if (!selectedId || jobs.some((job) => job.id === selectedId)) {
+      return;
     }
-  }, [selectedId, selected?.internal_notes, selected?.appointment_notes]);
+
+    let cancelled = false;
+    (async () => {
+      setFetchingJob(true);
+      try {
+        const res = await fetch(`/api/jobs/${selectedId}`, {
+          credentials: "include",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok && data.job) {
+          setJobs((current) => {
+            if (current.some((job) => job.id === data.job.id)) {
+              return current.map((job) =>
+                job.id === data.job.id ? data.job : job,
+              );
+            }
+            return [data.job, ...current];
+          });
+        }
+      } finally {
+        if (!cancelled) setFetchingJob(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, jobs]);
+
+  useEffect(() => {
+    const jobId = selected?.id;
+    if (!jobId) {
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setInvoicesLoading(true);
+      try {
+        const res = await fetch(
+          `/api/invoices?jobId=${encodeURIComponent(jobId)}`,
+          { credentials: "include" },
+        );
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok) {
+          setInvoices((data.invoices as Invoice[]) || []);
+        } else {
+          setInvoices([]);
+        }
+      } finally {
+        if (!cancelled) setInvoicesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected?.id]);
+
+  function pushJobsQuery(params: URLSearchParams) {
+    const qs = params.toString();
+    router.push(qs ? `/admin/jobs?${qs}` : "/admin/jobs");
+  }
 
   function resetDetailChrome() {
     setAppointmentLocal(defaultAppointmentLocalValue());
@@ -133,6 +375,30 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     setShowDeleteConfirm(false);
     setDeletingJob(false);
     setSavingAppointmentNotes(false);
+  }
+
+  function buildJobsHref(jobId?: string | null) {
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    if (serviceFilter) params.set("serviceType", serviceFilter);
+    if (jobId) params.set("jobId", jobId);
+    const section = searchParams.get("section");
+    if (jobId && section) params.set("section", section);
+    const qs = params.toString();
+    return qs ? `/admin/jobs?${qs}` : "/admin/jobs";
+  }
+
+  function selectJob(id: string) {
+    if (id !== selectedId) {
+      resetDetailChrome();
+      setFeedback(null);
+      setInvoices([]);
+      setInvoicesLoading(false);
+      const job = jobs.find((item) => item.id === id);
+      setAppointmentNotesDraft(job?.appointment_notes || "");
+    }
+    setMobileUi((current) => ({ ...current, detailHidden: false }));
+    router.push(buildJobsHref(id));
   }
 
   async function handleDeleteJob(jobId: string) {
@@ -150,7 +416,9 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       }
       setJobs((current) => current.filter((job) => job.id !== jobId));
       resetDetailChrome();
-      setSelectedId(null);
+      setInvoices([]);
+      setInvoicesLoading(false);
+      setMobileUi((current) => ({ ...current, detailHidden: true }));
       setFeedback({
         type: "success",
         text: "Job deleted. Related invoices and appointment notes for that job were removed.",
@@ -163,64 +431,10 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     }
   }
 
-  function buildJobsHref(jobId?: string | null) {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (status) params.set("status", status);
-    if (serviceType) params.set("serviceType", serviceType);
-    if (jobId) params.set("jobId", jobId);
-    const qs = params.toString();
-    return qs ? `/admin/jobs?${qs}` : "/admin/jobs";
-  }
-
-  function selectJob(id: string) {
-    if (id !== selectedId) {
-      resetDetailChrome();
-    }
-    setSelectedId(id);
-    router.push(buildJobsHref(id));
-  }
-
-  function backToJobs() {
-    resetDetailChrome();
-    setSelectedId(null);
-    setFeedback(null);
-    router.push(buildJobsHref(null));
-  }
-
-  useEffect(() => {
-    if (selected && !selected.google_calendar_event_id) {
-      setAppointmentLocal((current) => current || defaultAppointmentLocalValue());
-      setShowReschedule(false);
-      setShowCancelConfirm(false);
-    }
-  }, [selectedId, selected?.google_calendar_event_id, selected]);
-
-  async function refreshJobs() {
-    setFeedback(null);
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (status) params.set("status", status);
-    if (serviceType) params.set("serviceType", serviceType);
-
-    const res = await fetch(`/api/jobs?${params.toString()}`, {
-      credentials: "include",
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      setFeedback({ type: "error", text: data.error || "Failed to load jobs." });
-      return;
-    }
-
-    setJobs(data.jobs || []);
-    setFeedback({ type: "success", text: "Jobs refreshed." });
-  }
-
   async function updateJob(
     id: string,
     payload: Record<string, unknown>,
-    options?: { optimistic?: Partial<Job>; rollback?: Job },
+    options?: { rollback?: Job },
   ) {
     const res = await fetch(`/api/jobs/${id}`, {
       method: "PATCH",
@@ -238,7 +452,9 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
 
     if (!res.ok) {
       if (options?.rollback) {
-        setJobs((prev) => prev.map((job) => (job.id === id ? options.rollback! : job)));
+        setJobs((prev) =>
+          prev.map((job) => (job.id === id ? options.rollback! : job)),
+        );
       }
       setFeedback({
         type: "error",
@@ -280,18 +496,18 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     }
   }
 
-  async function handleSaveNotes() {
+  async function handleSaveNotes(notes: string) {
     if (!selected) return;
 
     setSavingNotes(true);
     setFeedback(null);
 
-    const ok = await updateJob(selected.id, { internalNotes: draftNotes });
+    const ok = await updateJob(selected.id, { internalNotes: notes });
 
     setSavingNotes(false);
 
     if (ok) {
-      setFeedback({ type: "success", text: "Internal notes saved." });
+      setFeedback({ type: "success", text: "Private notes saved." });
     }
   }
 
@@ -316,13 +532,15 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
         body: JSON.stringify({
           action: "create-calendar-event",
           startDateTime: appointmentLocal,
-          appointmentNotes: draftAppointmentNotes.trim() || null,
+          appointmentNotes:
+            appointmentNotesDraft.trim() ||
+            selected?.appointment_notes?.trim() ||
+            null,
         }),
       });
 
       let data: {
         job?: Job;
-        event?: unknown;
         error?: string;
         code?: string;
       } = {};
@@ -396,7 +614,10 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       body: JSON.stringify({
         action: "update-calendar-event",
         startDateTime: appointmentLocal,
-        appointmentNotes: draftAppointmentNotes.trim() || null,
+        appointmentNotes:
+          appointmentNotesDraft.trim() ||
+          selected?.appointment_notes?.trim() ||
+          null,
       }),
     });
     const data = await res.json();
@@ -475,13 +696,15 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     setShowReschedule(true);
   }
 
-  async function saveAppointmentNotes() {
-    if (!selected || !appointmentNotesDirty) return;
+  async function saveAppointmentNotes(notesDraft: string) {
+    if (!selected) return;
+    const notesValue = notesDraft.trim() || null;
+    if ((notesDraft.trim() || "") === (selected.appointment_notes || "")) {
+      return;
+    }
 
     setSavingAppointmentNotes(true);
     setFeedback(null);
-
-    const notesValue = draftAppointmentNotes.trim() || null;
     const ok = await updateJob(selected.id, { appointmentNotes: notesValue });
 
     if (!ok) {
@@ -489,7 +712,6 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       return;
     }
 
-    // If a Calendar event is linked, refresh its description without changing time.
     if (selected.google_calendar_event_id && selected.scheduled_at) {
       const startDateTime =
         appointmentLocal.trim() || toNyDatetimeLocal(selected.scheduled_at);
@@ -539,582 +761,557 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     deletingJob ||
     savingAppointmentNotes;
   const hasAppointment = Boolean(selected?.google_calendar_event_id);
-  const detailMode = Boolean(selectedId);
   const needsGoogleReconnect = isGmailAuthorizationErrorCode(feedback?.code);
   const googleReconnectHref = buildGoogleWorkspaceReconnectHref(
-    selectedId ? `/admin/jobs?jobId=${selectedId}` : "/admin/jobs",
+    selected?.id ? `/admin/jobs?jobId=${selected.id}` : "/admin/jobs",
   );
 
-  if (detailMode) {
-    if (!selected) {
-      return (
-        <div className="space-y-6">
-          <button type="button" className="job-back" onClick={backToJobs}>
-            ← Back to Jobs
-          </button>
-          <div className="job-section">
-            <p className="job-value">Job not found</p>
-            <p className="job-meta mt-2">
-              This job may have been filtered out or is no longer available.
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    const vehicleExtra = [selected.vehicles?.color, selected.vehicles?.vehicle_type]
-      .filter(Boolean)
-      .join(" · ");
-
-    return (
-      <div key={selected.id} className="job-profile">
-        <header className="job-header">
-          <div className="job-header-top">
-            <button type="button" className="job-back" onClick={backToJobs}>
-              ← Back to Jobs
-            </button>
-            <button
-              type="button"
-              className="admin-btn"
-              onClick={() => router.push(`/admin/invoices/new?jobId=${selected.id}`)}
-            >
-              New Invoice
-            </button>
-          </div>
-
-          <div className="job-header-main">
-            <div className="min-w-0">
-              <p className="job-header-kicker">Job Profile</p>
-              <h1 className="job-header-name">
-                {formatCustomerName(selected.customers)}
-              </h1>
-              <p className="job-header-sub">
-                {formatVehicleShort(selected.vehicles)}
-                {" · "}
-                {selected.service_type}
-                {selected.tint_percentage ? ` · ${selected.tint_percentage}` : ""}
-              </p>
-              <p className="job-header-meta">
-                Created {formatDate(selected.created_at)}
-              </p>
-            </div>
-
-            <div className="job-status-panel">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="admin-label mb-0">Status</p>
-                {savingStatus ? (
-                  <span className="text-xs text-[var(--dv8-muted)]">Saving…</span>
-                ) : (
-                  <JobStatusBadge status={selected.status} />
-                )}
-              </div>
-              <select
-                className="admin-input"
-                value={selected.status}
-                disabled={detailDisabled}
-                onChange={(e) => handleStatusChange(e.target.value)}
-              >
-                {JOB_STATUSES.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </header>
-
-        {feedback && (
-          <div
-            className={`admin-panel px-4 py-3 text-sm ${
-              feedback.type === "success"
-                ? "border-[rgba(34,197,94,0.35)] text-green-300"
-                : "border-[rgba(239,68,68,0.35)] text-red-300"
-            }`}
-          >
-            <p>{feedback.text}</p>
-            {needsGoogleReconnect ? (
-              <p className="mt-3">
-                <a className="admin-btn admin-btn-primary" href={googleReconnectHref}>
-                  Reconnect Google Workspace
-                </a>
-              </p>
-            ) : null}
-          </div>
-        )}
-
-        <div className="job-grid-2">
-          <section className="job-section job-section--info">
-            <h2 className="job-section-title">Customer</h2>
-            <div className="job-field-grid">
-              <div className="job-field job-field--wide">
-                <p className="admin-label">Name</p>
-                <p className="job-value">{formatCustomerName(selected.customers)}</p>
-              </div>
-              <div className="job-field">
-                <p className="admin-label">Phone</p>
-                {selected.customers?.phone ? (
-                  <a
-                    className="job-value job-field-link"
-                    href={`tel:${selected.customers.phone}`}
-                  >
-                    {selected.customers.phone}
-                  </a>
-                ) : (
-                  <p className="job-meta">—</p>
-                )}
-              </div>
-              <div className="job-field">
-                <p className="admin-label">Email</p>
-                {selected.customers?.email ? (
-                  <p className="job-value break-all">{selected.customers.email}</p>
-                ) : (
-                  <p className="job-meta">—</p>
-                )}
-              </div>
-            </div>
-            <div className="job-actions">
-              {selected.customers?.phone && (
-                <a className="admin-btn" href={`tel:${selected.customers.phone}`}>
-                  Call
-                </a>
-              )}
-            </div>
-          </section>
-
-          <section className="job-section job-section--info">
-            <h2 className="job-section-title">Vehicle &amp; Service</h2>
-            <div className="job-field-grid">
-              <div className="job-field job-field--wide">
-                <p className="admin-label">Vehicle</p>
-                <p className="job-value">{formatVehicleShort(selected.vehicles)}</p>
-                {vehicleExtra ? <p className="job-meta mt-1">{vehicleExtra}</p> : null}
-              </div>
-              <div className="job-field">
-                <p className="admin-label">Service</p>
-                <p className="job-value">{selected.service_type}</p>
-              </div>
-              <div className="job-field">
-                <p className="admin-label">Tint</p>
-                <p className="job-value">{selected.tint_percentage || "—"}</p>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <section className="job-section job-section--ops">
-          <div className="job-section-head">
-            <div>
-              <h2 className="job-section-title">Appointment</h2>
-              <p className="job-section-lede">
-                America/New_York · 2-hour default duration
-              </p>
-            </div>
-            {hasAppointment && <span className="job-pill">Scheduled</span>}
-          </div>
-
-          <div className="job-appt-frame">
-            <label className="admin-label" htmlFor="appointment-notes">
-              Appointment Notes (optional)
-            </label>
-            <textarea
-              id="appointment-notes"
-              className="admin-input min-h-[4.5rem]"
-              value={draftAppointmentNotes}
-              disabled={detailDisabled}
-              onChange={(e) => setDraftAppointmentNotes(e.target.value)}
-              placeholder="Drop off at 8:00 · Needs vehicle back by 3:00 · Call when finished"
-            />
-            <p className="mt-2 text-xs text-[var(--dv8-muted)]">
-              Syncs to the Google Calendar event description. Internal Notes stay
-              private.
-            </p>
-            {appointmentNotesDirty && (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  className="admin-btn"
-                  disabled={detailDisabled}
-                  onClick={saveAppointmentNotes}
-                >
-                  {savingAppointmentNotes ? "Saving…" : "Save Appointment Notes"}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {hasAppointment ? (
-            <div className="space-y-4">
-              <div className="job-appt-frame">
-                <p className="admin-label mb-2">Scheduled for</p>
-                <p className="job-appt-time">
-                  {formatDateTimeNy(selected.scheduled_at)}
-                </p>
-                {!selected.scheduled_at && (
-                  <p className="job-meta mt-2">
-                    Linked to Google Calendar. Time not stored on this job.
-                  </p>
-                )}
-              </div>
-
-              {showReschedule ? (
-                <div className="space-y-3 border-t border-[var(--dv8-border)] pt-4">
-                  <div className="job-appt-frame">
-                    <label className="admin-label" htmlFor="reschedule-datetime">
-                      New date &amp; time
-                    </label>
-                    <input
-                      id="reschedule-datetime"
-                      className="admin-input"
-                      type="datetime-local"
-                      value={appointmentLocal}
-                      disabled={detailDisabled}
-                      onChange={(e) => setAppointmentLocal(e.target.value)}
-                    />
-                    <p className="mt-2 text-xs text-[var(--dv8-muted)]">
-                      Updates the existing Google event. Duration is kept when available.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className="admin-btn admin-btn-primary"
-                      disabled={detailDisabled || !appointmentLocal.trim()}
-                      onClick={() => updateCalendarEvent(selected.id)}
-                    >
-                      {rescheduling ? "Saving…" : "Save New Time"}
-                    </button>
-                    <button
-                      type="button"
-                      className="admin-btn"
-                      disabled={detailDisabled}
-                      onClick={() => setShowReschedule(false)}
-                    >
-                      Back
-                    </button>
-                  </div>
-                </div>
-              ) : showCancelConfirm ? (
-                <div className="space-y-3 border-t border-[var(--dv8-border)] pt-4">
-                  <p className="job-meta">
-                    Cancel this appointment? It will be removed from Google Calendar.
-                    Job status will stay unchanged.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className="admin-btn admin-btn-primary"
-                      disabled={detailDisabled}
-                      onClick={() => cancelCalendarEvent(selected.id)}
-                    >
-                      {cancelling ? "Cancelling…" : "Confirm Cancel"}
-                    </button>
-                    <button
-                      type="button"
-                      className="admin-btn"
-                      disabled={detailDisabled}
-                      onClick={() => setShowCancelConfirm(false)}
-                    >
-                      Keep Appointment
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="job-actions job-actions--flush">
-                  <button
-                    type="button"
-                    className="admin-btn admin-btn-primary"
-                    disabled={detailDisabled}
-                    onClick={() => openReschedule(selected)}
-                  >
-                    Reschedule
-                  </button>
-                  <button
-                    type="button"
-                    className="admin-btn"
-                    disabled={detailDisabled}
-                    onClick={() => {
-                      setShowReschedule(false);
-                      setShowCancelConfirm(true);
-                    }}
-                  >
-                    Cancel Appointment
-                  </button>
-                  <button
-                    type="button"
-                    className="admin-btn"
-                    disabled={detailDisabled}
-                    onClick={() => copyCalendarDetails(selected)}
-                  >
-                    Copy Details
-                  </button>
-                  {selected.google_calendar_event_url && (
-                    <a
-                      href={selected.google_calendar_event_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="admin-btn"
-                    >
-                      Open in Google Calendar
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="job-appt-frame">
-                <label className="admin-label" htmlFor="appointment-datetime">
-                  Date &amp; time
-                </label>
-                <input
-                  id="appointment-datetime"
-                  className="admin-input"
-                  type="datetime-local"
-                  value={appointmentLocal}
-                  disabled={detailDisabled}
-                  onChange={(e) => setAppointmentLocal(e.target.value)}
-                />
-                <p className="mt-2 text-xs text-[var(--dv8-muted)]">
-                  Required before creating a calendar event. Duration is 2 hours.
-                </p>
-              </div>
-              <div className="job-actions job-actions--flush">
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-primary"
-                  disabled={detailDisabled || !appointmentLocal.trim()}
-                  onClick={() => createCalendarEvent(selected.id)}
-                >
-                  {scheduling ? "Scheduling…" : "Schedule Appointment"}
-                </button>
-                <button
-                  type="button"
-                  className="admin-btn"
-                  disabled={detailDisabled}
-                  onClick={() => copyCalendarDetails(selected)}
-                >
-                  Copy Details
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
-
-        <JobCommunication
-          jobId={selected.id}
-          customerEmail={selected.customers?.email}
-          disabled={detailDisabled}
-        />
-
-        <div className="job-grid-2">
-          <section className="job-section job-section--notes">
-            <h2 className="job-section-title">Customer Notes</h2>
-            <p className="job-notes-body">
-              {selected.customer_notes || "No customer notes on this job."}
-            </p>
-          </section>
-
-          <section className="job-section job-section--notes">
-            <h2 className="job-section-title">Internal Notes</h2>
-            <textarea
-              className="admin-input"
-              value={draftNotes}
-              disabled={detailDisabled}
-              onChange={(e) => setDraftNotes(e.target.value)}
-              placeholder="Shop notes visible only to the team…"
-            />
-            <div className="job-actions">
-              <button
-                type="button"
-                className="admin-btn admin-btn-primary"
-                disabled={detailDisabled || !notesDirty}
-                onClick={handleSaveNotes}
-              >
-                {savingNotes ? "Saving…" : "Save Notes"}
-              </button>
-              {notesDirty && !savingNotes && (
-                <span className="text-xs text-[var(--dv8-muted)]">Unsaved changes</span>
-              )}
-            </div>
-          </section>
-        </div>
-
-        <section className="job-section border-[rgba(239,68,68,0.25)]">
-          <h2 className="job-section-title text-red-300">Delete Job</h2>
-          {!showDeleteConfirm ? (
-            <div className="space-y-3">
-              <p className="job-meta">
-                Permanently remove this job from Command Center. The customer
-                record stays unless you archive it separately.
-              </p>
-              <button
-                type="button"
-                className="admin-btn"
-                disabled={detailDisabled}
-                onClick={() => {
-                  setShowCancelConfirm(false);
-                  setShowReschedule(false);
-                  setShowDeleteConfirm(true);
-                }}
-              >
-                Delete Job…
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-red-200">
-                Delete job for{" "}
-                <span className="text-white">
-                  {formatCustomerName(selected.customers)}
-                </span>
-                {" — "}
-                <span className="text-white">{selected.service_type}</span>?
-              </p>
-              <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--dv8-muted)]">
-                <li>
-                  This job row and its customer / internal / appointment notes
-                  will be removed.
-                </li>
-                <li>Any invoices linked to this job will be deleted.</li>
-                <li>
-                  Linked Google Calendar appointment
-                  {selected.google_calendar_event_id || selected.scheduled_at
-                    ? " will be removed when possible"
-                    : " (none on this job)"}
-                  .
-                </li>
-                <li>
-                  Gmail messages stay in the sales mailbox (not stored on the
-                  job).
-                </li>
-                <li>Customer, vehicle, and website lead records are kept.</li>
-              </ul>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-primary"
-                  disabled={detailDisabled}
-                  onClick={() => handleDeleteJob(selected.id)}
-                >
-                  {deletingJob ? "Deleting…" : "Confirm Delete Job"}
-                </button>
-                <button
-                  type="button"
-                  className="admin-btn"
-                  disabled={detailDisabled}
-                  onClick={() => setShowDeleteConfirm(false)}
-                >
-                  Keep Job
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
-      </div>
-    );
-  }
+  const listActiveId = selected?.id ?? null;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-xs uppercase tracking-[0.18em] text-[var(--dv8-muted)]">
-          Operations
-        </p>
-        <h1 className="mt-2 text-3xl font-light tracking-tight">Jobs</h1>
-      </div>
-
-      <div className="admin-panel grid gap-4 p-4 md:grid-cols-4">
-        <input
-          className="admin-input md:col-span-2"
-          placeholder="Search jobs..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select
-          className="admin-input"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="">All Statuses</option>
-          {JOB_STATUSES.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-        <select
-          className="admin-input"
-          value={serviceType}
-          onChange={(e) => setServiceType(e.target.value)}
-        >
-          <option value="">All Services</option>
-          {SERVICE_TYPES.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          className="admin-btn admin-btn-primary md:col-span-4"
-          onClick={refreshJobs}
-        >
-          Apply Filters
-        </button>
-      </div>
-
-      {feedback && (
-        <div
-          className={`admin-panel px-4 py-3 text-sm ${
-            feedback.type === "success"
-              ? "border-[rgba(34,197,94,0.35)] text-green-300"
-              : "border-[rgba(239,68,68,0.35)] text-red-300"
-          }`}
-        >
-          {feedback.text}
+    <div className="jobs-workspace">
+      <div className="jobs-header">
+        <div>
+          <h1 className="jobs-title">Jobs</h1>
+          <p className="jobs-count">
+            {jobs.length} record{jobs.length === 1 ? "" : "s"}
+            {normalizedQuery || statusFilter || serviceFilter
+              ? ` · ${visibleJobs.length} shown`
+              : ""}
+          </p>
         </div>
-      )}
+        <div className="jobs-filters">
+          <div className="jobs-search-wrap">
+            <label className="sr-only" htmlFor="job-search">
+              Search jobs
+            </label>
+            <input
+              id="job-search"
+              type="search"
+              className="jobs-search-input"
+              placeholder="Search name, phone, email, vehicle, service…"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              autoComplete="off"
+            />
+            {query ? (
+              <button
+                type="button"
+                className="jobs-search-clear"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
+          <label className="sr-only" htmlFor="job-status-filter">
+            Filter by status
+          </label>
+          <select
+            id="job-status-filter"
+            className="jobs-filter-select"
+            value={statusFilter}
+            onChange={(event) => {
+              const params = new URLSearchParams(searchParams.toString());
+              const value = event.target.value;
+              if (value) params.set("status", value);
+              else params.delete("status");
+              pushJobsQuery(params);
+            }}
+          >
+            <option value="">All statuses</option>
+            {JOB_STATUSES.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+          <label className="sr-only" htmlFor="job-service-filter">
+            Filter by service
+          </label>
+          <select
+            id="job-service-filter"
+            className="jobs-filter-select"
+            value={serviceFilter}
+            onChange={(event) => {
+              const params = new URLSearchParams(searchParams.toString());
+              const value = event.target.value;
+              if (value) params.set("serviceType", value);
+              else params.delete("serviceType");
+              pushJobsQuery(params);
+            }}
+          >
+            <option value="">All services</option>
+            {SERVICE_TYPES.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
-      <div className="admin-panel overflow-x-auto">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Vehicle</th>
-              <th>Service</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {jobs.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="job-meta">
-                  No jobs match these filters.
-                </td>
-              </tr>
-            ) : (
-              jobs.map((job) => (
-                <tr
-                  key={job.id}
-                  className="cursor-pointer transition-colors hover:bg-white/[0.04]"
-                  onClick={() => selectJob(job.id)}
-                >
-                  <td className="text-[var(--dv8-white)]">
-                    {formatCustomerName(job.customers)}
-                  </td>
-                  <td className="text-[var(--dv8-text-secondary)]">
-                    {formatVehicleShort(job.vehicles)}
-                  </td>
-                  <td className="text-[var(--dv8-text-secondary)]">{job.service_type}</td>
-                  <td>
-                    <JobStatusBadge status={job.status} />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      {feedback ? (
+        <div
+          className={`jobs-feedback${
+            feedback.type === "success" ? " is-success" : " is-error"
+          }`}
+          role="status"
+        >
+          <p className="m-0">{feedback.text}</p>
+          {needsGoogleReconnect ? (
+            <p className="mt-3 mb-0">
+              <a className="admin-btn admin-btn-primary" href={googleReconnectHref}>
+                Reconnect Google Workspace
+              </a>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div
+        className={`jobs-shell${
+          mobileShowDetail && selected ? " is-detail" : ""
+        }`}
+      >
+        <div className="jobs-list" role="listbox" aria-label="Jobs">
+          {jobs.length === 0 ? (
+            <p className="jobs-empty">No jobs yet.</p>
+          ) : visibleJobs.length === 0 ? (
+            <p className="jobs-empty">No jobs match these filters.</p>
+          ) : (
+            visibleJobs.map((job) => (
+              <button
+                key={job.id}
+                type="button"
+                role="option"
+                aria-selected={listActiveId === job.id}
+                className={`jobs-row${
+                  listActiveId === job.id ? " is-active" : ""
+                }`}
+                onClick={() => selectJob(job.id)}
+              >
+                <p className="jobs-row-name">
+                  {formatCustomerName(job.customers)}
+                </p>
+                <p className="jobs-row-meta">
+                  {formatVehicleShort(job.vehicles)}
+                </p>
+                <p className="jobs-row-service">{job.service_type}</p>
+                <div className="jobs-row-aside">
+                  <JobStatusBadge status={job.status} />
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+
+        <div className="jobs-detail">
+          <button
+            type="button"
+            className="jobs-back"
+            onClick={() => {
+              setMobileUi((current) => ({ ...current, detailHidden: true }));
+              setShowDeleteConfirm(false);
+              setShowCancelConfirm(false);
+              setShowReschedule(false);
+            }}
+          >
+            ← Jobs
+          </button>
+
+          {detailLoading && selectedId && !selected ? (
+            <p className="jobs-placeholder">Loading job…</p>
+          ) : !selected ? (
+            <p className="jobs-placeholder">
+              {visibleJobs.length === 0
+                ? "No jobs match these filters."
+                : "Select a job to view status, appointment, and messages."}
+            </p>
+          ) : (
+            <div key={selected.id} className="jobs-record">
+              <header className="jobs-record-head">
+                <h2 className="jobs-detail-name">
+                  {formatCustomerName(selected.customers)}
+                </h2>
+                <p className="jobs-detail-subline">{jobSubline(selected)}</p>
+                <div className="jobs-detail-contact">
+                  {selected.customers?.phone ? (
+                    <a
+                      className="jobs-contact-link"
+                      href={formatPhoneLink(selected.customers.phone) || undefined}
+                    >
+                      {formatPhoneDisplay(selected.customers.phone)}
+                    </a>
+                  ) : (
+                    <span className="jobs-contact-muted">No phone</span>
+                  )}
+                  {selected.customers?.email ? (
+                    <a
+                      className="jobs-contact-link"
+                      href={
+                        formatEmailLink(selected.customers.email) || undefined
+                      }
+                    >
+                      {selected.customers.email}
+                    </a>
+                  ) : (
+                    <span className="jobs-contact-muted">No email</span>
+                  )}
+                </div>
+                <p className="jobs-view-client">
+                  <Link href="/admin/customers">View client</Link>
+                </p>
+              </header>
+
+              <div className="jobs-record-body">
+                <section className="jobs-panel">
+                  <h3 className="jobs-section-title">Status</h3>
+                  <div className="jobs-status-row">
+                    {savingStatus ? (
+                      <span className="text-xs text-[var(--dv8-muted)]">
+                        Saving…
+                      </span>
+                    ) : (
+                      <JobStatusBadge status={selected.status} />
+                    )}
+                  </div>
+                  <select
+                    className="jobs-status-select"
+                    value={selected.status}
+                    disabled={detailDisabled}
+                    onChange={(event) => handleStatusChange(event.target.value)}
+                  >
+                    {JOB_STATUSES.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </section>
+
+                <section className="jobs-panel">
+                  <div className="jobs-panel-head">
+                    <div>
+                      <h3 className="jobs-section-title">Appointment</h3>
+                      <p className="jobs-section-lede">
+                        America/New_York · 2-hour default duration
+                      </p>
+                    </div>
+                    {hasAppointment ? (
+                      <span className="jobs-pill">Scheduled</span>
+                    ) : null}
+                  </div>
+
+                  <label className="admin-label" htmlFor="appointment-notes">
+                    Appointment notes (optional)
+                  </label>
+                  <AppointmentNotesField
+                    key={selected.id}
+                    savedNotes={selected.appointment_notes || ""}
+                    disabled={detailDisabled}
+                    saving={savingAppointmentNotes}
+                    onDraftChange={handleAppointmentNotesDraft}
+                    onSave={saveAppointmentNotes}
+                  />
+                  <p className="mt-2 text-xs text-[var(--dv8-muted)]">
+                    Syncs to Google Calendar. Private notes stay on the job only.
+                  </p>
+
+                  {hasAppointment ? (
+                    <div className="jobs-divider">
+                      <p className="admin-label mb-2">Scheduled for</p>
+                      <p className="jobs-appt-time">
+                        {formatDateTimeNy(selected.scheduled_at)}
+                      </p>
+                      {!selected.scheduled_at ? (
+                        <p className="jobs-section-empty mt-2">
+                          Linked to Google Calendar. Time not stored on this job.
+                        </p>
+                      ) : null}
+
+                      {showReschedule ? (
+                        <div className="mt-4 space-y-3">
+                          <label
+                            className="admin-label"
+                            htmlFor="reschedule-datetime"
+                          >
+                            New date &amp; time
+                          </label>
+                          <input
+                            id="reschedule-datetime"
+                            className="admin-input"
+                            type="datetime-local"
+                            value={appointmentLocal}
+                            disabled={detailDisabled}
+                            onChange={(event) =>
+                              setAppointmentLocal(event.target.value)
+                            }
+                          />
+                          <div className="jobs-actions">
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn-primary"
+                              disabled={
+                                detailDisabled || !appointmentLocal.trim()
+                              }
+                              onClick={() => updateCalendarEvent(selected.id)}
+                            >
+                              {rescheduling ? "Saving…" : "Save new time"}
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-btn"
+                              disabled={detailDisabled}
+                              onClick={() => setShowReschedule(false)}
+                            >
+                              Back
+                            </button>
+                          </div>
+                        </div>
+                      ) : showCancelConfirm ? (
+                        <div className="mt-4 space-y-3">
+                          <p className="jobs-section-empty">
+                            Cancel this appointment? It will be removed from
+                            Google Calendar. If status is Scheduled, it returns
+                            to Contacted.
+                          </p>
+                          <div className="jobs-actions">
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn-primary"
+                              disabled={detailDisabled}
+                              onClick={() => cancelCalendarEvent(selected.id)}
+                            >
+                              {cancelling ? "Cancelling…" : "Confirm cancel"}
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-btn"
+                              disabled={detailDisabled}
+                              onClick={() => setShowCancelConfirm(false)}
+                            >
+                              Keep appointment
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="jobs-actions">
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn-primary"
+                            disabled={detailDisabled}
+                            onClick={() => openReschedule(selected)}
+                          >
+                            Reschedule
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-btn"
+                            disabled={detailDisabled}
+                            onClick={() => {
+                              setShowReschedule(false);
+                              setShowCancelConfirm(true);
+                            }}
+                          >
+                            Cancel appointment
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-btn"
+                            disabled={detailDisabled}
+                            onClick={() => copyCalendarDetails(selected)}
+                          >
+                            Copy details
+                          </button>
+                          {selected.google_calendar_event_url ? (
+                            <a
+                              href={selected.google_calendar_event_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="admin-btn"
+                            >
+                              Open in Google Calendar
+                            </a>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="jobs-divider">
+                      <label
+                        className="admin-label"
+                        htmlFor="appointment-datetime"
+                      >
+                        Date &amp; time
+                      </label>
+                      <input
+                        id="appointment-datetime"
+                        className="admin-input mt-2"
+                        type="datetime-local"
+                        value={appointmentLocal}
+                        disabled={detailDisabled}
+                        suppressHydrationWarning
+                        onChange={(event) =>
+                          setAppointmentLocal(event.target.value)
+                        }
+                      />
+                      <div className="jobs-actions">
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn-primary"
+                          disabled={
+                            detailDisabled || !appointmentLocal.trim()
+                          }
+                          onClick={() => createCalendarEvent(selected.id)}
+                        >
+                          {scheduling ? "Scheduling…" : "Schedule appointment"}
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-btn"
+                          disabled={detailDisabled}
+                          onClick={() => copyCalendarDetails(selected)}
+                        >
+                          Copy details
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </section>
+
+                <JobCommunication
+                  key={selected.id}
+                  jobId={selected.id}
+                  customerEmail={selected.customers?.email}
+                  disabled={detailDisabled}
+                />
+
+                <section className="jobs-panel">
+                  <h3 className="jobs-section-title">Notes</h3>
+                  <p className="admin-label">Client notes</p>
+                  <p className="jobs-notes-body">
+                    {selected.customer_notes || "No client notes on this job."}
+                  </p>
+                  <p className="admin-label mt-4">Private notes</p>
+                  <PrivateNotesEditor
+                    key={selected.id}
+                    savedNotes={selected.internal_notes || ""}
+                    disabled={detailDisabled}
+                    saving={savingNotes}
+                    onSave={handleSaveNotes}
+                  />
+                </section>
+
+                <section className="jobs-panel">
+                  <div className="jobs-panel-head">
+                    <h3 className="jobs-section-title">Billing</h3>
+                    <Link
+                      href={`/admin/invoices/new?jobId=${selected.id}`}
+                      className="admin-btn admin-btn-primary"
+                    >
+                      New Invoice
+                    </Link>
+                  </div>
+                  {invoicesLoading ? (
+                    <p className="jobs-section-empty">Loading invoices…</p>
+                  ) : invoices.length === 0 ? (
+                    <p className="jobs-section-empty">No invoices yet.</p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {invoices.map((invoice) => (
+                        <div key={invoice.id} className="jobs-invoice-line">
+                          <Link href={`/admin/invoices/${invoice.id}`}>
+                            Balance {formatCurrency(Number(invoice.balance_due || 0))}
+                            {invoice.paid ? " · Paid" : ""}
+                          </Link>
+                          <span className="jobs-invoice-date">
+                            {formatDate(invoice.created_at)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+
+              <section className="jobs-danger">
+                <h3 className="jobs-danger-title">Remove Job</h3>
+                {!showDeleteConfirm ? (
+                  <>
+                    <p className="jobs-danger-copy">
+                      Permanently removes this job, its notes, linked invoices,
+                      and the Google Calendar appointment when present. Customer
+                      and vehicle records stay in the system.
+                    </p>
+                    <button
+                      type="button"
+                      className="jobs-danger-btn"
+                      disabled={detailDisabled}
+                      onClick={() => {
+                        setShowCancelConfirm(false);
+                        setShowReschedule(false);
+                        setShowDeleteConfirm(true);
+                      }}
+                    >
+                      Remove Job…
+                    </button>
+                  </>
+                ) : (
+                  <div className="jobs-danger-confirm">
+                    <p className="text-sm text-red-200 m-0">
+                      Remove Job for{" "}
+                      <span className="text-white">
+                        {formatCustomerName(selected.customers)}
+                      </span>
+                      {" — "}
+                      <span className="text-white">{selected.service_type}</span>
+                      ?
+                    </p>
+                    <ul>
+                      <li>
+                        This job and its client, private, and appointment notes
+                        will be deleted.
+                      </li>
+                      <li>Invoices linked to this job will be deleted.</li>
+                      <li>
+                        Linked Google Calendar appointment
+                        {selected.google_calendar_event_id ||
+                        selected.scheduled_at
+                          ? " will be removed when possible"
+                          : " (none on this job)"}
+                        .
+                      </li>
+                      <li>
+                        Gmail messages remain in the sales mailbox (not stored on
+                        the job).
+                      </li>
+                    </ul>
+                    <div className="jobs-actions">
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-primary"
+                        disabled={detailDisabled}
+                        onClick={() => handleDeleteJob(selected.id)}
+                      >
+                        {deletingJob ? "Removing…" : "Confirm remove"}
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-btn"
+                        disabled={detailDisabled}
+                        onClick={() => setShowDeleteConfirm(false)}
+                      >
+                        Keep job
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
