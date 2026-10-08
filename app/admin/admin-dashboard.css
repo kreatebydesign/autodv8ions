@@ -155,6 +155,10 @@
 @media (min-width: 1024px) {
   .dash-rail {
     position: fixed;
+    /* Above .dash-main (position:relative; isolation:isolate; lg:pl-64).
+       Without this, main's full-width box paints over the fixed rail and
+       intercepts clicks in the left padding region while the rail stays visible. */
+    z-index: 40;
     inset: 0 auto 0 0;
     width: 16rem;
     border-bottom: 0;
