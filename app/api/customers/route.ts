@@ -11,9 +11,11 @@ export async function GET() {
     return NextResponse.json({ customers: [], configured: false });
   }
 
+  // Keep list enrichment in one nested query (same shape as the admin page).
+  // Avoids per-customer N+1 fan-out that can stall under real CRM volume.
   const { data: customers, error: customersError } = await supabase
     .from("customers")
-    .select("*")
+    .select("*, vehicles(*), jobs(*, vehicles(*)), invoices(*)")
     .is("archived_at", null)
     .order("created_at", { ascending: false });
 
@@ -21,27 +23,21 @@ export async function GET() {
     return NextResponse.json({ error: customersError.message }, { status: 500 });
   }
 
-  const enriched = await Promise.all(
-    (customers || []).map(async (customer) => {
-      const [{ data: vehicles }, { data: jobs }, { data: invoices }] =
-        await Promise.all([
-          supabase.from("vehicles").select("*").eq("customer_id", customer.id),
-          supabase
-            .from("jobs")
-            .select("*, vehicles(*)")
-            .eq("customer_id", customer.id)
-            .is("archived_at", null)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("invoices")
-            .select("*")
-            .eq("customer_id", customer.id)
-            .order("created_at", { ascending: false }),
-        ]);
-
-      return { ...customer, vehicles: vehicles || [], jobs: jobs || [], invoices: invoices || [] };
-    }),
-  );
+  const enriched = (customers || []).map((customer) => {
+    const row = customer as {
+      vehicles?: unknown[];
+      jobs?: Array<{ archived_at?: string | null }>;
+      invoices?: unknown[];
+    };
+    return {
+      ...customer,
+      vehicles: Array.isArray(row.vehicles) ? row.vehicles : [],
+      jobs: Array.isArray(row.jobs)
+        ? row.jobs.filter((job) => job.archived_at == null)
+        : [],
+      invoices: Array.isArray(row.invoices) ? row.invoices : [],
+    };
+  });
 
   return NextResponse.json({ customers: enriched, configured: true });
 }
