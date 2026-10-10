@@ -91,12 +91,14 @@
   min-width: 7.5rem;
   max-width: 10.5rem;
   min-height: 2.35rem;
-  border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 0;
-  background: transparent;
-  color: var(--jobs-muted);
-  padding: 0.45rem 1.4rem 0.45rem 0.15rem;
+  /* Opaque dark field — transparent + light text breaks native <option> menus
+     when the OS popup uses a light system chrome (common with color-scheme mismatch). */
+  color-scheme: dark;
+  background-color: rgba(0, 0, 0, 0.55);
+  color: var(--jobs-soft);
+  padding: 0.45rem 1.6rem 0.45rem 0.55rem;
   font-size: 0.78rem;
   letter-spacing: 0.01em;
   outline: none;
@@ -121,12 +123,18 @@
 
 .jobs-filter-select:focus {
   color: var(--jobs-text);
-  border-bottom-color: rgba(211, 11, 11, 0.55);
+  border-color: rgba(211, 11, 11, 0.55);
 }
 
 .jobs-filter-select:hover {
-  color: var(--jobs-soft);
-  border-bottom-color: rgba(255, 255, 255, 0.22);
+  color: var(--jobs-text);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.jobs-filter-select option,
+.jobs-status-select option {
+  background-color: #1a1a1a;
+  color: #f8f8f8;
 }
 
 .jobs-search-clear {
@@ -462,31 +470,33 @@
   width: auto;
   min-width: 11rem;
   max-width: 16rem;
-  min-height: 2.2rem;
+  min-height: 2.35rem;
   margin: 0;
-  border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 0;
-  background: transparent;
+  /* Match admin-input contrast tokens; keep compact Jobs geometry. */
+  color-scheme: dark;
+  background-color: rgba(0, 0, 0, 0.55);
   box-shadow: none;
-  padding: 0.35rem 1.4rem 0.35rem 0;
+  padding: 0.45rem 1.6rem 0.45rem 0.7rem;
   color: var(--jobs-text);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   letter-spacing: -0.01em;
   outline: none;
   cursor: pointer;
   appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, rgba(168, 168, 178, 0.7) 50%),
-    linear-gradient(135deg, rgba(168, 168, 178, 0.7) 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, rgba(168, 168, 178, 0.75) 50%),
+    linear-gradient(135deg, rgba(168, 168, 178, 0.75) 50%, transparent 50%);
   background-position:
-    calc(100% - 0.15rem) 55%,
-    calc(100% + 0.15rem) 55%;
+    calc(100% - 0.55rem) 55%,
+    calc(100% - 0.25rem) 55%;
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
 }
 
 .jobs-status-select:focus {
-  border-bottom-color: rgba(211, 11, 11, 0.5);
+  border-color: rgba(211, 11, 11, 0.55);
+  box-shadow: 0 0 0 1px rgba(211, 11, 11, 0.2);
 }
 
 .jobs-status-select:disabled {
