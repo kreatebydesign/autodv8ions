@@ -13,7 +13,7 @@ import { REMOTE_STARTER_INSTALL_PACKAGES } from "@/lib/constants/remote-starter-
 export const metadata: Metadata = {
   title: "Remote Starter Installation in Altoona, PA",
   description:
-    "Request a Compustar remote starter quote in Altoona, PA and Central Pennsylvania from AutoDV8ions — winter-ready installs, vehicle-specific compatibility review, and optional DroneMobile smartphone control.",
+    "Compustar remote starter sales and professional installation in Altoona, PA from AutoDV8ions — find the right system for your vehicle and request your quote today.",
   alternates: { canonical: "/services/remote-starters" },
 };
 
@@ -49,12 +49,23 @@ export default function RemoteStartersPage() {
     <ServicePageShell
       activeHref="/services"
       eyebrow="Winter remote start · Compustar"
-      title="Winter doesn't wait. Neither should you."
-      lead="Compustar remote start quotes for Altoona and Central Pennsylvania — we match the system to your vehicle, then follow up with pricing that reflects the install."
+      title={
+        <>
+          Winter Doesn&apos;t Wait.
+          <br />
+          Neither Should You.
+        </>
+      }
+      lead="Start your vehicle before stepping into the cold. AutoDV8ions sells and professionally installs Compustar remote starters in Altoona, PA. Find the right system for your car or truck and request your quote today."
       imageSrc="/images/editorial/night-street.jpg"
       imageAlt="Vehicle parked at night in winter conditions"
       ctaHref={CONSULTATION_HREF}
-      ctaLabel="Get started"
+      ctaLabel="GET A REMOTE START QUOTE"
+      heroImageClassName="object-cover object-center opacity-[0.58] sm:opacity-[0.62]"
+      heroOverlayClassName="absolute inset-0 bg-gradient-to-t from-[#050505]/92 via-[#050505]/55 to-black/30"
+      heroHeadingClassName="max-w-[18rem] text-[clamp(1.75rem,5.8vw,3.125rem)] font-light leading-[1.14] tracking-[-0.025em] text-balance sm:max-w-md md:max-w-xl lg:max-w-2xl"
+      heroLeadClassName="mt-5 max-w-xl text-sm leading-[1.7] text-white/58 sm:max-w-2xl sm:text-[0.95rem] md:text-base"
+      heroContentClassName="relative z-10 mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12 lg:py-28"
     >
       <section
         id="compustar"
