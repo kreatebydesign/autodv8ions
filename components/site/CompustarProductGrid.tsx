@@ -62,7 +62,7 @@ function CompustarProductCard({ product }: { product: CompustarRemoteStarterProd
         href={compustarInquiryHref(product.id)}
         className="mt-5 inline-flex w-full items-center justify-center border border-white/12 bg-white/[0.04] px-4 py-2.5 text-[0.65rem] uppercase tracking-[0.16em] text-white/75 transition-colors duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.07] hover:text-white"
       >
-        Ask about this system
+        Get a quote
       </Link>
     </article>
   );
