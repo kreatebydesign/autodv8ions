@@ -66,6 +66,9 @@ export function buildInquiryCustomerNotes(
 ) {
   return [
     inquiryType ? `Inquiry type: ${inquiryType}` : null,
+    asNullableString(body.systemInterest)
+      ? `System of interest: ${asString(body.systemInterest)}`
+      : null,
     asNullableString(body.message),
     asNullableString(body.projectGoals)
       ? `Goals: ${asString(body.projectGoals)}`

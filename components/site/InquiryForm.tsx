@@ -12,6 +12,7 @@ type InquiryType =
 
 type FieldConfig = {
   showVehicle?: boolean;
+  showSystemInterest?: boolean;
   showProjectFields?: boolean;
   submitLabel: string;
   successTitle: string;
@@ -22,7 +23,8 @@ type FieldConfig = {
 const CONFIG: Record<InquiryType, FieldConfig> = {
   remote_starter: {
     showVehicle: true,
-    submitLabel: "Request More Info",
+    showSystemInterest: true,
+    submitLabel: "Request a Quote",
     successTitle: "Request received",
     successCopy:
       "AutoDV8ions has your remote starter request. We'll review the vehicle details and follow up with next steps.",
@@ -55,16 +57,18 @@ const CONFIG: Record<InquiryType, FieldConfig> = {
 export default function InquiryForm({
   inquiryType,
   pageSource,
+  initialSystemInterest,
 }: {
   inquiryType: InquiryType;
   pageSource: string;
+  initialSystemInterest?: string;
 }) {
   const config = CONFIG[inquiryType];
   const leadTrackedRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     firstName: "",
     lastName: "",
     phone: "",
@@ -77,7 +81,8 @@ export default function InquiryForm({
     projectGoals: "",
     timeline: "",
     budgetRange: "",
-  });
+    systemInterest: initialSystemInterest ?? "",
+  }));
 
   function update(key: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -205,6 +210,20 @@ export default function InquiryForm({
             />
           </label>
         </div>
+      ) : null}
+
+      {config.showSystemInterest ? (
+        <label className="block">
+          <span className="label-mono mb-2 block text-white/35">
+            System of interest
+          </span>
+          <input
+            className="site-input"
+            value={form.systemInterest}
+            onChange={(e) => update("systemInterest", e.target.value)}
+            placeholder="Compustar model, DroneMobile, or install path"
+          />
+        </label>
       ) : null}
 
       {config.showProjectFields ? (

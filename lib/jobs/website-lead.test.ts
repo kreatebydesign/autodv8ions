@@ -23,6 +23,15 @@ describe("website-lead helpers", () => {
     assert.equal(hasVehicleData({ make: "Ford", model: "" }), true);
   });
 
+  it("includes system of interest in inquiry notes when provided", () => {
+    const notes = buildInquiryCustomerNotes(
+      { systemInterest: "PRO T13", message: "Winter install" },
+      "remote_starter",
+    );
+    assert.match(notes, /System of interest: PRO T13/);
+    assert.match(notes, /Winter install/);
+  });
+
   it("builds inquiry notes from available fields only", () => {
     const notes = buildInquiryCustomerNotes(
       {
