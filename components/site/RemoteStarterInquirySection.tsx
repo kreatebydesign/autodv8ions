@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import InquiryForm from "@/components/site/InquiryForm";
+import { scrollToRemoteStarterConsultation } from "@/components/site/remote-starter-scroll";
 import {
   COMPUSTAR_REMOTE_STARTER_PRODUCTS,
   getEnabledCompustarProducts,
@@ -60,25 +61,25 @@ export default function RemoteStarterInquirySection() {
 
   return (
     <>
-      <p className="label-mono mb-4 text-white/40">Request a quote</p>
+      <p className="label-mono mb-4 text-white/40">Get a quote</p>
       <h2 className="text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight">
-        Tell us about your vehicle
+        Send us your vehicle info
       </h2>
       <p className="mt-4 text-sm leading-relaxed text-white/45">
-        Share year, make, model, and any Compustar system you are considering
+        Year, make, model, and how you&apos;d like to use the remote start.
         {systemInterest ? (
           <>
             {" "}
-            — we&apos;ve noted{" "}
-            <span className="text-white/60">{systemInterest}</span> from your
-            selection.
+            You picked{" "}
+            <span className="text-white/60">{systemInterest}</span> — we&apos;ll
+            start there when we call you back.
           </>
         ) : (
           <>
             {" "}
-            ({compustarNames}, DroneMobile, or our in-shop install paths). We
-            review compatibility for Altoona-area installs and follow up with a
-            tailored quote — not a menu price.
+            Mention a Compustar model ({compustarNames}), DroneMobile, or one of
+            our usual install packages if you already know what you want. We
+            check fitment first, then send a real quote for your vehicle.
           </>
         )}
       </p>
@@ -96,10 +97,10 @@ export function RemoteStarterInquiryForm() {
   );
 
   useEffect(() => {
-    if (!systemId && !interest) return;
-    const node = document.getElementById("consultation");
-    if (!node) return;
-    node.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!systemId && !interest && window.location.hash !== "#consultation") {
+      return;
+    }
+    requestAnimationFrame(() => scrollToRemoteStarterConsultation());
   }, [systemId, interest]);
 
   return (

@@ -161,7 +161,7 @@ export default function SiteHeader({
 
           <Link
             href={ctaHref}
-            className="label-mono border border-white/10 bg-white/[0.03] px-3 py-2.5 text-white/70 transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.06] hover:text-white hover:shadow-[0_0_24px_var(--accent-glow)] sm:px-4"
+            className="label-mono max-w-[9.25rem] border border-white/10 bg-white/[0.03] px-2.5 py-2 text-center text-[0.625rem] leading-snug tracking-[0.1em] text-white/70 transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.06] hover:text-white hover:shadow-[0_0_24px_var(--accent-glow)] sm:max-w-none sm:px-4 sm:py-2.5 sm:text-xs sm:tracking-[0.14em]"
             onClick={closeMenu}
           >
             {ctaLabel}
