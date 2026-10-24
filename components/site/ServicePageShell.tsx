@@ -13,17 +13,42 @@ export default function ServicePageShell({
   children,
   ctaHref,
   ctaLabel,
+  heroImageClassName,
+  heroOverlayClassName,
+  heroHeadingClassName,
+  heroLeadClassName,
+  heroContentClassName,
 }: {
   activeHref: string;
   eyebrow: string;
-  title: string;
+  title: React.ReactNode;
   lead: string;
   imageSrc?: string;
   imageAlt?: string;
   children: React.ReactNode;
   ctaHref?: string;
   ctaLabel?: string;
+  /** Optional hero overrides — defaults match existing service pages. */
+  heroImageClassName?: string;
+  heroOverlayClassName?: string;
+  heroHeadingClassName?: string;
+  heroLeadClassName?: string;
+  heroContentClassName?: string;
 }) {
+  const imageClassName =
+    heroImageClassName ?? "object-cover opacity-45";
+  const overlayClassName =
+    heroOverlayClassName ??
+    "absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/85 to-black/55";
+  const headingClassName =
+    heroHeadingClassName ??
+    "max-w-3xl text-[clamp(2.25rem,5vw,4rem)] font-light tracking-[-0.02em]";
+  const leadClassName =
+    heroLeadClassName ??
+    "mt-5 max-w-xl text-sm leading-relaxed text-white/50 sm:text-base";
+  const contentClassName =
+    heroContentClassName ??
+    "relative z-10 mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-28 lg:px-12";
   return (
     <>
       <SiteHeader
@@ -39,23 +64,19 @@ export default function ServicePageShell({
                 src={imageSrc}
                 alt={imageAlt || ""}
                 fill
-                className="object-cover opacity-45"
+                className={imageClassName}
                 priority
                 sizes="100vw"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/85 to-black/55" />
+              <div className={overlayClassName} />
             </div>
           ) : (
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(201,0,0,0.08),transparent_50%)]" />
           )}
-          <div className="relative z-10 mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-28 lg:px-12">
+          <div className={contentClassName}>
             <p className="label-mono mb-4 text-white/45">{eyebrow}</p>
-            <h1 className="max-w-3xl text-[clamp(2.25rem,5vw,4rem)] font-light tracking-[-0.02em]">
-              {title}
-            </h1>
-            <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/50 sm:text-base">
-              {lead}
-            </p>
+            <h1 className={headingClassName}>{title}</h1>
+            <p className={leadClassName}>{lead}</p>
             {ctaHref && ctaLabel ? (
               <Link
                 href={ctaHref}
