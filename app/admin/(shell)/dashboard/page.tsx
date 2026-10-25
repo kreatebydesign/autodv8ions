@@ -78,7 +78,7 @@ export default async function AdminDashboardPage() {
       </header>
 
       <div className="dash-kpi-grid">
-        <StatCard label="New Jobs" value={stats.newJobs} />
+        <StatCard label="New — Awaiting Action" value={stats.newJobs} />
         <StatCard label="Scheduled Today" value={stats.scheduledToday} />
         <StatCard label="Ready For Pickup" value={stats.readyForPickup} />
         <StatCard label="Completed This Month" value={stats.completedThisMonth} />

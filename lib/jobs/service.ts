@@ -1,3 +1,4 @@
+import { getCompletedThisMonthBounds } from "@/lib/jobs/dashboard-stats";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 type TintQuoteBody = Record<string, unknown>;
@@ -102,7 +103,7 @@ export async function getDashboardStats() {
   const today = new Date();
   const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const endOfDay = new Date(startOfDay.getTime() + 86400000);
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const { periodStartIso, periodEndIso } = getCompletedThisMonthBounds(today);
 
   const [newJobs, scheduledToday, readyForPickup, completedThisMonth] =
     await Promise.all([
@@ -128,7 +129,8 @@ export async function getDashboardStats() {
         .select("id", { count: "exact", head: true })
         .eq("status", "Completed")
         .is("archived_at", null)
-        .gte("completed_at", startOfMonth.toISOString()),
+        .gte("completed_at", periodStartIso)
+        .lt("completed_at", periodEndIso),
     ]);
 
   return {

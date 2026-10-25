@@ -591,7 +591,9 @@
   margin: 0;
   padding-left: 0.55rem;
   font-size: 0.58rem;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
+  line-height: 1.35;
+  text-wrap: balance;
   text-transform: uppercase;
   color: var(--dash-text-muted);
 }
@@ -824,35 +826,103 @@
   color: rgba(255, 160, 160, 0.95);
 }
 
+.dash-snapshot-head {
+  margin-bottom: 0.35rem;
+}
+
+.dash-snapshot-meta-sep {
+  margin: 0 0.35rem;
+  opacity: 0.55;
+}
+
+.dash-snapshot-hero {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0.5rem 0 1.15rem;
+  padding: 0.85rem 0.75rem;
+  border: 1px solid var(--dash-hairline);
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: var(--dash-inset);
+}
+
+@media (max-width: 520px) {
+  .dash-snapshot-hero {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    padding: 0.9rem 0.85rem;
+  }
+}
+
+.dash-snapshot-metric {
+  text-align: center;
+  padding: 0.15rem 0.35rem;
+}
+
+.dash-snapshot-metric-value {
+  margin: 0;
+  font-size: clamp(1.65rem, 3.2vw, 2.15rem);
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: #f6f6fa;
+}
+
+.dash-snapshot-metric--accent .dash-snapshot-metric-value {
+  color: #f5c4c4;
+}
+
+.dash-snapshot-metric-label {
+  margin: 0.35rem 0 0;
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dash-text-muted);
+}
+
 .dash-snapshot-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.25rem;
+  gap: 1rem 1.25rem;
 }
 
 @media (min-width: 900px) {
   .dash-snapshot-grid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 1.1rem 1.35rem;
   }
 }
 
 .dash-snapshot-block {
-  padding: 0.15rem 0;
+  padding: 0.1rem 0;
+}
+
+.dash-snapshot-block--note {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .dash-snapshot-label {
   margin: 0;
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(200, 200, 208, 0.9);
+  color: rgba(200, 200, 208, 0.92);
 }
 
-.dash-snapshot-hint {
-  margin: 0.35rem 0 0.65rem;
-  font-size: 0.72rem;
-  line-height: 1.45;
+.dash-snapshot-sublabel {
+  margin: 0.3rem 0 0.55rem;
+  font-size: 0.68rem;
+  line-height: 1.35;
   color: var(--dash-text-muted);
+}
+
+.dash-snapshot-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: rgba(180, 180, 188, 0.95);
 }
 
 .dash-snapshot-lines {
@@ -861,19 +931,27 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.4rem;
+}
+
+.dash-snapshot-lines--tight {
+  gap: 0.35rem;
 }
 
 .dash-snapshot-lines li {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 1rem;
-  font-size: 0.84rem;
-  color: #d8d8de;
+  font-size: 0.8rem;
+  color: #d0d0d8;
 }
 
-.dash-snapshot-lines strong {
+.dash-snapshot-lines strong,
+.dash-snapshot-num {
   font-weight: 500;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
   color: #f4f4f8;
 }
 
@@ -1043,28 +1121,54 @@
   outline-offset: 2px;
 }
 
-.dash-replies-empty {
+.dash-replies.is-compact .dash-replies-head {
+  margin-bottom: 0.15rem;
+}
+
+.dash-replies.is-compact .dash-panel-head {
+  padding-bottom: 0.35rem;
+}
+
+.dash-replies-status {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-top: 0.35rem;
-  padding: 1.15rem 1rem;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.22);
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.65rem;
+  margin: 0.15rem 0 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.18);
+  font-size: 0.78rem;
+  line-height: 1.4;
 }
 
-.dash-replies-empty-title {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 400;
-  color: #ececf0;
+.dash-replies-status.is-loading {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
-.dash-replies-empty-copy {
-  margin: 0;
-  font-size: 0.8rem;
-  line-height: 1.5;
+.dash-replies-status.is-clear {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.dash-replies-status-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #e8e8ec;
+}
+
+.dash-replies-status-detail {
   color: var(--dash-text-muted);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 480px) {
+  .dash-replies-status {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
 }
 
 .dash-replies-rows {

@@ -9,13 +9,15 @@ export default function CustomerRepliesPanel() {
     useGmailNotifications();
 
   const hasUnread = count > 0 && items.length > 0;
+  const isCompactState =
+    !error && (loading || items.length === 0 || !configured);
 
   return (
     <section
-      className={`dash-panel is-primary dash-replies${hasUnread ? " is-attention" : ""}`}
+      className={`dash-panel is-primary dash-replies${hasUnread ? " is-attention" : ""}${isCompactState ? " is-compact" : ""}`}
       aria-labelledby="customer-replies-heading"
     >
-      <div className="dash-panel-head">
+      <div className="dash-panel-head dash-replies-head">
         <div>
           <div className="dash-replies-title-row">
             <h2 id="customer-replies-heading" className="dash-panel-title">
@@ -27,9 +29,11 @@ export default function CustomerRepliesPanel() {
               </span>
             ) : null}
           </div>
-          <p className="dash-panel-meta">
-            Unread Gmail replies from known clients
-          </p>
+          {!isCompactState ? (
+            <p className="dash-panel-meta">
+              Unread Gmail replies from known clients
+            </p>
+          ) : null}
         </div>
         <button
           type="button"
@@ -42,16 +46,16 @@ export default function CustomerRepliesPanel() {
       </div>
 
       {!configured ? (
-        <div className="dash-replies-empty">
-          <p className="dash-replies-empty-title">Gmail not connected</p>
-          <p className="dash-replies-empty-copy">
-            Connect sales@autodv8ions.com in Settings to surface customer replies
-            here.
-          </p>
-        </div>
+        <p className="dash-replies-status" role="status">
+          <span className="dash-replies-status-label">Gmail not connected</span>
+          <span className="dash-replies-status-detail">
+            Connect sales@autodv8ions.com in Settings to show client replies here.
+          </span>
+        </p>
       ) : loading && items.length === 0 && !error ? (
-        <p className="dash-empty" role="status">
-          Checking for replies…
+        <p className="dash-replies-status is-loading" role="status" aria-live="polite">
+          <span className="dash-replies-status-label">Checking inbox</span>
+          <span className="dash-replies-status-detail">Scanning for unread replies…</span>
         </p>
       ) : error ? (
         <div className="dash-replies-error" role="alert">
@@ -65,13 +69,12 @@ export default function CustomerRepliesPanel() {
           </button>
         </div>
       ) : items.length === 0 ? (
-        <div className="dash-replies-empty">
-          <p className="dash-replies-empty-title">Inbox clear</p>
-          <p className="dash-replies-empty-copy">
-            No unread customer replies right now. New messages will appear here
-            automatically.
-          </p>
-        </div>
+        <p className="dash-replies-status is-clear" role="status">
+          <span className="dash-replies-status-label">Inbox clear</span>
+          <span className="dash-replies-status-detail">
+            No unread client replies — new messages appear here automatically.
+          </span>
+        </p>
       ) : (
         <div className="dash-replies-rows">
           {items.map((item) => (
