@@ -16,6 +16,7 @@ function sampleThread(): ParsedGmailThread {
         direction: "incoming",
         from: "customer@example.com",
         to: "sales@autodv8ions.com",
+        cc: "",
         subject: "Tint quote follow-up",
         sentAt: "2025-01-01T12:00:00.000Z",
         messageIdHeader: "<parent@mail.gmail.com>",

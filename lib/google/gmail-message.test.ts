@@ -14,10 +14,12 @@ import {
   normalizeEmailAddress,
   parseGmailMessage,
   parseGmailThread,
+  selectBestThreadIdByLatestActivity,
   selectMostRecentThreadId,
   threadInvolvesCustomer,
   truncateBody,
 } from "./gmail-message";
+import type { ParsedGmailThread } from "./gmail-message";
 
 describe("gmail base64url", () => {
   it("decodes Gmail base64url payloads", () => {
@@ -109,6 +111,17 @@ describe("direction and unread", () => {
     );
   });
 
+  it("detects outgoing when Gmail SENT label is present", () => {
+    assert.equal(
+      detectDirection(
+        "Chris <chris@autodv8ions.com>",
+        "sales@autodv8ions.com",
+        ["SENT", "INBOX"],
+      ),
+      "outgoing",
+    );
+  });
+
   it("detects UNREAD label", () => {
     assert.equal(messageIsUnread(["INBOX", "UNREAD"]), true);
     assert.equal(messageIsUnread(["INBOX", "SENT"]), false);
@@ -163,10 +176,26 @@ describe("reply MIME headers", () => {
 });
 
 describe("thread / customer validation", () => {
-  it("builds from/to search query", () => {
+  it("builds from/to/cc search query", () => {
     assert.equal(
       buildCustomerEmailSearchQuery("Customer <Person@Example.COM>"),
-      "from:person@example.com OR to:person@example.com",
+      "(from:person@example.com OR to:person@example.com OR cc:person@example.com)",
+    );
+  });
+
+  it("includes cc when matching customer participation", () => {
+    assert.equal(
+      threadInvolvesCustomer(
+        [
+          {
+            from: "sales@autodv8ions.com",
+            to: "other@example.com",
+            cc: "customer@example.com",
+          },
+        ],
+        "customer@example.com",
+      ),
+      true,
     );
   });
 
@@ -324,5 +353,68 @@ describe("parseGmailMessage / thread", () => {
 describe("no-thread response shape helpers", () => {
   it("treats empty candidate list as no thread", () => {
     assert.equal(selectMostRecentThreadId([]), null);
+  });
+
+  it("picks thread with latest activity when multiple candidates exist", () => {
+    const older: ParsedGmailThread = {
+      id: "thread-old",
+      subject: "Old",
+      unread: false,
+      messages: [
+        {
+          gmailMessageId: "m1",
+          threadId: "thread-old",
+          direction: "incoming",
+          from: "customer@example.com",
+          to: "sales@autodv8ions.com",
+          cc: "",
+          subject: "Old",
+          sentAt: "2024-01-01T00:00:00.000Z",
+          messageIdHeader: "<1>",
+          inReplyTo: null,
+          references: null,
+          plainTextBody: "old",
+          htmlBody: null,
+          unread: false,
+          hasAttachments: false,
+        },
+      ],
+    };
+    const newer: ParsedGmailThread = {
+      id: "thread-new",
+      subject: "New",
+      unread: false,
+      messages: [
+        {
+          gmailMessageId: "m2",
+          threadId: "thread-new",
+          direction: "outgoing",
+          from: "sales@autodv8ions.com",
+          to: "customer@example.com",
+          cc: "",
+          subject: "New",
+          sentAt: "2025-06-01T00:00:00.000Z",
+          messageIdHeader: "<2>",
+          inReplyTo: null,
+          references: null,
+          plainTextBody: "sent",
+          htmlBody: null,
+          unread: false,
+          hasAttachments: false,
+        },
+      ],
+    };
+
+    assert.equal(
+      selectBestThreadIdByLatestActivity(
+        [older, newer],
+        "customer@example.com",
+        [
+          { id: "thread-old", snippet: "", historyId: null },
+          { id: "thread-new", snippet: "", historyId: null },
+        ],
+      ),
+      "thread-new",
+    );
   });
 });

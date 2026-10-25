@@ -46,6 +46,7 @@ export type Job = {
   google_calendar_event_url: string | null;
   scheduled_at: string | null;
   completed_at: string | null;
+  review_request_sent_at?: string | null;
   archived_at?: string | null;
   created_at: string;
   updated_at: string;

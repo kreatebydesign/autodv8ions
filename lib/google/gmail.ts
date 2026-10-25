@@ -22,7 +22,7 @@ import {
   normalizeEmailAddress,
   parseGmailThread,
   pickReplyParentMessage,
-  selectMostRecentThreadId,
+  selectBestThreadIdByLatestActivity,
   threadInvolvesCustomer,
   type GmailThreadCandidate,
   type ParsedGmailMessage,
@@ -206,14 +206,39 @@ export async function findThreadsForEmail(
  * Phase 1 selection: most recent matching thread (threads.list order).
  * Returns null when none found. Structured for future explicit linkage.
  */
+const GMAIL_THREAD_PICK_FULL_FETCH_MAX = 5;
+
 export async function findBestThreadIdForEmail(
   customerEmail: string,
 ): Promise<{ threadId: string | null; candidateCount: number }> {
   const candidates = await findThreadsForEmail(customerEmail);
-  return {
-    threadId: selectMostRecentThreadId(candidates),
-    candidateCount: candidates.length,
-  };
+  const candidateCount = candidates.length;
+  if (!candidateCount) {
+    return { threadId: null, candidateCount: 0 };
+  }
+  if (candidateCount === 1) {
+    return { threadId: candidates[0].id, candidateCount: 1 };
+  }
+
+  const toInspect = candidates.slice(0, GMAIL_THREAD_PICK_FULL_FETCH_MAX);
+  const parsedThreads: ParsedGmailThread[] = [];
+
+  for (const candidate of toInspect) {
+    try {
+      const { thread } = await getGmailThread(candidate.id);
+      parsedThreads.push(thread);
+    } catch {
+      // Skip threads we cannot load; continue ranking the rest.
+    }
+  }
+
+  const threadId = selectBestThreadIdByLatestActivity(
+    parsedThreads,
+    customerEmail,
+    candidates,
+  );
+
+  return { threadId, candidateCount };
 }
 
 export async function getGmailThread(threadId: string): Promise<{
@@ -294,7 +319,7 @@ export async function assertThreadBelongsToCustomer(
 
   if (
     !threadInvolvesCustomer(
-      thread.messages.map((m) => ({ from: m.from, to: m.to })),
+      thread.messages.map((m) => ({ from: m.from, to: m.to, cc: m.cc })),
       customerEmail,
     )
   ) {

@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { requireAdminSession } from "@/lib/auth/require-admin";
+import {
+  findOutboundByResendMessageId,
+  findRecentDuplicateOutbound,
+  recordJobOutboundEmail,
+} from "@/lib/crm/outbound-email";
+import { classifyJobEmailSendOutcome } from "@/lib/crm/resend-job-email";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -19,7 +25,13 @@ export async function POST(request: Request, context: RouteContext) {
 
   const { id } = await context.params;
 
-  let body: { to?: string; subject?: string; message?: string };
+  let body: {
+    to?: string;
+    subject?: string;
+    message?: string;
+    resendMessageId?: string;
+    logOnly?: boolean;
+  };
   try {
     body = await request.json();
   } catch {
@@ -29,6 +41,8 @@ export async function POST(request: Request, context: RouteContext) {
   const subject = String(body.subject || "").trim();
   const message = String(body.message || "").trim();
   const requestedTo = String(body.to || "").trim().toLowerCase();
+  const resendMessageId = String(body.resendMessageId || "").trim();
+  const logOnly = body.logOnly === true;
 
   if (!subject) {
     return NextResponse.json({ error: "Subject is required." }, { status: 400 });
@@ -75,12 +89,139 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  // Recipient must match the job customer (ignore spoofed "to" from client).
   if (requestedTo && requestedTo !== customerEmail) {
     return NextResponse.json(
       { error: "Recipient must match the customer email on this job." },
       { status: 400 },
     );
+  }
+
+  const customerName = [customer?.first_name, customer?.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  // Never resend after Resend already accepted the message — persist only.
+  if (resendMessageId && !logOnly) {
+    const existingByProviderId = await findOutboundByResendMessageId(resendMessageId);
+    if (existingByProviderId) {
+      if (existingByProviderId.job_id !== id) {
+        return NextResponse.json(
+          { error: "This send is already linked to another job." },
+          { status: 409 },
+        );
+      }
+      const payload = classifyJobEmailSendOutcome({
+        sendFailed: false,
+        resendMessageId,
+        logResult: { ok: true, id: existingByProviderId.id },
+        duplicatePrevented: true,
+      });
+      return NextResponse.json({
+        ...payload,
+        to: customerEmail,
+        customerName: customerName || null,
+      });
+    }
+
+    const logResult = await recordJobOutboundEmail({
+      jobId: id,
+      toEmail: customerEmail,
+      subject,
+      bodyText: message,
+      resendMessageId,
+    });
+
+    const payload = classifyJobEmailSendOutcome({
+      sendFailed: false,
+      resendMessageId,
+      logResult,
+    });
+
+    if (!logResult.ok) {
+      console.error("[jobs/email] outbound_log_retry_failed", {
+        jobId: id,
+        code: logResult.code,
+      });
+      return NextResponse.json(
+        { ...payload, error: "Could not save email to this job thread." },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json({
+      ...payload,
+      to: customerEmail,
+      customerName: customerName || null,
+    });
+  }
+
+  if (logOnly) {
+    if (!resendMessageId) {
+      return NextResponse.json(
+        { error: "resendMessageId is required to save without resending." },
+        { status: 400 },
+      );
+    }
+
+    const existing = await findOutboundByResendMessageId(resendMessageId);
+    if (existing && existing.job_id !== id) {
+      return NextResponse.json(
+        { error: "This send is already linked to another job." },
+        { status: 409 },
+      );
+    }
+
+    const logResult = await recordJobOutboundEmail({
+      jobId: id,
+      toEmail: customerEmail,
+      subject,
+      bodyText: message,
+      resendMessageId,
+    });
+
+    const payload = classifyJobEmailSendOutcome({
+      sendFailed: false,
+      resendMessageId,
+      logResult,
+      duplicatePrevented: Boolean(existing),
+    });
+
+    if (!logResult.ok) {
+      console.error("[jobs/email] outbound_log_retry_failed", {
+        jobId: id,
+        code: logResult.code,
+      });
+      return NextResponse.json(
+        { ...payload, error: "Could not save email to this job thread." },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json({
+      ...payload,
+      to: customerEmail,
+      customerName: customerName || null,
+    });
+  }
+
+  const recentDuplicate = await findRecentDuplicateOutbound({
+    jobId: id,
+    subject,
+    bodyText: message,
+  });
+  if (recentDuplicate) {
+    const payload = classifyJobEmailSendOutcome({
+      sendFailed: false,
+      resendMessageId: recentDuplicate.resend_message_id,
+      logResult: { ok: true, id: recentDuplicate.id },
+      duplicatePrevented: true,
+    });
+    return NextResponse.json({
+      ...payload,
+      to: customerEmail,
+      customerName: customerName || null,
+    });
   }
 
   const apiKey = process.env.RESEND_API_KEY;
@@ -92,12 +233,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const resend = new Resend(apiKey);
-  const customerName = [customer?.first_name, customer?.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-
-  const { error: sendError } = await resend.emails.send({
+  const { data: sendData, error: sendError } = await resend.emails.send({
     from: "AutoDV8ions Sales <sales@autodv8ions.com>",
     to: customerEmail,
     replyTo: "sales@autodv8ions.com",
@@ -110,16 +246,44 @@ export async function POST(request: Request, context: RouteContext) {
   });
 
   if (sendError) {
-    console.error("[jobs/email] Resend error:", sendError);
-    return NextResponse.json(
-      { error: sendError.message || "Email failed to send." },
-      { status: 500 },
-    );
+    console.error("[jobs/email] resend_send_failed", { jobId: id });
+    const payload = classifyJobEmailSendOutcome({
+      sendFailed: true,
+      sendErrorMessage: sendError.message || "Email failed to send.",
+    });
+    return NextResponse.json(payload, { status: 500 });
   }
 
-  return NextResponse.json({
-    success: true,
-    to: customerEmail,
-    customerName: customerName || null,
+  const providerMessageId = sendData?.id?.trim() || null;
+  const logResult = await recordJobOutboundEmail({
+    jobId: id,
+    toEmail: customerEmail,
+    subject,
+    bodyText: message,
+    resendMessageId: providerMessageId,
   });
+
+  const payload = classifyJobEmailSendOutcome({
+    sendFailed: false,
+    resendMessageId: providerMessageId,
+    logResult,
+  });
+
+  if (!logResult.ok) {
+    console.error("[jobs/email] outbound_log_failed", {
+      jobId: id,
+      code: logResult.code,
+      resendMessageId: providerMessageId ? "present" : "missing",
+    });
+  }
+
+  const status = payload.logged === false ? 202 : 200;
+  return NextResponse.json(
+    {
+      ...payload,
+      to: customerEmail,
+      customerName: customerName || null,
+    },
+    { status },
+  );
 }

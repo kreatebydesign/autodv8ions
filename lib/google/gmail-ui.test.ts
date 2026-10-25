@@ -4,8 +4,10 @@ import {
   buildGmailReconnectHref,
   buildGmailThreadUrl,
   displaySenderLabel,
+  getMessageBodyText,
   getVisibleMessages,
   hasRenderablePlainBody,
+  htmlToPlainText,
   isGmailAuthorizationErrorCode,
   isGmailTemporaryErrorCode,
 } from "./gmail-ui";
@@ -61,7 +63,21 @@ describe("gmail-ui helpers", () => {
         htmlBody: "<p>Hi</p>",
         unread: false,
       }),
-      false,
+      true,
+    );
+    assert.equal(htmlToPlainText("<p>Hello<br>there</p>"), "Hello\nthere");
+    assert.equal(
+      getMessageBodyText({
+        gmailMessageId: "1",
+        direction: "outgoing",
+        from: "sales@autodv8ions.com",
+        to: "c@example.com",
+        sentAt: null,
+        plainTextBody: "",
+        htmlBody: "<p>Sent from Gmail</p>",
+        unread: false,
+      }),
+      "Sent from Gmail",
     );
   });
 

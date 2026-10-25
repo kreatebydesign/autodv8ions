@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
+import CopyButton from "@/components/admin/CopyButton";
 import JobStatusBadge from "@/components/admin/JobStatusBadge";
+import { formatJobNumber } from "@/lib/utils/job-display";
 import {
   formatCurrency,
   formatDate,
@@ -118,6 +121,19 @@ export default function CustomersClient({
     null;
 
   const confirming = confirmId === selected?.id ? selected : null;
+
+  const sortedJobs = useMemo(() => {
+    if (!selected) return [];
+    return [...selected.jobs].sort((a, b) => {
+      const aTime = Date.parse(
+        String(a.completed_at || a.scheduled_at || a.created_at || ""),
+      );
+      const bTime = Date.parse(
+        String(b.completed_at || b.scheduled_at || b.created_at || ""),
+      );
+      return bTime - aTime;
+    });
+  }, [selected]);
 
   const appointmentCount = confirming
     ? confirming.jobs.filter(
@@ -308,22 +324,28 @@ export default function CustomersClient({
                 </h2>
                 <div className="crm-customers-detail-contact">
                   {selected.phone ? (
-                    <a
-                      className="crm-customers-contact-link"
-                      href={formatPhoneLink(selected.phone) || undefined}
-                    >
-                      {formatPhoneDisplay(selected.phone)}
-                    </a>
+                    <span className="crm-customers-contact-row">
+                      <a
+                        className="crm-customers-contact-link"
+                        href={formatPhoneLink(selected.phone) || undefined}
+                      >
+                        {formatPhoneDisplay(selected.phone)}
+                      </a>
+                      <CopyButton label="phone" value={selected.phone} />
+                    </span>
                   ) : (
                     <span className="crm-customers-contact-muted">No phone</span>
                   )}
                   {selected.email ? (
-                    <a
-                      className="crm-customers-contact-link"
-                      href={formatEmailLink(selected.email) || undefined}
-                    >
-                      {selected.email}
-                    </a>
+                    <span className="crm-customers-contact-row">
+                      <a
+                        className="crm-customers-contact-link"
+                        href={formatEmailLink(selected.email) || undefined}
+                      >
+                        {selected.email}
+                      </a>
+                      <CopyButton label="email" value={selected.email} />
+                    </span>
                   ) : (
                     <span className="crm-customers-contact-muted">No email</span>
                   )}
@@ -347,6 +369,10 @@ export default function CustomersClient({
                           <span className="crm-customers-vehicle-label">
                             {formatVehicleShort(vehicle as never)}
                           </span>
+                          <CopyButton
+                            label="vehicle"
+                            value={formatVehicleShort(vehicle as never)}
+                          />
                         </div>
                       ))}
                     </div>
@@ -355,14 +381,15 @@ export default function CustomersClient({
 
                 <section className="crm-customers-panel">
                   <h3 className="crm-customers-section-title">Job History</h3>
-                  {selected.jobs.length === 0 ? (
+                  {sortedJobs.length === 0 ? (
                     <p className="crm-customers-section-empty">No jobs yet.</p>
                   ) : (
                     <div className="crm-customers-lines">
-                      {selected.jobs.slice(0, 12).map((job) => (
-                        <div
+                      {sortedJobs.slice(0, 12).map((job) => (
+                        <Link
                           key={String(job.id)}
-                          className="crm-customers-job"
+                          href={`/admin/jobs?jobId=${String(job.id)}`}
+                          className="crm-customers-job crm-customers-job-link"
                         >
                           <div className="crm-customers-job-main">
                             <span className="crm-customers-job-vehicle">
@@ -370,6 +397,9 @@ export default function CustomersClient({
                             </span>
                             <span className="crm-customers-job-service">
                               {String(job.service_type || "Service")}
+                            </span>
+                            <span className="crm-customers-job-ref">
+                              {formatJobNumber(String(job.id))}
                             </span>
                           </div>
                           <div className="crm-customers-job-aside">
@@ -379,12 +409,15 @@ export default function CustomersClient({
                             <span className="crm-customers-job-date">
                               {formatDate(
                                 String(
-                                  job.scheduled_at || job.created_at || "",
+                                  job.completed_at ||
+                                    job.scheduled_at ||
+                                    job.created_at ||
+                                    "",
                                 ),
                               )}
                             </span>
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   )}

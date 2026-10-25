@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import EmailTemplatePicker from "@/components/admin/EmailTemplatePicker";
 import { useGmailNotificationsOptional } from "@/components/admin/GmailNotificationsProvider";
 import {
   GMAIL_REPLY_BODY_MAX_CLIENT,
   buildGoogleWorkspaceReconnectHref,
   buildGmailThreadUrl,
-  displaySenderLabel,
+  formatMessageParties,
   formatMessageTimestamp,
+  getMessageBodyText,
   getVisibleMessages,
   hasRenderablePlainBody,
   isGmailAuthorizationErrorCode,
@@ -20,12 +22,14 @@ type GmailMessage = {
   direction: "incoming" | "outgoing";
   from: string;
   to: string;
+  cc: string;
   subject: string;
   sentAt: string | null;
   plainTextBody: string;
   htmlBody: string | null;
   unread: boolean;
   hasAttachments: boolean;
+  source?: "gmail" | "resend";
 };
 
 type GmailThread = {
@@ -45,16 +49,30 @@ type GmailConversationResponse = {
   code?: string;
 };
 
+function firstContactFeedbackClass(type: "success" | "error" | "warn") {
+  if (type === "success") return "job-comm-feedback is-success";
+  if (type === "warn") return "job-comm-feedback is-warn";
+  return "job-comm-feedback is-error";
+}
+
 type JobCommunicationProps = {
   jobId: string;
   customerEmail: string | null | undefined;
   disabled?: boolean;
+  reviewUrl?: string | null;
+  bootstrapFirstContact?: { subject: string; message: string } | null;
+  pendingReviewRequest?: boolean;
+  onReviewSendSuccess?: () => void;
 };
 
 export default function JobCommunication({
   jobId,
   customerEmail,
   disabled = false,
+  reviewUrl = null,
+  bootstrapFirstContact = null,
+  pendingReviewRequest = false,
+  onReviewSendSuccess,
 }: JobCommunicationProps) {
   const email = customerEmail?.trim() || "";
   const notifications = useGmailNotificationsOptional();
@@ -69,21 +87,33 @@ export default function JobCommunication({
   const [resolvedCustomerEmail, setResolvedCustomerEmail] = useState(email);
 
   const [showEarlier, setShowEarlier] = useState(false);
-  const [replyBody, setReplyBody] = useState("");
+  const [replyBody, setReplyBody] = useState(
+    () => bootstrapFirstContact?.message ?? "",
+  );
   const [sendingReply, setSendingReply] = useState(false);
   const [replyFeedback, setReplyFeedback] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
 
-  const [showFirstContact, setShowFirstContact] = useState(false);
-  const [emailSubject, setEmailSubject] = useState("");
-  const [emailMessage, setEmailMessage] = useState("");
+  const [showFirstContact, setShowFirstContact] = useState(
+    () => Boolean(bootstrapFirstContact),
+  );
+  const [emailSubject, setEmailSubject] = useState(
+    () => bootstrapFirstContact?.subject ?? "",
+  );
+  const [emailMessage, setEmailMessage] = useState(
+    () => bootstrapFirstContact?.message ?? "",
+  );
   const [sendingFirstContact, setSendingFirstContact] = useState(false);
   const [firstContactFeedback, setFirstContactFeedback] = useState<{
-    type: "success" | "error";
+    type: "success" | "error" | "warn";
     text: string;
   } | null>(null);
+  const [pendingResendMessageId, setPendingResendMessageId] = useState<
+    string | null
+  >(null);
+  const [savingOutboundLog, setSavingOutboundLog] = useState(false);
 
   async function loadThread(options?: { soft?: boolean }) {
     if (!email) {
@@ -111,7 +141,11 @@ export default function JobCommunication({
         data = {};
       }
 
-      if (data.configured === false || data.code === "gmail_not_configured") {
+      const hasLocalThread = Boolean(data.thread?.messages?.length);
+      if (
+        (data.configured === false || data.code === "gmail_not_configured") &&
+        !hasLocalThread
+      ) {
         setConfigured(false);
         setThread(null);
         setCandidateCount(0);
@@ -120,9 +154,9 @@ export default function JobCommunication({
         return;
       }
 
-      setConfigured(true);
+      setConfigured(data.configured !== false);
 
-      if (!res.ok) {
+      if (!res.ok && !hasLocalThread) {
         setThread(null);
         setError(data.error || "Could not load Gmail conversation.");
         setErrorCode(data.code || "gmail_api_failed");
@@ -132,6 +166,18 @@ export default function JobCommunication({
       setResolvedCustomerEmail(data.customerEmail || email);
       setCandidateCount(Number(data.candidateCount || 0));
       setThread(data.thread || null);
+      if (
+        bootstrapFirstContact &&
+        data.thread?.id &&
+        !String(data.thread.id).startsWith("local-")
+      ) {
+        setReplyBody(bootstrapFirstContact.message);
+        setShowFirstContact(false);
+      }
+      if (hasLocalThread && data.error) {
+        setError(data.error);
+        setErrorCode(data.code || null);
+      }
       setShowEarlier(false);
       setErrorCode(null);
       // Mark-read happens server-side on GET; refresh nav badge/panel counts.
@@ -156,6 +202,7 @@ export default function JobCommunication({
 
   async function handleSendReply() {
     if (!thread || sendingReply || disabled) return;
+    if (thread.id.startsWith("local-")) return;
     const body = replyBody.trim();
     if (!body || body.length > GMAIL_REPLY_BODY_MAX_CLIENT) return;
 
@@ -187,6 +234,9 @@ export default function JobCommunication({
 
       setReplyBody("");
       setReplyFeedback({ type: "success", text: "Reply sent." });
+      if (pendingReviewRequest && onReviewSendSuccess) {
+        onReviewSendSuccess();
+      }
       await loadThread({ soft: true });
     } catch {
       setReplyFeedback({
@@ -215,14 +265,21 @@ export default function JobCommunication({
         body: JSON.stringify({ to: email, subject, message }),
       });
 
-      let data: { error?: string } = {};
+      let data: {
+        error?: string;
+        delivered?: boolean;
+        logged?: boolean;
+        warning?: string | null;
+        resendMessageId?: string | null;
+        duplicatePrevented?: boolean;
+      } = {};
       try {
         data = await res.json();
       } catch {
         data = {};
       }
 
-      if (!res.ok) {
+      if (!res.ok && res.status !== 202) {
         setFirstContactFeedback({
           type: "error",
           text: data.error || "Email failed to send.",
@@ -230,13 +287,30 @@ export default function JobCommunication({
         return;
       }
 
+      if (data.logged === false) {
+        setPendingResendMessageId(data.resendMessageId || null);
+        setFirstContactFeedback({
+          type: "warn",
+          text:
+            data.warning ||
+            "Email was sent, but it is not on this thread yet. Use Save to thread — do not send again.",
+        });
+        return;
+      }
+
+      setPendingResendMessageId(null);
       setEmailSubject("");
       setEmailMessage("");
       setShowFirstContact(false);
       setFirstContactFeedback({
         type: "success",
-        text: `Email sent to ${email}. Check Gmail or refresh after the customer replies.`,
+        text: data.duplicatePrevented
+          ? "This message was already sent recently. Thread refreshed."
+          : `Email sent and saved on this job thread.`,
       });
+      if (pendingReviewRequest && onReviewSendSuccess) {
+        onReviewSendSuccess();
+      }
       await loadThread({ soft: true });
     } catch {
       setFirstContactFeedback({
@@ -248,13 +322,78 @@ export default function JobCommunication({
     }
   }
 
+  async function handleSaveOutboundLog() {
+    if (!email || savingOutboundLog || disabled) return;
+    const subject = emailSubject.trim();
+    const message = emailMessage.trim();
+    if (!subject || !message) return;
+    if (!pendingResendMessageId) {
+      setFirstContactFeedback({
+        type: "error",
+        text: "Nothing to save. Send the email first or refresh the page.",
+      });
+      return;
+    }
+
+    setSavingOutboundLog(true);
+    setFirstContactFeedback(null);
+
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/email`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: email,
+          subject,
+          message,
+          logOnly: true,
+          resendMessageId: pendingResendMessageId,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.logged === false) {
+        setFirstContactFeedback({
+          type: "error",
+          text:
+            data.error ||
+            "Could not save to thread. Try again shortly or contact support.",
+        });
+        return;
+      }
+
+      setPendingResendMessageId(null);
+      setEmailSubject("");
+      setEmailMessage("");
+      setShowFirstContact(false);
+      setFirstContactFeedback({
+        type: "success",
+        text: "Saved on this job thread.",
+      });
+      if (pendingReviewRequest && onReviewSendSuccess) {
+        onReviewSendSuccess();
+      }
+      await loadThread({ soft: true });
+    } catch {
+      setFirstContactFeedback({
+        type: "error",
+        text: "Could not save to thread. Check your connection and try again.",
+      });
+    } finally {
+      setSavingOutboundLog(false);
+    }
+  }
+
   const { visible, hiddenCount } = getVisibleMessages(thread?.messages || [], {
     showAll: showEarlier,
   });
 
   const replyTooLong = replyBody.trim().length > GMAIL_REPLY_BODY_MAX_CLIENT;
+  const isLocalOnlyThread = Boolean(thread?.id?.startsWith("local-"));
   const canSendReply =
     Boolean(thread) &&
+    !isLocalOnlyThread &&
     Boolean(replyBody.trim()) &&
     !replyTooLong &&
     !sendingReply &&
@@ -385,11 +524,7 @@ export default function JobCommunication({
 
           {firstContactFeedback ? (
             <p
-              className={
-                firstContactFeedback.type === "success"
-                  ? "job-comm-feedback is-success"
-                  : "job-comm-feedback is-error"
-              }
+              className={firstContactFeedbackClass(firstContactFeedback.type)}
               role="status"
             >
               {firstContactFeedback.text}
@@ -398,6 +533,16 @@ export default function JobCommunication({
 
           {showFirstContact ? (
             <div className="job-comm-composer">
+              <EmailTemplatePicker
+                idPrefix={`job-comm-first-${jobId}`}
+                reviewUrl={reviewUrl}
+                disabled={sendingFirstContact || disabled}
+                hasDraft={Boolean(emailSubject.trim() || emailMessage.trim())}
+                onApply={(subject, body) => {
+                  setEmailSubject(subject);
+                  setEmailMessage(body);
+                }}
+              />
               <div>
                 <label className="admin-label" htmlFor={`job-comm-first-to-${jobId}`}>
                   To
@@ -450,7 +595,9 @@ export default function JobCommunication({
                   className="admin-btn admin-btn-primary"
                   disabled={
                     sendingFirstContact ||
+                    savingOutboundLog ||
                     disabled ||
+                    Boolean(pendingResendMessageId) ||
                     !emailSubject.trim() ||
                     !emailMessage.trim()
                   }
@@ -458,10 +605,25 @@ export default function JobCommunication({
                 >
                   {sendingFirstContact ? "Sending…" : "Send"}
                 </button>
+                {pendingResendMessageId ? (
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-primary"
+                    disabled={
+                      savingOutboundLog ||
+                      disabled ||
+                      !emailSubject.trim() ||
+                      !emailMessage.trim()
+                    }
+                    onClick={() => void handleSaveOutboundLog()}
+                  >
+                    {savingOutboundLog ? "Saving…" : "Save to thread"}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className="admin-btn"
-                  disabled={sendingFirstContact}
+                  disabled={sendingFirstContact || savingOutboundLog}
                   onClick={() => setShowFirstContact(false)}
                 >
                   Close
@@ -501,14 +663,16 @@ export default function JobCommunication({
               >
                 {refreshing ? "Refreshing…" : "Refresh"}
               </button>
-              <a
-                className="admin-btn"
-                href={buildGmailThreadUrl(thread.id)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open in Gmail
-              </a>
+              {!isLocalOnlyThread ? (
+                <a
+                  className="admin-btn"
+                  href={buildGmailThreadUrl(thread.id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open in Gmail
+                </a>
+              ) : null}
             </div>
           </div>
 
@@ -526,6 +690,8 @@ export default function JobCommunication({
             {visible.map((message) => {
               const outgoing = message.direction === "outgoing";
               const plainOk = hasRenderablePlainBody(message);
+              const bodyText = getMessageBodyText(message);
+              const parties = formatMessageParties(message);
               return (
                 <li
                   key={message.gmailMessageId}
@@ -538,11 +704,17 @@ export default function JobCommunication({
                   <div className="job-comm-message-head">
                     <div>
                       <p className="job-comm-message-direction">
-                        {outgoing ? "Outgoing" : "Incoming"}
+                        {outgoing ? "Sent" : "Received"}
+                        {message.source === "resend" ? " · Resend" : ""}
                       </p>
                       <p className="job-comm-message-from">
-                        {displaySenderLabel(message.from, message.direction)}
+                        {outgoing
+                          ? `To ${parties.to}`
+                          : `From ${parties.from}`}
                       </p>
+                      {message.subject?.trim() ? (
+                        <p className="job-comm-message-subject">{message.subject}</p>
+                      ) : null}
                     </div>
                     <time
                       className="job-comm-message-time"
@@ -552,11 +724,11 @@ export default function JobCommunication({
                     </time>
                   </div>
                   {plainOk ? (
-                    <p className="job-comm-message-body">{message.plainTextBody}</p>
+                    <p className="job-comm-message-body">{bodyText}</p>
                   ) : (
                     <p className="job-comm-message-fallback">
-                      This email contains HTML content. Open in Gmail to view the
-                      full message.
+                      No readable message body. Open in Gmail to view the full
+                      email.
                     </p>
                   )}
                   {message.hasAttachments ? (
@@ -567,53 +739,169 @@ export default function JobCommunication({
             })}
           </ul>
 
-          <div className="job-comm-reply">
-            <label className="admin-label" htmlFor={`job-comm-reply-${jobId}`}>
-              Reply
-            </label>
-            <textarea
-              id={`job-comm-reply-${jobId}`}
-              className="admin-input job-comm-textarea"
-              value={replyBody}
-              disabled={sendingReply || disabled}
-              onChange={(e) => {
-                setReplyBody(e.target.value);
-                if (replyFeedback) setReplyFeedback(null);
-              }}
-              placeholder="Write a reply…"
-              rows={5}
-            />
-            <div className="job-comm-composer-actions">
+          {isLocalOnlyThread ? (
+            <div className="job-comm-reply">
+              <p className="job-comm-hint">
+                Replies will use Gmail after the customer responds and a thread
+                exists. Until then, send another message with Resend.
+              </p>
               <button
                 type="button"
                 className="admin-btn admin-btn-primary"
-                disabled={!canSendReply}
-                onClick={() => void handleSendReply()}
+                disabled={disabled}
+                onClick={() => setShowFirstContact((open) => !open)}
               >
-                {sendingReply ? "Sending…" : "Send Reply"}
+                {showFirstContact ? "Hide composer" : "Email customer"}
               </button>
-              {replyTooLong ? (
-                <span className="job-comm-hint is-warn" role="status">
-                  Reply is too long (max {GMAIL_REPLY_BODY_MAX_CLIENT.toLocaleString()}{" "}
-                  characters).
-                </span>
-              ) : (
-                <span className="job-comm-hint">Sends through Gmail and stays in this thread.</span>
-              )}
+              {showFirstContact ? (
+                <div className="job-comm-composer mt-4">
+                  <EmailTemplatePicker
+                    idPrefix={`job-comm-inline-${jobId}`}
+                    reviewUrl={reviewUrl}
+                    disabled={sendingFirstContact || disabled}
+                    hasDraft={Boolean(emailSubject.trim() || emailMessage.trim())}
+                    onApply={(subject, body) => {
+                      setEmailSubject(subject);
+                      setEmailMessage(body);
+                    }}
+                  />
+                  <div>
+                    <label
+                      className="admin-label"
+                      htmlFor={`job-comm-inline-subject-${jobId}`}
+                    >
+                      Subject
+                    </label>
+                    <input
+                      id={`job-comm-inline-subject-${jobId}`}
+                      className="admin-input"
+                      type="text"
+                      value={emailSubject}
+                      disabled={sendingFirstContact || disabled}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className="admin-label"
+                      htmlFor={`job-comm-inline-message-${jobId}`}
+                    >
+                      Message
+                    </label>
+                    <textarea
+                      id={`job-comm-inline-message-${jobId}`}
+                      className="admin-input job-comm-textarea"
+                      value={emailMessage}
+                      disabled={sendingFirstContact || disabled}
+                      onChange={(e) => setEmailMessage(e.target.value)}
+                    />
+                  </div>
+                  <div className="job-comm-composer-actions">
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn-primary"
+                      disabled={
+                        sendingFirstContact ||
+                        savingOutboundLog ||
+                        disabled ||
+                        Boolean(pendingResendMessageId) ||
+                        !emailSubject.trim() ||
+                        !emailMessage.trim()
+                      }
+                      onClick={() => void handleFirstContactSend()}
+                    >
+                      {sendingFirstContact ? "Sending…" : "Send"}
+                    </button>
+                    {pendingResendMessageId ? (
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-primary"
+                        disabled={
+                          savingOutboundLog ||
+                          disabled ||
+                          !emailSubject.trim() ||
+                          !emailMessage.trim()
+                        }
+                        onClick={() => void handleSaveOutboundLog()}
+                      >
+                        {savingOutboundLog ? "Saving…" : "Save to thread"}
+                      </button>
+                    ) : null}
+                  </div>
+                  {firstContactFeedback ? (
+                    <p
+                      className={firstContactFeedbackClass(
+                        firstContactFeedback.type,
+                      )}
+                      role="status"
+                    >
+                      {firstContactFeedback.text}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
-            {replyFeedback ? (
-              <p
-                className={
-                  replyFeedback.type === "success"
-                    ? "job-comm-feedback is-success"
-                    : "job-comm-feedback is-error"
-                }
-                role="status"
-              >
-                {replyFeedback.text}
-              </p>
-            ) : null}
-          </div>
+          ) : (
+            <div className="job-comm-reply">
+              <EmailTemplatePicker
+                idPrefix={`job-comm-reply-${jobId}`}
+                reviewUrl={reviewUrl}
+                disabled={sendingReply || disabled}
+                hasDraft={Boolean(replyBody.trim())}
+                onApply={(_subject, body) => {
+                  setReplyBody(body);
+                  if (replyFeedback) setReplyFeedback(null);
+                }}
+              />
+              <label className="admin-label" htmlFor={`job-comm-reply-${jobId}`}>
+                Reply
+              </label>
+              <textarea
+                id={`job-comm-reply-${jobId}`}
+                className="admin-input job-comm-textarea"
+                value={replyBody}
+                disabled={sendingReply || disabled}
+                onChange={(e) => {
+                  setReplyBody(e.target.value);
+                  if (replyFeedback) setReplyFeedback(null);
+                }}
+                placeholder="Write a reply…"
+                rows={5}
+              />
+              <div className="job-comm-composer-actions">
+                <button
+                  type="button"
+                  className="admin-btn admin-btn-primary"
+                  disabled={!canSendReply}
+                  onClick={() => void handleSendReply()}
+                >
+                  {sendingReply ? "Sending…" : "Send Reply"}
+                </button>
+                {replyTooLong ? (
+                  <span className="job-comm-hint is-warn" role="status">
+                    Reply is too long (max{" "}
+                    {GMAIL_REPLY_BODY_MAX_CLIENT.toLocaleString()} characters).
+                  </span>
+                ) : (
+                  <span className="job-comm-hint">
+                    Sends through Gmail and stays in this thread.
+                  </span>
+                )}
+              </div>
+              {replyFeedback ? (
+                <p
+                  className={
+                    replyFeedback.type === "success"
+                      ? "job-comm-feedback is-success"
+                      : "job-comm-feedback is-error"
+                  }
+                  role="status"
+                >
+                  {replyFeedback.text}
+                </p>
+              ) : null}
+            </div>
+          )}
         </div>
       )}
     </section>

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import JobsClient from "@/components/admin/JobsClient";
+import { getGoogleReviewUrl } from "@/lib/env/google-review";
 import { getJobById, getRecentJobs } from "@/lib/jobs/service";
 import "../../admin-jobs.css";
 
@@ -25,7 +26,10 @@ export default async function AdminJobsPage({ searchParams }: JobsPageProps) {
     <Suspense
       fallback={<div className="jobs-shell-loading">Loading jobs…</div>}
     >
-      <JobsClient initialJobs={initialJobs} />
+      <JobsClient
+        initialJobs={initialJobs}
+        googleReviewUrl={getGoogleReviewUrl()}
+      />
     </Suspense>
   );
 }

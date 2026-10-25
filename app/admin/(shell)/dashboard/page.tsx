@@ -3,6 +3,10 @@ import AdminNotifications from "@/components/admin/AdminNotifications";
 import CustomerRepliesPanel from "@/components/admin/CustomerRepliesPanel";
 import StatCard from "@/components/admin/StatCard";
 import JobStatusBadge from "@/components/admin/JobStatusBadge";
+import DashboardFollowUps from "@/components/admin/DashboardFollowUps";
+import MonthlyServiceSnapshotPanel from "@/components/admin/MonthlyServiceSnapshot";
+import { listPendingFollowUpsForDashboard } from "@/lib/crm/follow-up";
+import { getMonthlyServiceSnapshot } from "@/lib/crm/monthly-snapshot";
 import {
   getDashboardStats,
   getJobIdsByCalendarEventIds,
@@ -28,7 +32,8 @@ export const revalidate = 0;
 
 export default async function AdminDashboardPage() {
   let calendarAuthFailed = false;
-  const [stats, recentJobs, recentContent, calendarEvents] = await Promise.all([
+  const [stats, recentJobs, recentContent, calendarEvents, followUps, snapshot] =
+    await Promise.all([
     getDashboardStats(),
     getRecentJobs(6),
     listContentUploadsFromDb(),
@@ -44,6 +49,8 @@ export default async function AdminDashboardPage() {
           return [];
         })
       : Promise.resolve([]),
+    listPendingFollowUpsForDashboard(12),
+    getMonthlyServiceSnapshot(),
   ]);
 
   const calendarConnected = isGoogleCalendarConfigured() && !calendarAuthFailed;
@@ -56,6 +63,8 @@ export default async function AdminDashboardPage() {
     const jobId = event.jobId || jobsByEventId.get(event.id) || null;
     return { ...event, matchedJobId: jobId };
   });
+
+  const followUpAsOfIso = new Date().toISOString();
 
   return (
     <div className="dash-page">
@@ -88,6 +97,10 @@ export default async function AdminDashboardPage() {
       </nav>
 
       <CustomerRepliesPanel />
+
+      <DashboardFollowUps items={followUps} asOfIso={followUpAsOfIso} />
+
+      <MonthlyServiceSnapshotPanel snapshot={snapshot} />
 
       <div className="dash-split">
         <section

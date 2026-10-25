@@ -512,3 +512,35 @@
     width: 100%;
   }
 }
+
+.crm-customers-contact-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.crm-customers-vehicle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.crm-customers-job-link {
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+
+.crm-customers-job-link:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.crm-customers-job-ref {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: rgba(168, 168, 178, 0.92);
+}

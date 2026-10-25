@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth/require-admin";
+import { mergeConversationMessages } from "@/lib/crm/conversation-merge";
+import { listJobOutboundEmails } from "@/lib/crm/outbound-email";
 import {
   GmailIntegrationError,
   getConversationForCustomerEmail,
@@ -50,22 +52,24 @@ function customerEmailFromJob(job: {
     .toLowerCase();
 }
 
+function syntheticThreadFromOutbound(
+  messages: ReturnType<typeof mergeConversationMessages>,
+  customerEmail: string,
+) {
+  if (messages.length === 0) return null;
+  const subject =
+    messages.find((m) => m.subject?.trim())?.subject?.trim() || "(no subject)";
+  return {
+    id: `local-${customerEmail}`,
+    subject,
+    unread: false,
+    messages,
+  };
+}
+
 export async function GET(_request: Request, context: RouteContext) {
   const { error } = await requireAdminSession();
   if (error) return error;
-
-  if (!isGoogleGmailConfigured()) {
-    return noStoreJson(
-      {
-        configured: false,
-        customerEmail: null,
-        thread: null,
-        error: "Gmail is not configured.",
-        code: "gmail_not_configured",
-      },
-      { status: 503 },
-    );
-  }
 
   const { id } = await context.params;
   const supabase = getSupabaseAdmin();
@@ -84,16 +88,41 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const customerEmail = customerEmailFromJob(job);
+  const outbound = await listJobOutboundEmails(id);
+
   if (!customerEmail || !customerEmail.includes("@")) {
     return noStoreJson(
       {
-        configured: true,
+        configured: isGoogleGmailConfigured(),
         customerEmail: null,
-        thread: null,
+        thread: syntheticThreadFromOutbound(
+          mergeConversationMessages([], outbound),
+          "",
+        ),
+        outboundCount: outbound.length,
         error: "Customer has no email.",
         code: "customer_email_missing",
       },
       { status: 400 },
+    );
+  }
+
+  if (!isGoogleGmailConfigured()) {
+    const localOnly = mergeConversationMessages([], outbound);
+    return noStoreJson(
+      {
+        configured: false,
+        customerEmail,
+        mailboxEmail: null,
+        candidateCount: 0,
+        thread: syntheticThreadFromOutbound(localOnly, customerEmail),
+        outboundCount: outbound.length,
+        error: localOnly.length
+          ? undefined
+          : "Gmail is not configured.",
+        code: localOnly.length ? undefined : "gmail_not_configured",
+      },
+      localOnly.length ? { status: 200 } : { status: 503 },
     );
   }
 
@@ -103,14 +132,46 @@ export async function GET(_request: Request, context: RouteContext) {
       markRead: true,
     });
 
+    const merged = mergeConversationMessages(
+      result.thread?.messages || [],
+      outbound,
+    );
+
+    const thread = result.thread
+      ? {
+          ...result.thread,
+          messages: merged,
+        }
+      : syntheticThreadFromOutbound(merged, customerEmail);
+
     return noStoreJson({
       configured: true,
       customerEmail,
       mailboxEmail: result.mailboxEmail,
       candidateCount: result.candidateCount,
-      thread: result.thread,
+      thread,
+      outboundCount: outbound.length,
     });
   } catch (err) {
+    if (outbound.length > 0) {
+      const merged = mergeConversationMessages([], outbound);
+      return noStoreJson({
+        configured: true,
+        customerEmail,
+        mailboxEmail: null,
+        candidateCount: 0,
+        thread: syntheticThreadFromOutbound(merged, customerEmail),
+        outboundCount: outbound.length,
+        error:
+          err instanceof GmailIntegrationError
+            ? err.message
+            : "Gmail API request failed.",
+        code:
+          err instanceof GmailIntegrationError
+            ? err.code
+            : "gmail_api_failed",
+      });
+    }
     return gmailErrorResponse(err);
   }
 }

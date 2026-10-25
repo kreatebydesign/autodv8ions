@@ -657,6 +657,16 @@
   color: #f2f2f4;
 }
 
+.job-comm-message-subject {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: #9e9ea8;
+}
+
+.job-comm-message.is-outgoing .job-comm-message-direction {
+  color: #c8c8d0;
+}
+
 .job-comm-message-time {
   font-size: 0.75rem;
   color: #9e9ea8;
@@ -698,6 +708,68 @@
   max-width: 46rem;
 }
 
+.job-comm-template-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.job-comm-template-select {
+  max-width: 16rem;
+}
+
+.admin-copy-btn {
+  flex-shrink: 0;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #c8c8d0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.admin-copy-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.admin-copy-btn.is-copied {
+  color: #b8e0c0;
+  border-color: rgba(184, 224, 192, 0.35);
+}
+
+.jobs-contact-row,
+.jobs-detail-copy-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+}
+
+.jobs-detail-copy-meta {
+  margin-top: 0.35rem;
+}
+
+.jobs-followup-presets,
+.jobs-followup-active {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.jobs-followup-overdue {
+  color: #f0b4b4;
+}
+
+.jobs-followup-reschedule {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-width: 20rem;
+}
+
 .job-comm-hint {
   font-size: 0.78rem;
   color: #9e9ea8;
@@ -718,6 +790,10 @@
 
 .job-comm-feedback.is-error {
   color: #f0b0b0;
+}
+
+.job-comm-feedback.is-warn {
+  color: #f0d4a8;
 }
 
 .job-notes-body {

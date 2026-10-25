@@ -3,17 +3,60 @@
 export const GMAIL_REPLY_BODY_MAX_CLIENT = 10_000;
 
 /** How many newest messages to show before progressive reveal. */
-export const GMAIL_VISIBLE_MESSAGE_DEFAULT = 5;
+export const GMAIL_VISIBLE_MESSAGE_DEFAULT = 12;
 
 export type CommMessageLike = {
   gmailMessageId: string;
   direction: "incoming" | "outgoing";
   from: string;
+  to?: string;
+  cc?: string;
+  subject?: string;
   sentAt: string | null;
   plainTextBody: string;
   htmlBody: string | null;
   unread: boolean;
 };
+
+const HTML_ENTITY_MAP: Record<string, string> = {
+  "&nbsp;": " ",
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#39;": "'",
+};
+
+/**
+ * Strip HTML to readable plain text for admin thread display (no raw HTML injection).
+ */
+export function htmlToPlainText(html: string): string {
+  let text = html
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\s*\/\s*p\s*>/gi, "\n\n")
+    .replace(/<\s*\/\s*div\s*>/gi, "\n")
+    .replace(/<\s*li[^>]*>/gi, "• ")
+    .replace(/<\s*\/\s*li\s*>/gi, "\n")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, "");
+
+  for (const [entity, char] of Object.entries(HTML_ENTITY_MAP)) {
+    text = text.split(entity).join(char);
+  }
+
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+export function getMessageBodyText(message: CommMessageLike): string {
+  const plain = message.plainTextBody?.trim();
+  if (plain) return message.plainTextBody;
+  if (message.htmlBody?.trim()) return htmlToPlainText(message.htmlBody);
+  return "";
+}
 
 export function buildGmailThreadUrl(threadId: string): string {
   const id = threadId.trim();
@@ -64,7 +107,26 @@ export function formatMessageTimestamp(sentAt: string | null): string {
 }
 
 export function hasRenderablePlainBody(message: CommMessageLike): boolean {
-  return Boolean(message.plainTextBody?.trim());
+  return Boolean(getMessageBodyText(message).trim());
+}
+
+export function formatMessageParties(
+  message: CommMessageLike,
+): { from: string; to: string } {
+  const from = displaySenderLabel(message.from, message.direction);
+  if (message.direction === "outgoing") {
+    const toRaw = message.to?.trim() || "Customer";
+    const toAddresses = toRaw
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const to =
+      toAddresses.length === 1
+        ? displaySenderLabel(toAddresses[0], "incoming")
+        : toRaw;
+    return { from, to };
+  }
+  return { from, to: "AutoDV8ions" };
 }
 
 export function isGmailAuthorizationErrorCode(

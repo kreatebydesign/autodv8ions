@@ -17,6 +17,7 @@ export type ParsedGmailMessage = {
   direction: GmailMessageDirection;
   from: string;
   to: string;
+  cc: string;
   subject: string;
   sentAt: string | null;
   messageIdHeader: string | null;
@@ -97,7 +98,7 @@ export function buildCustomerEmailSearchQuery(customerEmail: string): string {
     throw new Error("Invalid customer email for Gmail search");
   }
   // Quote the address so Gmail treats it as a single token.
-  return `from:${email} OR to:${email}`;
+  return `(from:${email} OR to:${email} OR cc:${email})`;
 }
 
 export function getHeader(
@@ -203,10 +204,18 @@ export function truncateBody(value: string, limit = GMAIL_BODY_CHAR_LIMIT): stri
   return `${value.slice(0, limit)}\n\n[…truncated…]`;
 }
 
+export function messageIsSent(
+  labelIds: string[] | null | undefined,
+): boolean {
+  return Array.isArray(labelIds) && labelIds.includes("SENT");
+}
+
 export function detectDirection(
   fromHeader: string,
   mailboxEmail: string,
+  labelIds?: string[] | null,
 ): GmailMessageDirection {
+  if (messageIsSent(labelIds)) return "outgoing";
   const mailbox = normalizeEmailAddress(mailboxEmail);
   const fromAddresses = extractEmailAddresses(fromHeader);
   if (fromAddresses.some((addr) => addr === mailbox)) return "outgoing";
@@ -220,7 +229,7 @@ export function messageIsUnread(
 }
 
 export function threadInvolvesCustomer(
-  messages: Array<{ from: string; to: string }>,
+  messages: Array<{ from: string; to: string; cc?: string }>,
   customerEmail: string,
 ): boolean {
   const customer = normalizeEmailAddress(customerEmail);
@@ -230,6 +239,7 @@ export function threadInvolvesCustomer(
     const parties = [
       ...extractEmailAddresses(message.from),
       ...extractEmailAddresses(message.to),
+      ...extractEmailAddresses(message.cc || ""),
     ];
     if (parties.includes(customer)) return true;
   }
@@ -308,6 +318,7 @@ export function parseGmailMessage(
   const headers = payload?.headers;
   const from = getHeader(headers, "From");
   const to = getHeader(headers, "To");
+  const cc = getHeader(headers, "Cc");
   const subject = getHeader(headers, "Subject");
   const messageIdHeader = getHeader(headers, "Message-ID") || null;
   const inReplyTo = getHeader(headers, "In-Reply-To") || null;
@@ -321,9 +332,10 @@ export function parseGmailMessage(
   return {
     gmailMessageId: String(message.id || ""),
     threadId: String(message.threadId || ""),
-    direction: detectDirection(from, mailboxEmail),
+    direction: detectDirection(from, mailboxEmail, message.labelIds),
     from,
     to,
+    cc,
     subject,
     sentAt: internalDate,
     messageIdHeader,
@@ -341,9 +353,21 @@ export function parseGmailThread(
   mailboxEmail: string,
 ): ParsedGmailThread {
   const rawMessages = thread.messages || [];
+  const seenIds = new Set<string>();
+  const seenMessageIds = new Set<string>();
   const messages = rawMessages
     .map((m) => parseGmailMessage(m, mailboxEmail))
-    .filter((m) => m.gmailMessageId)
+    .filter((m) => {
+      if (!m.gmailMessageId) return false;
+      if (seenIds.has(m.gmailMessageId)) return false;
+      seenIds.add(m.gmailMessageId);
+      if (m.messageIdHeader) {
+        const mid = m.messageIdHeader.toLowerCase();
+        if (seenMessageIds.has(mid)) return false;
+        seenMessageIds.add(mid);
+      }
+      return true;
+    })
     .sort((a, b) => {
       const aTime = a.sentAt ? Date.parse(a.sentAt) : 0;
       const bTime = b.sentAt ? Date.parse(b.sentAt) : 0;
@@ -368,6 +392,37 @@ export function selectMostRecentThreadId(
 ): string | null {
   // threads.list returns newest-activity-first; take the first with an id.
   return candidates.find((c) => c.id)?.id || null;
+}
+
+/**
+ * Pick the thread whose latest message is newest among parsed candidates.
+ * Used when Gmail returns multiple matches for a customer email.
+ */
+export function selectBestThreadIdByLatestActivity(
+  threads: ParsedGmailThread[],
+  customerEmail: string,
+  fallbackCandidates: GmailThreadCandidate[],
+): string | null {
+  const customer = normalizeEmailAddress(customerEmail);
+  let bestId: string | null = null;
+  let bestTime = 0;
+
+  for (const thread of threads) {
+    const parties = thread.messages.map((m) => ({
+      from: m.from,
+      to: m.to,
+      cc: m.cc,
+    }));
+    if (!threadInvolvesCustomer(parties, customer)) continue;
+    const last = thread.messages[thread.messages.length - 1];
+    const time = last?.sentAt ? Date.parse(last.sentAt) : 0;
+    if (time >= bestTime && thread.id) {
+      bestTime = time;
+      bestId = thread.id;
+    }
+  }
+
+  return bestId || selectMostRecentThreadId(fallbackCandidates);
 }
 
 export function pickReplyParentMessage(

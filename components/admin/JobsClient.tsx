@@ -8,8 +8,14 @@ import {
   useMemo,
   useState,
 } from "react";
+import CopyButton from "@/components/admin/CopyButton";
 import JobCommunication from "@/components/admin/JobCommunication";
+import JobFollowUpSection from "@/components/admin/JobFollowUpSection";
 import JobStatusBadge from "@/components/admin/JobStatusBadge";
+import {
+  applyReviewLinkPlaceholder,
+  getEmailTemplate,
+} from "@/lib/constants/email-templates";
 import { JOB_STATUSES, SERVICE_TYPES } from "@/lib/constants/jobs";
 import { statusesMatchingFilter } from "@/lib/jobs/status-filter";
 import type { Invoice, Job } from "@/lib/types/database";
@@ -28,6 +34,7 @@ import {
   buildGoogleWorkspaceReconnectHref,
   isGmailAuthorizationErrorCode,
 } from "@/lib/google/gmail-ui";
+import { formatJobNumber } from "@/lib/utils/job-display";
 
 type Feedback = {
   type: "success" | "error";
@@ -201,7 +208,13 @@ function AppointmentNotesField({
   );
 }
 
-export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
+export default function JobsClient({
+  initialJobs,
+  googleReviewUrl = null,
+}: {
+  initialJobs: Job[];
+  googleReviewUrl?: string | null;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedId = searchParams.get("jobId");
@@ -239,6 +252,11 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [invoicesLoading, setInvoicesLoading] = useState(false);
   const [fetchingJob, setFetchingJob] = useState(false);
+  const [reviewComposerSeed, setReviewComposerSeed] = useState<{
+    subject: string;
+    message: string;
+  } | null>(null);
+  const [pendingReviewRequest, setPendingReviewRequest] = useState(false);
 
   const normalizedQuery = normalizeSearch(query);
   const matchingStatuses = useMemo(
@@ -391,6 +409,8 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   function selectJob(id: string) {
     if (id !== selectedId) {
       resetDetailChrome();
+      setReviewComposerSeed(null);
+      setPendingReviewRequest(false);
       setFeedback(null);
       setInvoices([]);
       setInvoicesLoading(false);
@@ -690,6 +710,57 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     setFeedback({ type: "success", text: "Calendar details copied." });
   }
 
+  function startReviewRequest() {
+    const template = getEmailTemplate("google_review");
+    if (!template || !googleReviewUrl) return;
+    const body = applyReviewLinkPlaceholder(template.body, googleReviewUrl);
+    setReviewComposerSeed({ subject: template.subject, message: body });
+    setPendingReviewRequest(true);
+    setFeedback({
+      type: "success",
+      text: "Review email loaded in Messages — edit and send when ready.",
+    });
+  }
+
+  async function recordReviewRequestSent() {
+    if (!selected) return;
+    try {
+      const res = await fetch(`/api/jobs/${selected.id}/review-request`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFeedback({
+          type: "error",
+          text: data.error || "Could not record review request.",
+        });
+        return;
+      }
+      setJobs((prev) =>
+        prev.map((job) =>
+          job.id === selected.id
+            ? {
+                ...job,
+                review_request_sent_at: data.reviewRequestSentAt || new Date().toISOString(),
+              }
+            : job,
+        ),
+      );
+      setPendingReviewRequest(false);
+      setReviewComposerSeed(null);
+      setFeedback({
+        type: "success",
+        text: "Review request sent and recorded on this job.",
+      });
+    } catch {
+      setFeedback({
+        type: "error",
+        text: "Could not record review request.",
+      });
+    }
+  }
+
   function openReschedule(job: Job) {
     setShowCancelConfirm(false);
     setAppointmentLocal(toNyDatetimeLocal(job.scheduled_at));
@@ -938,27 +1009,67 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                 <p className="jobs-detail-subline">{jobSubline(selected)}</p>
                 <div className="jobs-detail-contact">
                   {selected.customers?.phone ? (
-                    <a
-                      className="jobs-contact-link"
-                      href={formatPhoneLink(selected.customers.phone) || undefined}
-                    >
-                      {formatPhoneDisplay(selected.customers.phone)}
-                    </a>
+                    <span className="jobs-contact-row">
+                      <a
+                        className="jobs-contact-link"
+                        href={
+                          formatPhoneLink(selected.customers.phone) || undefined
+                        }
+                      >
+                        {formatPhoneDisplay(selected.customers.phone)}
+                      </a>
+                      <CopyButton
+                        label="phone"
+                        value={selected.customers.phone}
+                        disabled={detailDisabled}
+                      />
+                    </span>
                   ) : (
                     <span className="jobs-contact-muted">No phone</span>
                   )}
                   {selected.customers?.email ? (
-                    <a
-                      className="jobs-contact-link"
-                      href={
-                        formatEmailLink(selected.customers.email) || undefined
-                      }
-                    >
-                      {selected.customers.email}
-                    </a>
+                    <span className="jobs-contact-row">
+                      <a
+                        className="jobs-contact-link"
+                        href={
+                          formatEmailLink(selected.customers.email) || undefined
+                        }
+                      >
+                        {selected.customers.email}
+                      </a>
+                      <CopyButton
+                        label="email"
+                        value={selected.customers.email}
+                        disabled={detailDisabled}
+                      />
+                    </span>
                   ) : (
                     <span className="jobs-contact-muted">No email</span>
                   )}
+                </div>
+                <div className="jobs-detail-copy-meta">
+                  <span className="jobs-contact-row">
+                    <span className="jobs-contact-muted">
+                      {formatVehicleShort(selected.vehicles)}
+                    </span>
+                    {selected.vehicles ? (
+                      <CopyButton
+                        label="vehicle"
+                        value={formatVehicleShort(selected.vehicles)}
+                        disabled={detailDisabled}
+                      />
+                    ) : null}
+                  </span>
+                  <span className="jobs-contact-row">
+                    <span className="jobs-contact-muted">
+                      {formatJobNumber(selected.id)}
+                    </span>
+                    <CopyButton
+                      label="job number"
+                      value={formatJobNumber(selected.id)}
+                      disabled={detailDisabled}
+                    />
+                  </span>
                 </div>
                 <p className="jobs-view-client">
                   <Link href="/admin/customers">View client</Link>
@@ -990,6 +1101,45 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                     ))}
                   </select>
                 </section>
+
+                <JobFollowUpSection
+                  key={selected.id}
+                  jobId={selected.id}
+                  disabled={detailDisabled}
+                />
+
+                {selected.status === "Completed" ? (
+                  <section className="jobs-panel">
+                    <h3 className="jobs-section-title">Google Review</h3>
+                    {!googleReviewUrl ? (
+                      <p className="jobs-section-empty">
+                        Review link is not configured. Set GOOGLE_REVIEW_URL in
+                        the environment to enable requests.
+                      </p>
+                    ) : selected.review_request_sent_at ? (
+                      <p className="jobs-section-empty">
+                        Review request recorded{" "}
+                        {formatDate(selected.review_request_sent_at)}. This only
+                        tracks that you asked — not whether they left a review.
+                      </p>
+                    ) : (
+                      <>
+                        <p className="jobs-section-lede">
+                          Opens an editable thank-you email in Messages. Nothing
+                          sends until you click Send.
+                        </p>
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn-primary"
+                          disabled={detailDisabled || pendingReviewRequest}
+                          onClick={startReviewRequest}
+                        >
+                          Request review
+                        </button>
+                      </>
+                    )}
+                  </section>
+                ) : null}
 
                 <section className="jobs-panel">
                   <div className="jobs-panel-head">
@@ -1182,10 +1332,14 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                 </section>
 
                 <JobCommunication
-                  key={selected.id}
+                  key={`${selected.id}-${reviewComposerSeed ? `review-${reviewComposerSeed.subject}` : "messages"}`}
                   jobId={selected.id}
                   customerEmail={selected.customers?.email}
                   disabled={detailDisabled}
+                  reviewUrl={googleReviewUrl}
+                  bootstrapFirstContact={reviewComposerSeed}
+                  pendingReviewRequest={pendingReviewRequest}
+                  onReviewSendSuccess={() => void recordReviewRequestSent()}
                 />
 
                 <section className="jobs-panel">
