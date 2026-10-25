@@ -5,6 +5,10 @@ import {
   isGoogleGmailConfigured,
   sendGmailReply,
 } from "@/lib/google/gmail";
+import {
+  buildGmailSendFingerprint,
+  isRecentDuplicateGmailSend,
+} from "@/lib/crm/gmail-send-idempotency";
 import { validateReplyThreadForJob } from "@/lib/crm/job-gmail-reply-guard";
 import { getPrimaryJobGmailThreadLink } from "@/lib/crm/job-gmail-thread";
 import { assertAdminForGmailReply } from "@/lib/google/gmail-reply-access";
@@ -14,6 +18,11 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export const dynamic = "force-dynamic";
+
+const recentReplyCache = new Map<
+  string,
+  { fingerprint: string; sentAtMs: number; gmailMessageId: string }
+>();
 
 function noStoreJson(body: unknown, init?: { status?: number }) {
   return NextResponse.json(body, {
@@ -143,11 +152,56 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
+  const fingerprint = buildGmailSendFingerprint({
+    jobId: id,
+    threadId,
+    subject: "",
+    body: replyBody,
+  });
+  const cached = recentReplyCache.get(`${id}:${threadId}`);
+  if (
+    isRecentDuplicateGmailSend({
+      fingerprint,
+      lastFingerprint: cached?.fingerprint ?? null,
+      lastSentAtMs: cached?.sentAtMs ?? null,
+    })
+  ) {
+    return noStoreJson({
+      success: true,
+      duplicatePrevented: true,
+      gmailMessageId: cached!.gmailMessageId,
+      threadId,
+    });
+  }
+
   try {
     const result = await sendGmailReply({
       threadId,
       customerEmail,
       body: replyBody,
+    });
+
+    if (!result.gmailMessageId) {
+      return noStoreJson(
+        {
+          error: "Gmail did not confirm the send.",
+          code: "gmail_reply_failed",
+        },
+        { status: 502 },
+      );
+    }
+
+    recentReplyCache.set(`${id}:${threadId}`, {
+      fingerprint,
+      sentAtMs: Date.now(),
+      gmailMessageId: result.gmailMessageId,
+    });
+
+    console.info("[jobs/gmail/reply] sent", {
+      jobId: id,
+      threadId: result.threadId,
+      gmailMessageId: result.gmailMessageId,
+      admin: email,
     });
 
     return noStoreJson({

@@ -15,6 +15,7 @@ import {
   GMAIL_REPLY_BODY_MAX,
   GMAIL_THREAD_SEARCH_MAX,
   buildCustomerEmailSearchQuery,
+  buildNewMessageMime,
   buildReferencesHeader,
   buildReplyMime,
   buildReplySubject,
@@ -437,6 +438,95 @@ export async function sendGmailReply(
     };
   } catch (error) {
     throw mapGmailApiError(error, "gmail_reply_failed", "Reply could not be sent.");
+  }
+}
+
+export type GmailSendNewMessageResult = {
+  gmailMessageId: string;
+  threadId: string;
+};
+
+/**
+ * Start a new Gmail thread to a customer from the connected mailbox.
+ */
+export async function sendGmailNewMessage(
+  params: {
+    customerEmail: string;
+    subject: string;
+    body: string;
+  },
+  deps?: {
+    getClient?: () => Promise<gmail_v1.Gmail>;
+    resolveMailbox?: () => Promise<string>;
+  },
+): Promise<GmailSendNewMessageResult> {
+  const body = params.body.trim();
+  const subject = params.subject.trim();
+  if (!body) {
+    throw new GmailIntegrationError(
+      "gmail_reply_empty",
+      "Message could not be sent.",
+      400,
+    );
+  }
+  if (!subject) {
+    throw new GmailIntegrationError(
+      "gmail_subject_missing",
+      "Subject is required.",
+      400,
+    );
+  }
+  if (body.length > GMAIL_REPLY_BODY_MAX) {
+    throw new GmailIntegrationError(
+      "gmail_reply_too_long",
+      "Message is too long.",
+      400,
+    );
+  }
+
+  const customerEmail = normalizeEmailAddress(params.customerEmail);
+  if (!customerEmail.includes("@")) {
+    throw new GmailIntegrationError(
+      "customer_email_invalid",
+      "Customer has no email.",
+      400,
+    );
+  }
+
+  const getClient = deps?.getClient ?? getGmailClient;
+  const gmail = await getClient();
+  const mailboxEmail = deps?.resolveMailbox
+    ? await deps.resolveMailbox()
+    : await resolveMailboxEmail(gmail);
+
+  const mime = buildNewMessageMime({
+    from: mailboxEmail,
+    to: customerEmail,
+    subject,
+    body,
+  });
+
+  try {
+    const { data } = await gmail.users.messages.send({
+      userId: getGmailUserId(),
+      requestBody: {
+        raw: encodeGmailRaw(mime),
+      },
+    });
+
+    const gmailMessageId = String(data.id || "").trim();
+    const threadId = String(data.threadId || "").trim();
+    if (!gmailMessageId || !threadId) {
+      throw new GmailIntegrationError(
+        "gmail_reply_failed",
+        "Gmail did not confirm the send.",
+        502,
+      );
+    }
+
+    return { gmailMessageId, threadId };
+  } catch (error) {
+    throw mapGmailApiError(error, "gmail_reply_failed", "Message could not be sent.");
   }
 }
 

@@ -697,6 +697,23 @@
   max-width: 46rem;
 }
 
+@media (max-width: 640px) {
+  .job-comm-messages {
+    max-width: 100%;
+  }
+
+  .job-comm-message-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .job-comm-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 .job-comm-message {
   padding: 0.9rem 1rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -762,6 +779,48 @@
   font-size: 0.9rem;
   line-height: 1.6;
   color: #e4e4ea;
+}
+
+.job-comm-message-body-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.job-comm-quoted-wrap {
+  margin-top: 0.15rem;
+}
+
+.job-comm-quoted-toggle {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #c8c8d2;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+  cursor: pointer;
+}
+
+.job-comm-quoted-toggle:hover {
+  color: #f0f0f4;
+}
+
+.job-comm-quoted-body {
+  margin: 0.45rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.28);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: inherit;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #a8a8b2;
+  max-height: 14rem;
+  overflow: auto;
 }
 
 .job-comm-message-fallback {

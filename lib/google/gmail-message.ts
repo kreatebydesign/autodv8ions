@@ -288,6 +288,27 @@ function encodeRfc2047Subject(subject: string): string {
 /**
  * Build a plain-text RFC 2822 reply suitable for Gmail `messages.send` raw.
  */
+/**
+ * Build a plain-text RFC 2822 message for a new Gmail thread (no In-Reply-To).
+ */
+export function buildNewMessageMime(params: {
+  from: string;
+  to: string;
+  subject: string;
+  body: string;
+}): string {
+  const bodyBase64 = Buffer.from(params.body, "utf8").toString("base64");
+  const headers = [
+    `From: ${params.from}`,
+    `To: ${params.to}`,
+    `Subject: ${encodeRfc2047Subject(params.subject)}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/plain; charset="UTF-8"`,
+    `Content-Transfer-Encoding: base64`,
+  ];
+  return `${headers.join("\r\n")}\r\n\r\n${bodyBase64}`;
+}
+
 export function buildReplyMime(params: {
   from: string;
   to: string;

@@ -25,7 +25,24 @@ const HTML_ENTITY_MAP: Record<string, string> = {
   "&gt;": ">",
   "&quot;": '"',
   "&#39;": "'",
+  "&apos;": "'",
 };
+
+export function decodeHtmlEntities(text: string): string {
+  let out = text;
+  for (const [entity, char] of Object.entries(HTML_ENTITY_MAP)) {
+    out = out.split(entity).join(char);
+  }
+  out = out.replace(/&#(\d+);/g, (_, code) => {
+    const n = Number(code);
+    return Number.isFinite(n) ? String.fromCodePoint(n) : _;
+  });
+  out = out.replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+    const n = parseInt(hex, 16);
+    return Number.isFinite(n) ? String.fromCodePoint(n) : _;
+  });
+  return out;
+}
 
 /**
  * Strip HTML to readable plain text for admin thread display (no raw HTML injection).
@@ -41,9 +58,7 @@ export function htmlToPlainText(html: string): string {
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<[^>]+>/g, "");
 
-  for (const [entity, char] of Object.entries(HTML_ENTITY_MAP)) {
-    text = text.split(entity).join(char);
-  }
+  text = decodeHtmlEntities(text);
 
   return text
     .replace(/\r\n/g, "\n")

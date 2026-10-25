@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { sendGmailReply, GmailIntegrationError } from "./gmail";
+import { sendGmailNewMessage, sendGmailReply, GmailIntegrationError } from "./gmail";
 import type { ParsedGmailThread } from "./gmail-message";
 import { assertAdminForGmailReply } from "./gmail-reply-access";
 
@@ -170,6 +170,33 @@ describe("sendGmailReply", () => {
         return true;
       },
     );
+  });
+});
+
+describe("sendGmailNewMessage", () => {
+  it("requires Gmail to return message and thread ids", async () => {
+    const result = await sendGmailNewMessage(
+      {
+        customerEmail: "customer@example.com",
+        subject: "Hello",
+        body: "Starting a thread.",
+      },
+      {
+        resolveMailbox: async () => "sales@autodv8ions.com",
+        getClient: async () =>
+          ({
+            users: {
+              messages: {
+                send: async () => ({
+                  data: { id: "msg-new", threadId: "thread-new" },
+                }),
+              },
+            },
+          }) as never,
+      },
+    );
+    assert.equal(result.gmailMessageId, "msg-new");
+    assert.equal(result.threadId, "thread-new");
   });
 });
 

@@ -4,6 +4,7 @@ import type { gmail_v1 } from "googleapis";
 import {
   buildCustomerEmailSearchQuery,
   buildReferencesHeader,
+  buildNewMessageMime,
   buildReplyMime,
   buildReplySubject,
   decodeGmailBase64Url,
@@ -145,6 +146,18 @@ describe("reply MIME headers", () => {
       buildReferencesHeader("<a@mail.gmail.com>", "<a@mail.gmail.com>"),
       "<a@mail.gmail.com>",
     );
+  });
+
+  it("builds a new-thread MIME without reply headers", () => {
+    const mime = buildNewMessageMime({
+      from: "sales@autodv8ions.com",
+      to: "customer@example.com",
+      subject: "Window tint quote",
+      body: "Hello from AutoDV8ions.",
+    });
+    assert.match(mime, /Subject: Window tint quote\r\n/);
+    assert.doesNotMatch(mime, /In-Reply-To:/);
+    assert.doesNotMatch(mime, /References:/);
   });
 
   it("includes In-Reply-To and References in MIME", () => {

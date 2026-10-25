@@ -15,6 +15,7 @@ import {
   isGmailAuthorizationErrorCode,
   isGmailTemporaryErrorCode,
 } from "@/lib/google/gmail-ui";
+import JobMessageBody from "@/components/admin/JobMessageBody";
 
 type GmailMessage = {
   gmailMessageId: string;
@@ -135,6 +136,7 @@ export default function JobCommunication({
     () => bootstrapFirstContact?.message ?? "",
   );
   const [sendingFirstContact, setSendingFirstContact] = useState(false);
+  const [sendingGmailFirst, setSendingGmailFirst] = useState(false);
   const [firstContactFeedback, setFirstContactFeedback] = useState<{
     type: "success" | "error" | "warn";
     text: string;
@@ -314,7 +316,13 @@ export default function JobCommunication({
       }
 
       setReplyBody("");
-      setReplyFeedback({ type: "success", text: "Reply sent." });
+      setReplyFeedback({
+        type: "success",
+        text:
+          (data as { duplicatePrevented?: boolean }).duplicatePrevented
+            ? "Reply already sent — thread refreshed."
+            : "Reply sent via Gmail.",
+      });
       if (pendingReviewRequest && onReviewSendSuccess) {
         onReviewSendSuccess();
       }
@@ -326,6 +334,62 @@ export default function JobCommunication({
       });
     } finally {
       setSendingReply(false);
+    }
+  }
+
+  async function handleGmailFirstSend() {
+    if (!email || sendingGmailFirst || disabled || linkedThreadId) return;
+    const subject = emailSubject.trim();
+    const message = emailMessage.trim();
+    if (!subject || !message) return;
+
+    setSendingGmailFirst(true);
+    setFirstContactFeedback(null);
+
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/gmail/send`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, message }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok && res.status !== 202) {
+        setFirstContactFeedback({
+          type: "error",
+          text: data.error || "Gmail message could not be sent.",
+        });
+        return;
+      }
+
+      if (data.warning) {
+        setFirstContactFeedback({
+          type: "warn",
+          text: data.warning,
+        });
+      } else {
+        setEmailSubject("");
+        setEmailMessage("");
+        setShowFirstContact(false);
+        setFirstContactFeedback({
+          type: "success",
+          text: data.duplicatePrevented
+            ? "This message was already sent recently. Thread refreshed."
+            : "Sent via Gmail and linked to this job.",
+        });
+      }
+      if (pendingReviewRequest && onReviewSendSuccess && data.linked) {
+        onReviewSendSuccess();
+      }
+      await loadThread({ soft: true });
+    } catch {
+      setFirstContactFeedback({
+        type: "error",
+        text: "Gmail message could not be sent. Check your connection and try again.",
+      });
+    } finally {
+      setSendingGmailFirst(false);
     }
   }
 
@@ -473,6 +537,7 @@ export default function JobCommunication({
   const replyTooLong = replyBody.trim().length > GMAIL_REPLY_BODY_MAX_CLIENT;
   const isLocalOnlyThread = Boolean(thread?.id?.startsWith("local-"));
   const canSendReply =
+    Boolean(linkedThreadId) &&
     Boolean(thread) &&
     !isLocalOnlyThread &&
     Boolean(replyBody.trim()) &&
@@ -760,9 +825,25 @@ export default function JobCommunication({
                 >
                   Close
                 </button>
+                {configured && !linkedThreadId ? (
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-primary"
+                    disabled={
+                      sendingGmailFirst ||
+                      sendingFirstContact ||
+                      disabled ||
+                      !emailSubject.trim() ||
+                      !emailMessage.trim()
+                    }
+                    onClick={() => void handleGmailFirstSend()}
+                  >
+                    {sendingGmailFirst ? "Sending via Gmail…" : "Send via Gmail"}
+                  </button>
+                ) : null}
                 <span className="job-comm-hint">
-                  First-contact via Resend. Threaded replies will use Gmail once a
-                  conversation exists.
+                  Resend remains available for legacy first-contact. Gmail send
+                  links the new thread to this job automatically.
                 </span>
               </div>
             </div>
@@ -899,7 +980,10 @@ export default function JobCommunication({
                     </time>
                   </div>
                   {plainOk ? (
-                    <p className="job-comm-message-body">{bodyText}</p>
+                    <JobMessageBody
+                      bodyText={bodyText}
+                      messageId={message.gmailMessageId}
+                    />
                   ) : (
                     <p className="job-comm-message-fallback">
                       No readable message body. Open in Gmail to view the full
@@ -1056,6 +1140,10 @@ export default function JobCommunication({
                   <span className="job-comm-hint is-warn" role="status">
                     Reply is too long (max{" "}
                     {GMAIL_REPLY_BODY_MAX_CLIENT.toLocaleString()} characters).
+                  </span>
+                ) : !linkedThreadId ? (
+                  <span className="job-comm-hint is-warn" role="status">
+                    Link a Gmail conversation before replying in-thread.
                   </span>
                 ) : (
                   <span className="job-comm-hint">

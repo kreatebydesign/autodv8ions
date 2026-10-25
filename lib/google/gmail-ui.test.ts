@@ -7,6 +7,7 @@ import {
   getMessageBodyText,
   getVisibleMessages,
   hasRenderablePlainBody,
+  decodeHtmlEntities,
   htmlToPlainText,
   isGmailAuthorizationErrorCode,
   isGmailTemporaryErrorCode,
@@ -66,6 +67,7 @@ describe("gmail-ui helpers", () => {
       true,
     );
     assert.equal(htmlToPlainText("<p>Hello<br>there</p>"), "Hello\nthere");
+    assert.equal(decodeHtmlEntities("Tom &amp; Jerry &#8212; hi"), "Tom & Jerry — hi");
     assert.equal(
       getMessageBodyText({
         gmailMessageId: "1",
