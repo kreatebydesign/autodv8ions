@@ -158,9 +158,13 @@ export default function AdminNotifications({
             ) : (
               <ul className="dash-notify-list">
                 {items.map((item) => (
-                  <li key={`${item.gmailThreadId}-${item.jobId}`}>
+                  <li key={`${item.gmailThreadId}-${item.jobId ?? "unassigned"}`}>
                     <Link
-                      href={`/admin/jobs?jobId=${item.jobId}&section=communication`}
+                      href={
+                        item.unassigned || !item.jobId
+                          ? "/admin/jobs"
+                          : `/admin/jobs?jobId=${item.jobId}&section=communication`
+                      }
                       className="dash-notify-row"
                       onClick={() => setOpen(false)}
                     >

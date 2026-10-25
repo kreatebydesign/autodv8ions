@@ -39,11 +39,30 @@ type GmailThread = {
   messages: GmailMessage[];
 };
 
+type GmailThreadCandidate = {
+  id: string;
+  subject: string;
+  snippet: string;
+  messageCount: number;
+  lastActivityIso: string | null;
+};
+
+type JobGmailLinkWarning = {
+  code: "linked_email_mismatch" | "linked_thread_participation";
+  message: string;
+  linkedEmail?: string;
+  currentEmail?: string;
+};
+
 type GmailConversationResponse = {
   configured?: boolean;
   customerEmail?: string | null;
   mailboxEmail?: string;
   candidateCount?: number;
+  threadCandidates?: GmailThreadCandidate[];
+  linkedThreadId?: string | null;
+  requiresLinkSelection?: boolean;
+  linkWarning?: JobGmailLinkWarning | null;
   thread?: GmailThread | null;
   error?: string;
   code?: string;
@@ -84,6 +103,16 @@ export default function JobCommunication({
   const [configured, setConfigured] = useState(true);
   const [thread, setThread] = useState<GmailThread | null>(null);
   const [candidateCount, setCandidateCount] = useState(0);
+  const [threadCandidates, setThreadCandidates] = useState<GmailThreadCandidate[]>(
+    [],
+  );
+  const [linkedThreadId, setLinkedThreadId] = useState<string | null>(null);
+  const [requiresLinkSelection, setRequiresLinkSelection] = useState(false);
+  const [linkWarning, setLinkWarning] = useState<JobGmailLinkWarning | null>(
+    null,
+  );
+  const [linkingThreadId, setLinkingThreadId] = useState<string | null>(null);
+  const [unlinking, setUnlinking] = useState(false);
   const [resolvedCustomerEmail, setResolvedCustomerEmail] = useState(email);
 
   const [showEarlier, setShowEarlier] = useState(false);
@@ -165,6 +194,10 @@ export default function JobCommunication({
 
       setResolvedCustomerEmail(data.customerEmail || email);
       setCandidateCount(Number(data.candidateCount || 0));
+      setThreadCandidates(data.threadCandidates || []);
+      setLinkedThreadId(data.linkedThreadId || null);
+      setRequiresLinkSelection(Boolean(data.requiresLinkSelection));
+      setLinkWarning(data.linkWarning || null);
       setThread(data.thread || null);
       if (
         bootstrapFirstContact &&
@@ -199,6 +232,54 @@ export default function JobCommunication({
     void loadThread();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional job-scoped reload
   }, [jobId, email]);
+
+  async function handleLinkThread(threadId: string) {
+    if (!threadId || linkingThreadId || disabled) return;
+    setLinkingThreadId(threadId);
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/gmail/link`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ threadId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Could not link conversation.");
+        setErrorCode(data.code || "link_failed");
+        return;
+      }
+      await loadThread({ soft: true });
+    } catch {
+      setError("Could not link conversation. Check your connection and try again.");
+      setErrorCode("link_failed");
+    } finally {
+      setLinkingThreadId(null);
+    }
+  }
+
+  async function handleUnlinkThread() {
+    if (unlinking || disabled || !linkedThreadId) return;
+    setUnlinking(true);
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/gmail/link`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Could not unlink conversation.");
+        setErrorCode(data.code || "unlink_failed");
+        return;
+      }
+      await loadThread({ soft: true });
+    } catch {
+      setError("Could not unlink conversation. Check your connection and try again.");
+      setErrorCode("unlink_failed");
+    } finally {
+      setUnlinking(false);
+    }
+  }
 
   async function handleSendReply() {
     if (!thread || sendingReply || disabled) return;
@@ -494,12 +575,24 @@ export default function JobCommunication({
         <div className="job-comm-shell">
           <div className="job-comm-empty">
             <div>
-              <p className="job-comm-empty-title">No Gmail conversation found yet</p>
+              <p className="job-comm-empty-title">
+                {requiresLinkSelection
+                  ? "Choose a Gmail conversation"
+                  : "No Gmail conversation found yet"}
+              </p>
               <p className="job-comm-empty-copy">
-                No Gmail thread matched{" "}
-                <span className="job-comm-email">{resolvedCustomerEmail || email}</span>{" "}
-                yet. Start with a first-contact email, or refresh after mail exists in
-                Gmail.
+                {requiresLinkSelection
+                  ? "Multiple conversations may exist for this customer. Link the correct thread to this job — we never guess across jobs."
+                  : (
+                    <>
+                      No Gmail thread matched{" "}
+                      <span className="job-comm-email">
+                        {resolvedCustomerEmail || email}
+                      </span>{" "}
+                      yet. Start with a first-contact email, or refresh after mail
+                      exists in Gmail.
+                    </>
+                    )}
               </p>
             </div>
             <div className="job-comm-empty-actions">
@@ -521,6 +614,45 @@ export default function JobCommunication({
               </button>
             </div>
           </div>
+
+          {requiresLinkSelection && threadCandidates.length > 0 ? (
+            <div className="job-comm-picker" role="region" aria-label="Gmail conversations">
+              <p className="job-comm-picker-lede">
+                {candidateCount > threadCandidates.length
+                  ? `Showing ${threadCandidates.length} of ${candidateCount} conversations`
+                  : `${candidateCount} conversation${candidateCount === 1 ? "" : "s"} found`}
+              </p>
+              <ul className="job-comm-picker-list">
+                {threadCandidates.map((candidate) => (
+                  <li key={candidate.id} className="job-comm-picker-item">
+                    <div className="job-comm-picker-copy">
+                      <p className="job-comm-picker-subject">
+                        {candidate.subject || "(no subject)"}
+                      </p>
+                      {candidate.snippet ? (
+                        <p className="job-comm-picker-snippet">{candidate.snippet}</p>
+                      ) : null}
+                      <p className="job-comm-picker-meta">
+                        {candidate.messageCount} message
+                        {candidate.messageCount === 1 ? "" : "s"}
+                        {candidate.lastActivityIso
+                          ? ` · ${formatMessageTimestamp(candidate.lastActivityIso)}`
+                          : ""}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn-primary"
+                      disabled={disabled || linkingThreadId !== null}
+                      onClick={() => void handleLinkThread(candidate.id)}
+                    >
+                      {linkingThreadId === candidate.id ? "Linking…" : "Link to job"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {firstContactFeedback ? (
             <p
@@ -647,9 +779,14 @@ export default function JobCommunication({
                 <span aria-hidden="true"> · </span>
                 <span>{thread.unread ? "Unread in Gmail" : "Read"}</span>
               </p>
-              {candidateCount > 1 ? (
+              {linkWarning ? (
+                <p className="job-comm-link-warning" role="note">
+                  {linkWarning.message}
+                </p>
+              ) : null}
+              {requiresLinkSelection ? (
                 <p className="job-comm-ambiguity" role="note">
-                  Multiple Gmail conversations found. Showing the most recent.
+                  Gmail messages stay hidden until you link a conversation to this job.
                 </p>
               ) : null}
             </div>
@@ -673,8 +810,46 @@ export default function JobCommunication({
                   Open in Gmail
                 </a>
               ) : null}
+              {linkedThreadId ? (
+                <button
+                  type="button"
+                  className="admin-btn"
+                  disabled={disabled || unlinking}
+                  onClick={() => void handleUnlinkThread()}
+                >
+                  {unlinking ? "Unlinking…" : "Unlink"}
+                </button>
+              ) : null}
             </div>
           </div>
+
+          {requiresLinkSelection && threadCandidates.length > 0 ? (
+            <div className="job-comm-picker job-comm-picker--inline" role="region" aria-label="Link Gmail conversation">
+              <p className="job-comm-picker-lede">Link a Gmail conversation to load messages on this job.</p>
+              <ul className="job-comm-picker-list">
+                {threadCandidates.map((candidate) => (
+                  <li key={candidate.id} className="job-comm-picker-item">
+                    <div className="job-comm-picker-copy">
+                      <p className="job-comm-picker-subject">
+                        {candidate.subject || "(no subject)"}
+                      </p>
+                      {candidate.snippet ? (
+                        <p className="job-comm-picker-snippet">{candidate.snippet}</p>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn-primary"
+                      disabled={disabled || linkingThreadId !== null}
+                      onClick={() => void handleLinkThread(candidate.id)}
+                    >
+                      {linkingThreadId === candidate.id ? "Linking…" : "Link"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {hiddenCount > 0 ? (
             <button

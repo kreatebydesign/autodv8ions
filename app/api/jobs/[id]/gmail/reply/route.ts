@@ -5,6 +5,8 @@ import {
   isGoogleGmailConfigured,
   sendGmailReply,
 } from "@/lib/google/gmail";
+import { validateReplyThreadForJob } from "@/lib/crm/job-gmail-reply-guard";
+import { getPrimaryJobGmailThreadLink } from "@/lib/crm/job-gmail-thread";
 import { assertAdminForGmailReply } from "@/lib/google/gmail-reply-access";
 import { GMAIL_REPLY_BODY_MAX } from "@/lib/google/gmail-message";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
@@ -126,6 +128,18 @@ export async function POST(request: Request, context: RouteContext) {
         code: "customer_email_missing",
       },
       { status: 400 },
+    );
+  }
+
+  const primaryLink = await getPrimaryJobGmailThreadLink(id);
+  const threadGate = validateReplyThreadForJob({
+    requestedThreadId: threadId,
+    linkedThreadId: primaryLink?.gmail_thread_id || null,
+  });
+  if (!threadGate.ok) {
+    return noStoreJson(
+      { error: threadGate.message, code: threadGate.code },
+      { status: 403 },
     );
   }
 

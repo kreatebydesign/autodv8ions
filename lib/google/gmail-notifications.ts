@@ -56,7 +56,9 @@ export type UnreadMessageCandidate = {
 };
 
 export type GmailNotificationItem = {
-  jobId: string;
+  jobId: string | null;
+  /** True when multiple active jobs share the customer email and the thread is not linked. */
+  unassigned?: boolean;
   customerName: string;
   customerEmail: string;
   subject: string;
@@ -205,6 +207,24 @@ export function pickBestJobForEmail(
   })[0];
 }
 
+/** Customer emails with more than one non-closed job (heuristic routing is unsafe). */
+export function buildAmbiguousActiveCustomerEmails(
+  jobs: JobEmailCandidate[],
+): Set<string> {
+  const activeCounts = new Map<string, number>();
+  for (const job of jobs) {
+    if (isClosedJobStatus(job.status)) continue;
+    const email = normalizeEmailAddress(job.customerEmail);
+    if (!email.includes("@")) continue;
+    activeCounts.set(email, (activeCounts.get(email) || 0) + 1);
+  }
+  const ambiguous = new Set<string>();
+  for (const [email, count] of activeCounts) {
+    if (count > 1) ambiguous.add(email);
+  }
+  return ambiguous;
+}
+
 export function buildEmailToJobMap(
   jobs: JobEmailCandidate[],
 ): Map<string, JobEmailCandidate> {
@@ -283,6 +303,9 @@ export function formatNotificationBadgeCount(count: number): string | null {
 export function buildCustomerReplyNotifications(params: {
   messages: UnreadMessageCandidate[];
   emailToJob: Map<string, JobEmailCandidate>;
+  threadIdToJobId?: Map<string, string>;
+  jobsById?: Map<string, JobEmailCandidate>;
+  ambiguousActiveEmails?: Set<string>;
   limit?: number;
 }): { items: GmailNotificationItem[]; count: number } {
   const limit = params.limit ?? GMAIL_NOTIFICATION_ITEM_LIMIT;
@@ -299,14 +322,47 @@ export function buildCustomerReplyNotifications(params: {
     if (!messageLooksUnread(message.labelIds)) continue;
     if (!message.gmailThreadId) continue;
 
-    const match = isIncomingFromKnownCustomer({
-      fromHeader: message.fromHeader,
-      mailboxEmail: message.mailboxEmail,
-      knownEmails,
-    });
-    if (!match?.matched) continue;
+    let job: JobEmailCandidate | undefined;
+    const linkedJobId = params.threadIdToJobId?.get(message.gmailThreadId);
+    if (linkedJobId && params.jobsById?.has(linkedJobId)) {
+      const linkedJob = params.jobsById.get(linkedJobId)!;
+      const customerOnly = new Set([
+        normalizeEmailAddress(linkedJob.customerEmail),
+      ]);
+      const linkedMatch = isIncomingFromKnownCustomer({
+        fromHeader: message.fromHeader,
+        mailboxEmail: message.mailboxEmail,
+        knownEmails: customerOnly,
+      });
+      if (!linkedMatch?.matched) continue;
+      job = linkedJob;
+    } else {
+      const match = isIncomingFromKnownCustomer({
+        fromHeader: message.fromHeader,
+        mailboxEmail: message.mailboxEmail,
+        knownEmails,
+      });
+      if (!match?.matched) continue;
 
-    const job = params.emailToJob.get(match.senderEmail);
+      const ambiguous =
+        params.ambiguousActiveEmails?.has(match.senderEmail) ?? false;
+      if (ambiguous) {
+        if (byThread.has(message.gmailThreadId)) continue;
+        byThread.set(message.gmailThreadId, {
+          jobId: null,
+          unassigned: true,
+          customerName: "Multiple jobs — link conversation",
+          customerEmail: match.senderEmail,
+          subject: message.subject.trim() || "(no subject)",
+          preview: truncatePreview(message.snippet || ""),
+          receivedAt: message.receivedAt,
+          gmailThreadId: message.gmailThreadId,
+        });
+        continue;
+      }
+
+      job = params.emailToJob.get(match.senderEmail);
+    }
     if (!job) continue;
 
     if (byThread.has(message.gmailThreadId)) continue;

@@ -10,6 +10,7 @@ import {
   mapGmailApiError,
 } from "@/lib/google/gmail-errors";
 import { isGoogleOAuthClientConfigured } from "@/lib/google/workspace-credentials";
+import type { GmailThreadCandidateSummary } from "@/lib/crm/job-gmail-conversation";
 import {
   GMAIL_REPLY_BODY_MAX,
   GMAIL_THREAD_SEARCH_MAX,
@@ -439,8 +440,105 @@ export async function sendGmailReply(
   }
 }
 
+const GMAIL_CANDIDATE_PREVIEW_MAX = 5;
+
+/**
+ * List Gmail thread candidates for manual linking (no auto-selection).
+ */
+export async function listThreadCandidatesForCustomerEmail(
+  customerEmail: string,
+): Promise<{
+  candidates: GmailThreadCandidateSummary[];
+  candidateCount: number;
+  mailboxEmail: string;
+}> {
+  const normalized = normalizeEmailAddress(customerEmail);
+  if (!normalized.includes("@")) {
+    throw new GmailIntegrationError(
+      "customer_email_invalid",
+      "Customer has no email.",
+      400,
+    );
+  }
+
+  const listed = await findThreadsForEmail(normalized);
+  const candidateCount = listed.length;
+  const preview = listed.slice(0, GMAIL_CANDIDATE_PREVIEW_MAX);
+  const candidates: GmailThreadCandidateSummary[] = [];
+
+  for (const item of preview) {
+    try {
+      const { thread } = await getGmailThread(item.id);
+      const parties = thread.messages.map((m) => ({
+        from: m.from,
+        to: m.to,
+        cc: m.cc,
+      }));
+      if (!threadInvolvesCustomer(parties, normalized)) continue;
+
+      const last = thread.messages[thread.messages.length - 1];
+      candidates.push({
+        id: thread.id,
+        subject: thread.subject,
+        snippet: item.snippet || last?.plainTextBody?.slice(0, 120) || "",
+        messageCount: thread.messages.length,
+        lastActivityIso: last?.sentAt || null,
+      });
+    } catch {
+      // Skip threads we cannot load.
+    }
+  }
+
+  const profile = await getGmailProfile();
+  return {
+    candidates,
+    candidateCount,
+    mailboxEmail: profile.emailAddress,
+  };
+}
+
+/**
+ * Load a job-linked Gmail thread after server-side customer participation checks.
+ */
+export async function getConversationForLinkedThread(params: {
+  threadId: string;
+  customerEmail: string;
+  markRead?: boolean;
+}): Promise<{
+  thread: ParsedGmailThread;
+  mailboxEmail: string;
+}> {
+  const customerEmail = normalizeEmailAddress(params.customerEmail);
+  const threadId = params.threadId.trim();
+  if (!threadId) {
+    throw new GmailIntegrationError(
+      "gmail_thread_missing",
+      "Thread no longer exists.",
+      404,
+    );
+  }
+
+  const { thread, mailboxEmail } = await assertThreadBelongsToCustomer(
+    threadId,
+    customerEmail,
+  );
+
+  if (params.markRead === false) {
+    return { thread, mailboxEmail };
+  }
+
+  try {
+    await markThreadRead(threadId);
+    const refreshed = await getGmailThread(threadId);
+    return { thread: refreshed.thread, mailboxEmail: refreshed.mailboxEmail };
+  } catch {
+    return { thread, mailboxEmail };
+  }
+}
+
 /**
  * Load the best matching conversation for a customer email, optionally mark read.
+ * @deprecated Prefer explicit job links + listThreadCandidatesForCustomerEmail.
  */
 export async function getConversationForCustomerEmail(params: {
   customerEmail: string;
@@ -499,6 +597,9 @@ export async function getConversationForCustomerEmail(params: {
  */
 export async function listUnreadCustomerReplyNotifications(params: {
   emailToJob: Map<string, JobEmailCandidate>;
+  threadIdToJobId?: Map<string, string>;
+  jobsById?: Map<string, JobEmailCandidate>;
+  ambiguousActiveEmails?: Set<string>;
   limit?: number;
 }): Promise<GmailNotificationsPayload> {
   if (!isGoogleGmailConfigured()) {
@@ -557,6 +658,9 @@ export async function listUnreadCustomerReplyNotifications(params: {
     const built = buildCustomerReplyNotifications({
       messages: candidates,
       emailToJob: params.emailToJob,
+      threadIdToJobId: params.threadIdToJobId,
+      jobsById: params.jobsById,
+      ambiguousActiveEmails: params.ambiguousActiveEmails,
       limit: params.limit ?? GMAIL_NOTIFICATION_ITEM_LIMIT,
     });
 

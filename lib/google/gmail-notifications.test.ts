@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   GMAIL_NOTIFICATIONS_POLL_INTERVAL_MS,
   applyGmailNotificationsRefreshResult,
+  buildAmbiguousActiveCustomerEmails,
   buildCustomerReplyNotifications,
   buildEmailToJobMap,
   extractSenderEmail,
@@ -204,6 +205,119 @@ describe("notification build / badge / preview", () => {
     assert.equal(items.items[1].gmailThreadId, "t2");
     assert.equal(items.items[0].jobId, "job-1");
     assert.equal(items.items.every((i) => i.customerEmail === "customer@example.com"), true);
+  });
+
+  it("surfaces unassigned notifications when multiple active jobs share an email", () => {
+    const jobA = job({
+      jobId: "job-a",
+      customerEmail: "shared@example.com",
+      status: "Scheduled",
+      updatedAt: "2026-03-01T00:00:00.000Z",
+    });
+    const jobB = job({
+      jobId: "job-b",
+      customerEmail: "shared@example.com",
+      status: "Contacted",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    const candidates = [jobA, jobB];
+    const ambiguous = buildAmbiguousActiveCustomerEmails(candidates);
+    assert.equal(ambiguous.has("shared@example.com"), true);
+
+    const routed = buildCustomerReplyNotifications({
+      messages: [
+        {
+          gmailMessageId: "m-ambig",
+          gmailThreadId: "t-unlinked",
+          fromHeader: "Shared <shared@example.com>",
+          subject: "Which job?",
+          snippet: "Help",
+          receivedAt: "2026-02-01T00:00:00.000Z",
+          labelIds: ["INBOX", "UNREAD"],
+          mailboxEmail: mailbox,
+        },
+      ],
+      emailToJob: buildEmailToJobMap(candidates),
+      ambiguousActiveEmails: ambiguous,
+    });
+
+    assert.equal(routed.count, 1);
+    assert.equal(routed.items[0]?.jobId, null);
+    assert.equal(routed.items[0]?.unassigned, true);
+  });
+
+  it("prefers confirmed thread links over shared-email job heuristics", () => {
+    const jobA = job({
+      jobId: "job-a",
+      customerEmail: "shared@example.com",
+      customerName: "Job A",
+      status: "Scheduled",
+      updatedAt: "2026-03-01T00:00:00.000Z",
+    });
+    const jobB = job({
+      jobId: "job-b",
+      customerEmail: "shared@example.com",
+      customerName: "Job B",
+      status: "Contacted",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    const emailToJob = buildEmailToJobMap([jobA, jobB]);
+    const jobsById = new Map([
+      [jobA.jobId, jobA],
+      [jobB.jobId, jobB],
+    ]);
+    const threadIdToJobId = new Map([["t-linked", jobB.jobId]]);
+
+    const routed = buildCustomerReplyNotifications({
+      messages: [
+        {
+          gmailMessageId: "m-linked",
+          gmailThreadId: "t-linked",
+          fromHeader: "Shared <shared@example.com>",
+          subject: "Linked thread reply",
+          snippet: "Hello",
+          receivedAt: "2026-02-01T00:00:00.000Z",
+          labelIds: ["INBOX", "UNREAD"],
+          mailboxEmail: mailbox,
+        },
+      ],
+      emailToJob,
+      threadIdToJobId,
+      jobsById,
+    });
+
+    assert.equal(routed.count, 1);
+    assert.equal(routed.items[0]?.jobId, jobB.jobId);
+  });
+
+  it("ignores linked threads when the sender is not that job customer", () => {
+    const linkedJob = job({
+      jobId: "job-linked",
+      customerEmail: "customer@example.com",
+      customerName: "Linked",
+    });
+    const jobsById = new Map([[linkedJob.jobId, linkedJob]]);
+    const threadIdToJobId = new Map([["t-linked", linkedJob.jobId]]);
+
+    const routed = buildCustomerReplyNotifications({
+      messages: [
+        {
+          gmailMessageId: "m-wrong",
+          gmailThreadId: "t-linked",
+          fromHeader: "Vendor <vendor@elsewhere.com>",
+          subject: "Not customer",
+          snippet: "Spam",
+          receivedAt: "2026-02-01T00:00:00.000Z",
+          labelIds: ["INBOX", "UNREAD"],
+          mailboxEmail: mailbox,
+        },
+      ],
+      emailToJob: buildEmailToJobMap([linkedJob]),
+      threadIdToJobId,
+      jobsById,
+    });
+
+    assert.deepEqual(routed, { count: 0, items: [] });
   });
 
   it("returns empty when no safe job match exists", () => {

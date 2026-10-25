@@ -79,8 +79,12 @@ export default function CustomerRepliesPanel() {
         <div className="dash-replies-rows">
           {items.map((item) => (
             <Link
-              key={`${item.gmailThreadId}-${item.jobId}`}
-              href={`/admin/jobs?jobId=${item.jobId}&section=communication`}
+              key={`${item.gmailThreadId}-${item.jobId ?? "unassigned"}`}
+              href={
+                item.unassigned || !item.jobId
+                  ? "/admin/jobs"
+                  : `/admin/jobs?jobId=${item.jobId}&section=communication`
+              }
               className="dash-replies-row"
             >
               <div className="min-w-0 flex-1">

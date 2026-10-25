@@ -6,9 +6,11 @@ import {
   listUnreadCustomerReplyNotifications,
 } from "@/lib/google/gmail";
 import {
+  buildAmbiguousActiveCustomerEmails,
   buildEmailToJobMap,
   type JobEmailCandidate,
 } from "@/lib/google/gmail-notifications";
+import { loadThreadIdToJobIdMap } from "@/lib/crm/job-gmail-thread";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { formatCustomerName } from "@/lib/utils/format";
 import type { Customer } from "@/lib/types/database";
@@ -75,7 +77,15 @@ export async function GET() {
   try {
     const candidates = await loadJobEmailCandidates();
     const emailToJob = buildEmailToJobMap(candidates);
-    const payload = await listUnreadCustomerReplyNotifications({ emailToJob });
+    const jobsById = new Map(candidates.map((row) => [row.jobId, row]));
+    const ambiguousActiveEmails = buildAmbiguousActiveCustomerEmails(candidates);
+    const threadIdToJobId = await loadThreadIdToJobIdMap();
+    const payload = await listUnreadCustomerReplyNotifications({
+      emailToJob,
+      threadIdToJobId,
+      jobsById,
+      ambiguousActiveEmails,
+    });
     return noStoreJson(payload);
   } catch (err) {
     if (err instanceof GmailIntegrationError) {
