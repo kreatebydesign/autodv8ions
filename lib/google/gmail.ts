@@ -15,11 +15,13 @@ import {
   GMAIL_REPLY_BODY_MAX,
   GMAIL_THREAD_SEARCH_MAX,
   buildCustomerEmailSearchQuery,
+  buildMultipartMixedMime,
   buildNewMessageMime,
   buildReferencesHeader,
   buildReplyMime,
   buildReplySubject,
   encodeGmailRaw,
+  encodeRfc2047Subject,
   getHeader,
   normalizeEmailAddress,
   parseGmailThread,
@@ -30,6 +32,10 @@ import {
   type ParsedGmailMessage,
   type ParsedGmailThread,
 } from "@/lib/google/gmail-message";
+import type { OutboundMimeAttachment } from "@/lib/google/gmail-attachments";
+import {
+  validateOutboundAttachmentBatch,
+} from "@/lib/google/gmail-attachments";
 import {
   GMAIL_NOTIFICATION_ITEM_LIMIT,
   GMAIL_UNREAD_SCAN_MAX,
@@ -340,6 +346,7 @@ export async function sendGmailReply(
     threadId: string;
     customerEmail: string;
     body: string;
+    attachments?: OutboundMimeAttachment[];
   },
   deps?: {
     getClient?: () => Promise<gmail_v1.Gmail>;
@@ -382,19 +389,40 @@ export async function sendGmailReply(
     );
   }
 
+  const attachments = params.attachments || [];
+  if (attachments.length) {
+    const batch = validateOutboundAttachmentBatch(attachments);
+    if (!batch.ok) {
+      throw new GmailIntegrationError(batch.code, batch.message, 400);
+    }
+  }
+
   const subject = buildReplySubject(parent.subject || thread.subject);
   const references = buildReferencesHeader(
     parent.references,
     parent.messageIdHeader,
   );
-  const mime = buildReplyMime({
-    from: mailboxEmail,
-    to: customerEmail,
-    subject,
-    inReplyTo: parent.messageIdHeader,
-    references,
-    body,
-  });
+  const mime =
+    attachments.length > 0
+      ? buildMultipartMixedMime({
+          headers: [
+            `From: ${mailboxEmail}`,
+            `To: ${customerEmail}`,
+            `Subject: ${encodeRfc2047Subject(subject)}`,
+            `In-Reply-To: ${parent.messageIdHeader}`,
+            `References: ${references}`,
+          ],
+          body,
+          attachments,
+        })
+      : buildReplyMime({
+          from: mailboxEmail,
+          to: customerEmail,
+          subject,
+          inReplyTo: parent.messageIdHeader,
+          references,
+          body,
+        });
 
   try {
     const getClient = deps?.getClient ?? getGmailClient;
@@ -454,6 +482,7 @@ export async function sendGmailNewMessage(
     customerEmail: string;
     subject: string;
     body: string;
+    attachments?: OutboundMimeAttachment[];
   },
   deps?: {
     getClient?: () => Promise<gmail_v1.Gmail>;
@@ -499,12 +528,31 @@ export async function sendGmailNewMessage(
     ? await deps.resolveMailbox()
     : await resolveMailboxEmail(gmail);
 
-  const mime = buildNewMessageMime({
-    from: mailboxEmail,
-    to: customerEmail,
-    subject,
-    body,
-  });
+  const attachments = params.attachments || [];
+  if (attachments.length) {
+    const batch = validateOutboundAttachmentBatch(attachments);
+    if (!batch.ok) {
+      throw new GmailIntegrationError(batch.code, batch.message, 400);
+    }
+  }
+
+  const mime =
+    attachments.length > 0
+      ? buildMultipartMixedMime({
+          headers: [
+            `From: ${mailboxEmail}`,
+            `To: ${customerEmail}`,
+            `Subject: ${encodeRfc2047Subject(subject)}`,
+          ],
+          body,
+          attachments,
+        })
+      : buildNewMessageMime({
+          from: mailboxEmail,
+          to: customerEmail,
+          subject,
+          body,
+        });
 
   try {
     const { data } = await gmail.users.messages.send({

@@ -1,4 +1,8 @@
 import type { gmail_v1 } from "googleapis";
+import {
+  extractAttachmentMetaFromPayload,
+  type ParsedGmailAttachmentMeta,
+} from "@/lib/google/gmail-attachments";
 
 /** Max characters returned per message body in API payloads. */
 export const GMAIL_BODY_CHAR_LIMIT = 50_000;
@@ -27,6 +31,7 @@ export type ParsedGmailMessage = {
   htmlBody: string | null;
   unread: boolean;
   hasAttachments: boolean;
+  attachments: ParsedGmailAttachmentMeta[];
 };
 
 export type ParsedGmailThread = {
@@ -278,7 +283,7 @@ export function buildReferencesHeader(
   return tokens.join(" ");
 }
 
-function encodeRfc2047Subject(subject: string): string {
+export function encodeRfc2047Subject(subject: string): string {
   // ASCII-safe subjects stay plain; otherwise use encoded-word.
   if (/^[\x20-\x7E]*$/.test(subject)) return subject;
   const b64 = Buffer.from(subject, "utf8").toString("base64");
@@ -331,6 +336,9 @@ export function buildReplyMime(params: {
   return `${headers.join("\r\n")}\r\n\r\n${bodyBase64}`;
 }
 
+export { buildMultipartMixedMime } from "@/lib/google/gmail-attachments";
+export type { OutboundMimeAttachment } from "@/lib/google/gmail-attachments";
+
 export function parseGmailMessage(
   message: gmail_v1.Schema$Message,
   mailboxEmail: string,
@@ -345,6 +353,7 @@ export function parseGmailMessage(
   const inReplyTo = getHeader(headers, "In-Reply-To") || null;
   const references = getHeader(headers, "References") || null;
   const bodies = extractBodiesFromPayload(payload);
+  const attachments = extractAttachmentMetaFromPayload(payload);
 
   const internalDate = message.internalDate
     ? new Date(Number(message.internalDate)).toISOString()
@@ -365,7 +374,8 @@ export function parseGmailMessage(
     plainTextBody: bodies.plainText,
     htmlBody: bodies.plainText ? null : bodies.html,
     unread: messageIsUnread(message.labelIds),
-    hasAttachments: bodies.hasAttachments,
+    hasAttachments: bodies.hasAttachments || attachments.length > 0,
+    attachments,
   };
 }
 

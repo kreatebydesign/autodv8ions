@@ -92,6 +92,48 @@ describe("gmail body extraction", () => {
     assert.equal(bodies.hasAttachments, true);
   });
 
+  it("parses attachment metadata on messages", () => {
+    const payload: gmail_v1.Schema$MessagePart = {
+      mimeType: "multipart/mixed",
+      parts: [
+        {
+          mimeType: "text/plain",
+          body: {
+            data: Buffer.from("Body", "utf8")
+              .toString("base64")
+              .replace(/\+/g, "-")
+              .replace(/\//g, "_")
+              .replace(/=+$/g, ""),
+          },
+        },
+        {
+          mimeType: "application/pdf",
+          filename: "quote.pdf",
+          partId: "1",
+          body: { attachmentId: "att-1", size: 12 },
+        },
+      ],
+    };
+
+    const parsed = parseGmailMessage(
+      {
+        id: "msg-1",
+        threadId: "thread-1",
+        labelIds: ["INBOX"],
+        internalDate: String(Date.now()),
+        payload: {
+          headers: [{ name: "From", value: "c@example.com" }],
+          mimeType: payload.mimeType,
+          parts: payload.parts,
+        },
+      },
+      "sales@autodv8ions.com",
+    );
+    assert.equal(parsed.attachments.length, 1);
+    assert.equal(parsed.attachments[0].filename, "quote.pdf");
+    assert.equal(parsed.hasAttachments, true);
+  });
+
   it("truncates oversized bodies", () => {
     const long = "x".repeat(60_000);
     const out = truncateBody(long, 100);
@@ -390,6 +432,7 @@ describe("no-thread response shape helpers", () => {
           htmlBody: null,
           unread: false,
           hasAttachments: false,
+          attachments: [],
         },
       ],
     };
@@ -414,6 +457,7 @@ describe("no-thread response shape helpers", () => {
           htmlBody: null,
           unread: false,
           hasAttachments: false,
+          attachments: [],
         },
       ],
     };

@@ -26,6 +26,7 @@ function sampleThread(): ParsedGmailThread {
         htmlBody: null,
         unread: false,
         hasAttachments: false,
+        attachments: [],
       },
     ],
   };
@@ -84,6 +85,48 @@ describe("sendGmailReply", () => {
     assert.equal(sentThreadId, "thread-1");
     assert.ok(sentRaw && sentRaw.length > 20);
     assert.equal(result.message?.gmailMessageId, "msg-sent");
+  });
+
+  it("sends multipart mime when attachments are included", async () => {
+    let sentRaw: string | undefined;
+
+    await sendGmailReply(
+      {
+        threadId: "thread-1",
+        customerEmail: "customer@example.com",
+        body: "Photos attached.",
+        attachments: [
+          {
+            filename: "car.jpg",
+            mimeType: "image/jpeg",
+            data: Buffer.from([0xff, 0xd8, 0xff, 0x00]),
+          },
+        ],
+      },
+      {
+        resolveThread: async () => ({
+          thread: sampleThread(),
+          mailboxEmail: "sales@autodv8ions.com",
+        }),
+        getClient: async () =>
+          ({
+            users: {
+              messages: {
+                send: async (args: { requestBody?: { raw?: string } }) => {
+                  sentRaw = args.requestBody?.raw;
+                  return { data: { id: "msg-att", threadId: "thread-1" } };
+                },
+              },
+            },
+          }) as never,
+        refreshThread: async () => ({
+          thread: sampleThread(),
+          mailboxEmail: "sales@autodv8ions.com",
+        }),
+      },
+    );
+
+    assert.ok(sentRaw && sentRaw.length > 40);
   });
 
   it("maps expired/revoked Google authorization to gmail_auth_failed", async () => {

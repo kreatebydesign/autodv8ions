@@ -7,13 +7,19 @@ export function buildGmailSendFingerprint(params: {
   threadId: string | null;
   subject: string;
   body: string;
+  attachmentHashes?: string[];
 }): string {
   const normalized = params.body.trim().replace(/\s+/g, " ");
+  const attach =
+    params.attachmentHashes && params.attachmentHashes.length
+      ? params.attachmentHashes.slice().sort().join(",")
+      : "";
   const payload = [
     params.jobId,
     params.threadId || "new",
     params.subject.trim().toLowerCase(),
     normalized,
+    attach,
   ].join("\n");
   return createHash("sha256").update(payload, "utf8").digest("hex");
 }

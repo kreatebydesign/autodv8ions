@@ -16,6 +16,10 @@ import {
 import { assertAdminForGmailReply } from "@/lib/google/gmail-reply-access";
 import { GMAIL_REPLY_BODY_MAX } from "@/lib/google/gmail-message";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import {
+  parseGmailOutboundAttachmentsFromFormData,
+  readGmailMultipartFields,
+} from "@/lib/crm/gmail-outbound-request";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -68,15 +72,45 @@ export async function POST(request: Request, context: RouteContext) {
 
   const { id: jobId } = await context.params;
 
-  let body: { subject?: string; message?: string; body?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return noStoreJson({ error: "Invalid JSON body." }, { status: 400 });
+  const contentType = request.headers.get("content-type") || "";
+  let subject = "";
+  let messageBody = "";
+  let outboundAttachments: Awaited<
+    ReturnType<typeof parseGmailOutboundAttachmentsFromFormData>
+  > = { ok: true, attachments: [], attachmentHashes: [] };
+
+  if (contentType.includes("multipart/form-data")) {
+    const multipart = await readGmailMultipartFields(request);
+    if (!multipart.ok) {
+      return noStoreJson(
+        { error: multipart.message, code: multipart.code },
+        { status: 400 },
+      );
+    }
+    subject = String(multipart.formData.get("subject") || "").trim();
+    messageBody = String(
+      multipart.formData.get("message") || multipart.formData.get("body") || "",
+    ).trim();
+    outboundAttachments = await parseGmailOutboundAttachmentsFromFormData(
+      multipart.formData,
+    );
+  } else {
+    let body: { subject?: string; message?: string; body?: string };
+    try {
+      body = await request.json();
+    } catch {
+      return noStoreJson({ error: "Invalid JSON body." }, { status: 400 });
+    }
+    subject = String(body.subject || "").trim();
+    messageBody = String(body.message || body.body || "").trim();
   }
 
-  const subject = String(body.subject || "").trim();
-  const messageBody = String(body.message || body.body || "").trim();
+  if (!outboundAttachments.ok) {
+    return noStoreJson(
+      { error: outboundAttachments.message, code: outboundAttachments.code },
+      { status: 400 },
+    );
+  }
 
   if (!subject) {
     return noStoreJson(
@@ -137,6 +171,7 @@ export async function POST(request: Request, context: RouteContext) {
     threadId: null,
     subject,
     body: messageBody,
+    attachmentHashes: outboundAttachments.attachmentHashes,
   });
   const cached = recentSendCache.get(jobId);
   if (
@@ -159,6 +194,7 @@ export async function POST(request: Request, context: RouteContext) {
       customerEmail,
       subject,
       body: messageBody,
+      attachments: outboundAttachments.attachments,
     });
 
     const linkResult = await linkJobGmailThread({

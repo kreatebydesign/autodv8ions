@@ -25,6 +25,7 @@ function outboundToConversationMessage(
     htmlBody: null,
     unread: false,
     hasAttachments: false,
+    attachments: [],
     source: "resend",
     localId: row.id,
   };

@@ -23,6 +23,7 @@ function gmailMsg(
     htmlBody: null,
     unread: false,
     hasAttachments: false,
+    attachments: [],
   };
 }
 

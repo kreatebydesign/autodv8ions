@@ -16,6 +16,12 @@ import {
   isGmailTemporaryErrorCode,
 } from "@/lib/google/gmail-ui";
 import JobMessageBody from "@/components/admin/JobMessageBody";
+import GmailComposerAttachments, {
+  type ComposerAttachment,
+  validateComposerFiles,
+} from "@/components/admin/GmailComposerAttachments";
+import GmailMessageAttachments from "@/components/admin/GmailMessageAttachments";
+import type { ParsedGmailAttachmentMeta } from "@/lib/google/gmail-attachments";
 
 type GmailMessage = {
   gmailMessageId: string;
@@ -30,6 +36,7 @@ type GmailMessage = {
   htmlBody: string | null;
   unread: boolean;
   hasAttachments: boolean;
+  attachments?: ParsedGmailAttachmentMeta[];
   source?: "gmail" | "resend";
 };
 
@@ -145,6 +152,29 @@ export default function JobCommunication({
     string | null
   >(null);
   const [savingOutboundLog, setSavingOutboundLog] = useState(false);
+  const [replyAttachments, setReplyAttachments] = useState<ComposerAttachment[]>(
+    [],
+  );
+  const [gmailFirstAttachments, setGmailFirstAttachments] = useState<
+    ComposerAttachment[]
+  >([]);
+  const [composerAttachError, setComposerAttachError] = useState<string | null>(
+    null,
+  );
+
+  function buildOutboundFormData(
+    fields: Record<string, string>,
+    attachments: ComposerAttachment[],
+  ): FormData {
+    const fd = new FormData();
+    for (const [key, value] of Object.entries(fields)) {
+      fd.append(key, value);
+    }
+    for (const { file } of attachments) {
+      fd.append("attachments", file, file.name);
+    }
+    return fd;
+  }
 
   async function loadThread(options?: { soft?: boolean }) {
     if (!email) {
@@ -289,15 +319,25 @@ export default function JobCommunication({
     const body = replyBody.trim();
     if (!body || body.length > GMAIL_REPLY_BODY_MAX_CLIENT) return;
 
+    const attachValidation = validateComposerFiles(replyAttachments);
+    if (attachValidation) {
+      setComposerAttachError(attachValidation);
+      return;
+    }
+
     setSendingReply(true);
     setReplyFeedback(null);
+    setComposerAttachError(null);
 
     try {
+      const hasFiles = replyAttachments.length > 0;
       const res = await fetch(`/api/jobs/${jobId}/gmail/reply`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ threadId: thread.id, body }),
+        headers: hasFiles ? undefined : { "Content-Type": "application/json" },
+        body: hasFiles
+          ? buildOutboundFormData({ threadId: thread.id, body }, replyAttachments)
+          : JSON.stringify({ threadId: thread.id, body }),
       });
 
       let data: { error?: string; success?: boolean } = {};
@@ -316,6 +356,7 @@ export default function JobCommunication({
       }
 
       setReplyBody("");
+      setReplyAttachments([]);
       setReplyFeedback({
         type: "success",
         text:
@@ -343,15 +384,25 @@ export default function JobCommunication({
     const message = emailMessage.trim();
     if (!subject || !message) return;
 
+    const attachValidation = validateComposerFiles(gmailFirstAttachments);
+    if (attachValidation) {
+      setComposerAttachError(attachValidation);
+      return;
+    }
+
     setSendingGmailFirst(true);
     setFirstContactFeedback(null);
+    setComposerAttachError(null);
 
     try {
+      const hasFiles = gmailFirstAttachments.length > 0;
       const res = await fetch(`/api/jobs/${jobId}/gmail/send`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, message }),
+        headers: hasFiles ? undefined : { "Content-Type": "application/json" },
+        body: hasFiles
+          ? buildOutboundFormData({ subject, message }, gmailFirstAttachments)
+          : JSON.stringify({ subject, message }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -371,6 +422,7 @@ export default function JobCommunication({
       } else {
         setEmailSubject("");
         setEmailMessage("");
+        setGmailFirstAttachments([]);
         setShowFirstContact(false);
         setFirstContactFeedback({
           type: "success",
@@ -543,7 +595,8 @@ export default function JobCommunication({
     Boolean(replyBody.trim()) &&
     !replyTooLong &&
     !sendingReply &&
-    !disabled;
+    !disabled &&
+    !composerAttachError;
 
   const needsReconnect = isGmailAuthorizationErrorCode(errorCode);
   const canRetry = isGmailTemporaryErrorCode(errorCode);
@@ -786,6 +839,18 @@ export default function JobCommunication({
                   placeholder="Write your message…"
                 />
               </div>
+              {configured && !linkedThreadId ? (
+                <GmailComposerAttachments
+                  idPrefix={`job-comm-gmail-first-attach-${jobId}`}
+                  files={gmailFirstAttachments}
+                  disabled={sendingGmailFirst || sendingFirstContact || disabled}
+                  error={composerAttachError}
+                  onChange={(files) => {
+                    setGmailFirstAttachments(files);
+                    setComposerAttachError(validateComposerFiles(files));
+                  }}
+                />
+              ) : null}
               <div className="job-comm-composer-actions">
                 <button
                   type="button"
@@ -990,8 +1055,17 @@ export default function JobCommunication({
                       email.
                     </p>
                   )}
-                  {message.hasAttachments ? (
-                    <p className="job-comm-attachment-note">Includes attachments</p>
+                  {message.attachments?.length ? (
+                    <GmailMessageAttachments
+                      jobId={jobId}
+                      gmailMessageId={message.gmailMessageId}
+                      attachments={message.attachments}
+                    />
+                  ) : message.hasAttachments ? (
+                    <p className="job-comm-attachment-note">
+                      Includes attachments — refresh or open in Gmail if files do
+                      not appear.
+                    </p>
                   ) : null}
                 </li>
               );
@@ -1126,6 +1200,16 @@ export default function JobCommunication({
                 }}
                 placeholder="Write a reply…"
                 rows={5}
+              />
+              <GmailComposerAttachments
+                idPrefix={`job-comm-reply-attach-${jobId}`}
+                files={replyAttachments}
+                disabled={sendingReply || disabled}
+                error={composerAttachError}
+                onChange={(files) => {
+                  setReplyAttachments(files);
+                  setComposerAttachError(validateComposerFiles(files));
+                }}
               />
               <div className="job-comm-composer-actions">
                 <button
