@@ -11,7 +11,7 @@ const STEPS = [
   {
     num: "02",
     title: "Get a straight answer",
-    copy: "What fits the vehicle — and what does not.",
+    copy: "What fits the vehicle and what does not.",
   },
   {
     num: "03",

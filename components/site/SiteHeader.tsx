@@ -3,6 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import SamePageHashLink from "@/components/site/SamePageHashLink";
+import {
+  TINT_QUOTE_HEADER_CTA_LABEL,
+  TINT_QUOTE_HREF,
+} from "@/lib/site/tint-quote-cta";
 import { useEffect, useId, useRef, useState } from "react";
 
 const LOGO = "/images/logos/dv8-logo.png";
@@ -21,8 +25,8 @@ const DEFAULT_NAV: SiteNavItem[] = [
 
 export default function SiteHeader({
   activeHref,
-  ctaLabel = "Get Tint Quote",
-  ctaHref = "/tint-quote",
+  ctaLabel = TINT_QUOTE_HEADER_CTA_LABEL,
+  ctaHref = TINT_QUOTE_HREF,
   nav = DEFAULT_NAV,
   transparent = false,
 }: {
@@ -80,7 +84,7 @@ export default function SiteHeader({
 
   const mobileLinks: SiteNavItem[] = [
     ...nav,
-    { label: "Tint Quote", href: "/tint-quote" },
+    { label: TINT_QUOTE_HEADER_CTA_LABEL, href: TINT_QUOTE_HREF },
   ];
 
   return (
@@ -122,12 +126,6 @@ export default function SiteHeader({
               </Link>
             );
           })}
-          <Link
-            href="/tint-quote"
-            className="label-mono link-underline text-white/50 hover:text-white"
-          >
-            Tint Quote
-          </Link>
         </nav>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -162,7 +160,7 @@ export default function SiteHeader({
 
           <SamePageHashLink
             href={ctaHref}
-            className="label-mono max-w-[9.25rem] border border-white/10 bg-white/[0.03] px-2.5 py-2 text-center text-[0.625rem] leading-snug tracking-[0.1em] text-white/70 transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.06] hover:text-white hover:shadow-[0_0_24px_var(--accent-glow)] sm:max-w-none sm:px-4 sm:py-2.5 sm:text-xs sm:tracking-[0.14em]"
+            className="label-mono max-w-[11rem] whitespace-nowrap border border-white/10 bg-white/[0.03] px-2.5 py-2 text-center text-[0.625rem] leading-snug tracking-[0.08em] text-white/70 transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.06] hover:text-white hover:shadow-[0_0_24px_var(--accent-glow)] sm:max-w-none sm:px-4 sm:py-2.5 sm:text-xs sm:tracking-[0.12em]"
             onNavigate={closeMenu}
           >
             {ctaLabel}
@@ -200,7 +198,7 @@ export default function SiteHeader({
             );
           })}
 
-          {ctaHref !== "/tint-quote" ? (
+          {ctaHref !== TINT_QUOTE_HREF ? (
             <SamePageHashLink
               href={ctaHref}
               className="label-mono mt-2 flex min-h-12 items-center border border-white/12 bg-white/[0.04] px-4 py-3 text-white/80"

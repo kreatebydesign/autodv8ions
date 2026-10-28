@@ -1,8 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
+import {
+  TINT_QUOTE_HEADER_CTA_LABEL,
+  TINT_QUOTE_HREF,
+} from "@/lib/site/tint-quote-cta";
 
 /**
- * Single bold DV8 brand moment — official mark only, no variants.
+ * Single bold DV8 brand moment: official mark only, no variants.
  */
 export default function BrandLogoMoment() {
   return (
@@ -29,10 +33,10 @@ export default function BrandLogoMoment() {
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-5 sm:flex-row">
           <Link
-            href="/tint-quote"
+            href={TINT_QUOTE_HREF}
             className="inline-flex items-center gap-3 border border-white/15 bg-white/[0.05] px-8 py-3.5 text-xs uppercase tracking-[0.15em] text-white transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.08] hover:shadow-[0_0_32px_var(--accent-glow)]"
           >
-            Get Tint Quote
+            {TINT_QUOTE_HEADER_CTA_LABEL}
           </Link>
           <Link
             href="/contact"

@@ -3,6 +3,10 @@ import RemoteStarterHeroVideo from "@/components/site/RemoteStarterHeroVideo";
 import SamePageHashLink from "@/components/site/SamePageHashLink";
 import SiteFooter from "@/components/site/SiteFooter";
 import SiteHeader from "@/components/site/SiteHeader";
+import {
+  TINT_QUOTE_HEADER_CTA_LABEL,
+  TINT_QUOTE_HREF,
+} from "@/lib/site/tint-quote-cta";
 
 export type ServiceHeroVideo = {
   src: string;
@@ -72,8 +76,8 @@ export default function ServicePageShell({
     <>
       <SiteHeader
         activeHref={activeHref}
-        ctaHref={headerCtaHref ?? "/tint-quote"}
-        ctaLabel={headerCtaLabel ?? "Tint Quote"}
+        ctaHref={headerCtaHref ?? TINT_QUOTE_HREF}
+        ctaLabel={headerCtaLabel ?? TINT_QUOTE_HEADER_CTA_LABEL}
       />
       <main className="pt-[4.5rem]">
         <section

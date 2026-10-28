@@ -46,7 +46,7 @@ export const CORE_SERVICES: ServiceCardData[] = [
   {
     num: "04",
     title: "Audio + Select Custom",
-    desc: "Select jobs only — when scope and schedule fit.",
+    desc: "Select jobs only, when scope and schedule fit.",
     href: "/services/audio-custom",
     cta: "Submit Project for Review",
     emphasis: "selective",
