@@ -6,6 +6,8 @@ export const REMOTE_STARTER_PRODUCT_CATALOG_ENABLED = false;
 
 export const REMOTE_STARTER_INQUIRY_LABEL = "Remote Starter Inquiry";
 
+export const REMOTE_STARTER_HERO_CTA_LABEL = "Request More Information";
+
 /** Bottom inquiry form anchor on `/services/remote-starters`. */
 export const REMOTE_STARTER_CONTACT_ID = "remote-starter-contact";
 

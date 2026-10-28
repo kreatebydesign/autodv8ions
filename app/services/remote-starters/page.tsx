@@ -1,21 +1,25 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Suspense } from "react";
-import RemoteStarterComingSoonSection from "@/components/site/RemoteStarterComingSoonSection";
 import RemoteStarterContactHashOnLoad from "@/components/site/RemoteStarterContactHashOnLoad";
 import RemoteStarterConsultation from "@/components/site/RemoteStarterConsultation";
+import RemoteStarterOptionsSection from "@/components/site/RemoteStarterOptionsSection";
 import RemoteStarterProductCatalog from "@/components/site/RemoteStarterProductCatalog";
 import ServicePageShell from "@/components/site/ServicePageShell";
 import {
   REMOTE_STARTER_CONTACT_HREF,
+  REMOTE_STARTER_HERO_CTA_LABEL,
   REMOTE_STARTER_PRODUCT_CATALOG_ENABLED,
 } from "@/lib/constants/remote-starter-page";
+
+const PAGE_DESCRIPTION =
+  "Remote starter installation from Viper, NuStart, and Compustar in Altoona, PA at AutoDV8ions. Request more information and we will help you plan the right setup for your vehicle.";
 
 export const metadata: Metadata = {
   title: "Remote Starter Installation in Altoona, PA",
   description: REMOTE_STARTER_PRODUCT_CATALOG_ENABLED
     ? "Compustar remote starters sold and installed in Altoona, PA at AutoDV8ions. Tell us your year, make, and model and we will quote the right system for your vehicle."
-    : "Compustar remote starter installation in Altoona, PA at AutoDV8ions. Our lineup is updating. Send your vehicle details and we will help you plan the right remote start for your car or truck.",
+    : PAGE_DESCRIPTION,
   alternates: { canonical: "/services/remote-starters" },
 };
 
@@ -37,10 +41,6 @@ const WINTER_BENEFITS = [
     copy: "Altoona shop. We tell you what fits before we talk parts and labor.",
   },
 ] as const;
-
-const primaryCtaLabel = REMOTE_STARTER_PRODUCT_CATALOG_ENABLED
-  ? "GET A QUOTE"
-  : "Ask About Remote Starters";
 
 export default function RemoteStartersPage() {
   return (
@@ -65,7 +65,7 @@ export default function RemoteStartersPage() {
       lead={
         REMOTE_STARTER_PRODUCT_CATALOG_ENABLED
           ? "We sell and install Compustar remote starters at our Altoona shop. Share what you drive and we'll match the system to your vehicle, then quote the install."
-          : "We install Compustar remote starters at our Altoona shop. Our model lineup is updating. Tell us what you drive and we will help you plan the right setup."
+          : "We install remote start systems from Viper, NuStart, and Compustar at our Altoona shop. Tell us what you drive and we will help you choose the right setup."
       }
       heroVideo={{
         src: "/videos/remote-starter-hero.mp4",
@@ -73,9 +73,7 @@ export default function RemoteStartersPage() {
         posterAlt: "Vehicle parked at night in winter conditions",
       }}
       ctaHref={REMOTE_STARTER_CONTACT_HREF}
-      ctaLabel={primaryCtaLabel}
-      headerCtaHref={REMOTE_STARTER_CONTACT_HREF}
-      headerCtaLabel={primaryCtaLabel}
+      ctaLabel={REMOTE_STARTER_HERO_CTA_LABEL}
       heroVideoForegroundClassName="opacity-[0.58] sm:opacity-[0.62]"
       heroOverlayClassName="absolute inset-0 bg-gradient-to-t from-[#050505]/88 via-[#050505]/45 to-black/25"
       heroSectionClassName="remote-starter-hero-section min-h-[clamp(20rem,62vw,34rem)]"
@@ -87,7 +85,7 @@ export default function RemoteStartersPage() {
       {REMOTE_STARTER_PRODUCT_CATALOG_ENABLED ? (
         <RemoteStarterProductCatalog />
       ) : (
-        <RemoteStarterComingSoonSection />
+        <RemoteStarterOptionsSection />
       )}
 
       <section className="border-b border-white/[0.04] py-14 sm:py-18">
@@ -111,13 +109,13 @@ export default function RemoteStartersPage() {
             </article>
             <article className="panel p-5 sm:p-6">
               <h3 className="text-base font-light text-white/90">
-                DroneMobile on your phone
+                Smartphone add-ons
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-white/42">
-                On compatible Compustar installs, DroneMobile adds app control
-                over cellular for farther reach than the fob when coverage is good.
-                Needs the right module, a service plan, and a vehicle that
-                supports the features you want.
+                Some Compustar and compatible installs support app control when
+                the right module and plan are in place. We will tell you what
+                your vehicle and chosen brand can support before anything is
+                ordered.
               </p>
             </article>
             <article className="panel p-5 sm:p-6">
@@ -151,9 +149,8 @@ export default function RemoteStartersPage() {
             ))}
           </div>
           <p className="mt-8 max-w-lg text-sm text-white/40">
-            {REMOTE_STARTER_PRODUCT_CATALOG_ENABLED
-              ? "Ready to talk install? Send your vehicle details and we will check compatibility and follow up with a quote."
-              : "Questions about timing, fitment, or what remote start can do on your vehicle? Use the form below and we will follow up."}
+            Questions about timing, fitment, or what remote start can do on your
+            vehicle? Use the form below and we will follow up.
           </p>
         </div>
       </section>
@@ -168,7 +165,7 @@ export default function RemoteStartersPage() {
                   Remote start done right
                 </h2>
                 <ul className="mt-6 space-y-4 text-sm leading-relaxed text-white/45">
-                  <li>Comfort on the cold days — same button, less misery.</li>
+                  <li>Comfort on the cold days. Same button, less misery.</li>
                   <li>Cool-down head start in summer when the truck allows it.</li>
                   <li>Wired and programmed like a real install, not a dash hack.</li>
                   <li>Advice based on your actual vehicle, not a generic kit.</li>
@@ -208,7 +205,7 @@ export default function RemoteStartersPage() {
                 },
                 {
                   title: "Quote if it works",
-                  copy: "You get numbers for parts and labor — only if the job is doable.",
+                  copy: "You get numbers for parts and labor only if the job is doable.",
                 },
               ].map((item) => (
                 <article key={item.title} className="panel p-5 sm:p-6">
