@@ -1,9 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
-import { REMOTE_STARTER_CONSULTATION_HREF } from "@/lib/constants/remote-starter-page";
-
-const primaryCtaClass =
-  "inline-flex shrink-0 items-center gap-3 border border-white/15 bg-white/[0.05] px-6 py-3 text-xs uppercase tracking-[0.15em] text-white transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.08]";
 
 export default function RemoteStarterComingSoonSection() {
   return (
@@ -25,16 +20,6 @@ export default function RemoteStarterComingSoonSection() {
               want to get something scheduled? Send us a message below and
               we&apos;ll help you figure out the best option for your vehicle.
             </p>
-            <div className="mt-8">
-              <Link
-                href={REMOTE_STARTER_CONSULTATION_HREF}
-                scroll={false}
-                className={primaryCtaClass}
-              >
-                Ask About Remote Starters
-                <span aria-hidden>→</span>
-              </Link>
-            </div>
             <p className="mt-8 max-w-xl text-xs leading-relaxed text-white/32">
               AutoDV8ions installs Compustar remote start systems at our Altoona
               shop. Compustar and DroneMobile are trademarks of their respective

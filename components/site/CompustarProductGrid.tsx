@@ -7,7 +7,7 @@ import {
 } from "@/lib/constants/compustar-remote-starters";
 
 export function compustarInquiryHref(productId: string) {
-  return `/services/remote-starters?system=${encodeURIComponent(productId)}#consultation`;
+  return `/services/remote-starters?system=${encodeURIComponent(productId)}#remote-starter-contact`;
 }
 
 function CompustarProductCard({ product }: { product: CompustarRemoteStarterProduct }) {

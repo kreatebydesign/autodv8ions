@@ -12,7 +12,7 @@ const quoteLinkClass =
   "inline-flex items-center gap-2 text-xs uppercase tracking-[0.15em] text-white/50 transition-colors duration-500 hover:text-white";
 
 function installPackageInquiryHref(title: string) {
-  return `/services/remote-starters?interest=${encodeURIComponent(title)}#consultation`;
+  return `/services/remote-starters?interest=${encodeURIComponent(title)}#remote-starter-contact`;
 }
 
 /**
@@ -144,7 +144,7 @@ export default function RemoteStarterProductCatalog() {
               </div>
               <div className="lg:col-span-4 lg:text-right">
                 <Link
-                  href="/services/remote-starters?interest=dronemobile#consultation"
+                  href="/services/remote-starters?interest=dronemobile#remote-starter-contact"
                   className={`${quoteCtaClass} w-full justify-center sm:w-auto lg:justify-end`}
                 >
                   GET A QUOTE

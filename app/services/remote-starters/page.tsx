@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { Suspense } from "react";
 import RemoteStarterComingSoonSection from "@/components/site/RemoteStarterComingSoonSection";
-import RemoteStarterHashScroll from "@/components/site/RemoteStarterHashScroll";
+import RemoteStarterContactHashOnLoad from "@/components/site/RemoteStarterContactHashOnLoad";
 import RemoteStarterConsultation from "@/components/site/RemoteStarterConsultation";
 import RemoteStarterProductCatalog from "@/components/site/RemoteStarterProductCatalog";
 import ServicePageShell from "@/components/site/ServicePageShell";
 import {
-  REMOTE_STARTER_CONSULTATION_HREF,
+  REMOTE_STARTER_CONTACT_HREF,
   REMOTE_STARTER_PRODUCT_CATALOG_ENABLED,
 } from "@/lib/constants/remote-starter-page";
 
@@ -38,9 +37,6 @@ const WINTER_BENEFITS = [
     copy: "Altoona shop. We tell you what fits before we talk parts and labor.",
   },
 ] as const;
-
-const quoteCtaClass =
-  "inline-flex shrink-0 items-center gap-3 border border-white/15 bg-white/[0.05] px-6 py-3 text-xs uppercase tracking-[0.15em] text-white transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.08]";
 
 const primaryCtaLabel = REMOTE_STARTER_PRODUCT_CATALOG_ENABLED
   ? "GET A QUOTE"
@@ -73,15 +69,17 @@ export default function RemoteStartersPage() {
       }
       imageSrc="/images/editorial/night-street.jpg"
       imageAlt="Vehicle parked at night in winter conditions"
-      ctaHref={REMOTE_STARTER_CONSULTATION_HREF}
+      ctaHref={REMOTE_STARTER_CONTACT_HREF}
       ctaLabel={primaryCtaLabel}
+      headerCtaHref={REMOTE_STARTER_CONTACT_HREF}
+      headerCtaLabel={primaryCtaLabel}
       heroImageClassName="object-cover object-center opacity-[0.58] sm:opacity-[0.62]"
       heroOverlayClassName="absolute inset-0 bg-gradient-to-t from-[#050505]/92 via-[#050505]/55 to-black/30"
       heroHeadingClassName="max-w-[20rem] text-[clamp(1.75rem,5.5vw,3rem)] font-light leading-[1.12] tracking-[-0.025em] text-balance sm:max-w-lg md:max-w-xl lg:max-w-2xl"
       heroLeadClassName="mt-5 max-w-xl text-sm leading-[1.7] text-white/58 sm:max-w-2xl sm:text-[0.95rem] md:text-base"
       heroContentClassName="relative z-10 mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12 lg:py-28"
     >
-      <RemoteStarterHashScroll />
+      <RemoteStarterContactHashOnLoad />
       {REMOTE_STARTER_PRODUCT_CATALOG_ENABLED ? (
         <RemoteStarterProductCatalog />
       ) : (
@@ -148,21 +146,11 @@ export default function RemoteStartersPage() {
               </article>
             ))}
           </div>
-          <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="max-w-lg text-sm text-white/40">
-              {REMOTE_STARTER_PRODUCT_CATALOG_ENABLED
-                ? "Ready to talk install? Send your vehicle details — we'll check compatibility and follow up with a quote."
-                : "Questions about timing, fitment, or what remote start can do on your vehicle? Use the form below and we will follow up."}
-            </p>
-            <Link
-              href={REMOTE_STARTER_CONSULTATION_HREF}
-              scroll={false}
-              className={quoteCtaClass}
-            >
-              {primaryCtaLabel}
-              <span aria-hidden>→</span>
-            </Link>
-          </div>
+          <p className="mt-8 max-w-lg text-sm text-white/40">
+            {REMOTE_STARTER_PRODUCT_CATALOG_ENABLED
+              ? "Ready to talk install? Send your vehicle details and we will check compatibility and follow up with a quote."
+              : "Questions about timing, fitment, or what remote start can do on your vehicle? Use the form below and we will follow up."}
+          </p>
         </div>
       </section>
 
@@ -227,25 +215,14 @@ export default function RemoteStartersPage() {
                 </article>
               ))}
             </div>
-            <div className="mt-8 text-center">
-              <Link
-                href={REMOTE_STARTER_CONSULTATION_HREF}
-                scroll={false}
-                className={quoteCtaClass}
-              >
-                {primaryCtaLabel}
-                <span aria-hidden>→</span>
-              </Link>
-            </div>
           </div>
         </section>
       ) : null}
 
       <section
-        id="consultation"
-        tabIndex={-1}
+        id="remote-starter-contact"
         aria-label="Remote starter inquiry form"
-        className="atmosphere atmosphere-dark relative scroll-mt-[4.5rem] border-t border-white/[0.04] py-14 sm:py-20"
+        className="atmosphere atmosphere-dark relative scroll-mt-[4.5rem] border-t border-white/[0.04] py-14 pb-24 sm:py-20 sm:pb-28"
       >
         <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-12 lg:px-12">
           <Suspense

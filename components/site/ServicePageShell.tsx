@@ -1,7 +1,14 @@
 import Image from "next/image";
-import Link from "next/link";
+import RemoteStarterHeroVideo from "@/components/site/RemoteStarterHeroVideo";
+import SamePageHashLink from "@/components/site/SamePageHashLink";
 import SiteFooter from "@/components/site/SiteFooter";
 import SiteHeader from "@/components/site/SiteHeader";
+
+export type ServiceHeroVideo = {
+  src: string;
+  posterSrc: string;
+  posterAlt: string;
+};
 
 export default function ServicePageShell({
   activeHref,
@@ -10,6 +17,7 @@ export default function ServicePageShell({
   lead,
   imageSrc,
   imageAlt,
+  heroVideo,
   children,
   ctaHref,
   ctaLabel,
@@ -18,6 +26,10 @@ export default function ServicePageShell({
   heroHeadingClassName,
   heroLeadClassName,
   heroContentClassName,
+  heroSectionClassName,
+  heroVideoForegroundClassName,
+  headerCtaHref,
+  headerCtaLabel,
 }: {
   activeHref: string;
   eyebrow: string;
@@ -25,6 +37,8 @@ export default function ServicePageShell({
   lead: string;
   imageSrc?: string;
   imageAlt?: string;
+  /** Cinematic loop — poster image doubles as reduced-motion fallback. */
+  heroVideo?: ServiceHeroVideo;
   children: React.ReactNode;
   ctaHref?: string;
   ctaLabel?: string;
@@ -34,6 +48,11 @@ export default function ServicePageShell({
   heroHeadingClassName?: string;
   heroLeadClassName?: string;
   heroContentClassName?: string;
+  heroSectionClassName?: string;
+  heroVideoForegroundClassName?: string;
+  /** Header CTA defaults to tint quote when omitted. */
+  headerCtaHref?: string;
+  headerCtaLabel?: string;
 }) {
   const imageClassName =
     heroImageClassName ?? "object-cover opacity-45";
@@ -53,12 +72,24 @@ export default function ServicePageShell({
     <>
       <SiteHeader
         activeHref={activeHref}
-        ctaHref={ctaHref || "/contact"}
-        ctaLabel={ctaLabel || "Contact"}
+        ctaHref={headerCtaHref ?? "/tint-quote"}
+        ctaLabel={headerCtaLabel ?? "Tint Quote"}
       />
       <main className="pt-[4.5rem]">
-        <section className="relative overflow-hidden border-b border-white/[0.05]">
-          {imageSrc ? (
+        <section
+          className={`relative overflow-hidden border-b border-white/[0.05] ${heroSectionClassName ?? ""}`}
+        >
+          {heroVideo ? (
+            <div className="absolute inset-0 bg-[#050505]">
+              <RemoteStarterHeroVideo
+                videoSrc={heroVideo.src}
+                posterSrc={heroVideo.posterSrc}
+                posterAlt={heroVideo.posterAlt}
+                overlayClassName={overlayClassName}
+                foregroundOpacityClassName={heroVideoForegroundClassName}
+              />
+            </div>
+          ) : imageSrc ? (
             <div className="absolute inset-0">
               <Image
                 src={imageSrc}
@@ -78,14 +109,13 @@ export default function ServicePageShell({
             <h1 className={headingClassName}>{title}</h1>
             <p className={leadClassName}>{lead}</p>
             {ctaHref && ctaLabel ? (
-              <Link
+              <SamePageHashLink
                 href={ctaHref}
-                scroll={ctaHref.includes("#") ? false : undefined}
                 className="mt-8 inline-flex items-center gap-3 border border-white/15 bg-white/[0.05] px-6 py-3 text-xs uppercase tracking-[0.15em] text-white transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.08]"
               >
                 {ctaLabel}
                 <span aria-hidden>→</span>
-              </Link>
+              </SamePageHashLink>
             ) : null}
           </div>
         </section>

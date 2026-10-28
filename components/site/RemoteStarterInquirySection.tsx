@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import InquiryForm from "@/components/site/InquiryForm";
-import { scrollToRemoteStarterConsultation } from "@/components/site/remote-starter-scroll";
+import { REMOTE_STARTER_CONTACT_ID } from "@/lib/constants/remote-starter-page";
 import {
   COMPUSTAR_REMOTE_STARTER_PRODUCTS,
   getEnabledCompustarProducts,
@@ -97,10 +97,14 @@ export function RemoteStarterInquiryForm() {
   );
 
   useEffect(() => {
-    if (!systemId && !interest && window.location.hash !== "#consultation") {
-      return;
-    }
-    requestAnimationFrame(() => scrollToRemoteStarterConsultation());
+    if (!systemId && !interest) return;
+    const section = document.getElementById(REMOTE_STARTER_CONTACT_ID);
+    if (!section) return;
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)")
+      .matches
+      ? "auto"
+      : "smooth";
+    section.scrollIntoView({ behavior, block: "start" });
   }, [systemId, interest]);
 
   return (

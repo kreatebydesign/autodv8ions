@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import SamePageHashLink from "@/components/site/SamePageHashLink";
 import { useEffect, useId, useRef, useState } from "react";
 
 const LOGO = "/images/logos/dv8-logo.png";
@@ -159,14 +160,13 @@ export default function SiteHeader({
             </span>
           </button>
 
-          <Link
+          <SamePageHashLink
             href={ctaHref}
-            scroll={ctaHref.includes("#") ? false : undefined}
             className="label-mono max-w-[9.25rem] border border-white/10 bg-white/[0.03] px-2.5 py-2 text-center text-[0.625rem] leading-snug tracking-[0.1em] text-white/70 transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.06] hover:text-white hover:shadow-[0_0_24px_var(--accent-glow)] sm:max-w-none sm:px-4 sm:py-2.5 sm:text-xs sm:tracking-[0.14em]"
-            onClick={closeMenu}
+            onNavigate={closeMenu}
           >
             {ctaLabel}
-          </Link>
+          </SamePageHashLink>
         </div>
       </div>
 
@@ -201,14 +201,13 @@ export default function SiteHeader({
           })}
 
           {ctaHref !== "/tint-quote" ? (
-            <Link
+            <SamePageHashLink
               href={ctaHref}
-              scroll={ctaHref.includes("#") ? false : undefined}
               className="label-mono mt-2 flex min-h-12 items-center border border-white/12 bg-white/[0.04] px-4 py-3 text-white/80"
-              onClick={closeMenu}
+              onNavigate={closeMenu}
             >
               {ctaLabel}
-            </Link>
+            </SamePageHashLink>
           ) : null}
         </nav>
       </div>

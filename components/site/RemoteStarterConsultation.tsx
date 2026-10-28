@@ -3,13 +3,14 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import InquiryForm from "@/components/site/InquiryForm";
-import { scheduleScrollToRemoteStarterConsultation } from "@/components/site/remote-starter-scroll";
+import { scrollToPageHash } from "@/components/site/scroll-to-page-hash";
 import {
   COMPUSTAR_REMOTE_STARTER_PRODUCTS,
   getEnabledCompustarProducts,
 } from "@/lib/constants/compustar-remote-starters";
 import { REMOTE_STARTER_INSTALL_PACKAGES } from "@/lib/constants/remote-starter-packages";
 import {
+  REMOTE_STARTER_CONTACT_HASH,
   REMOTE_STARTER_INQUIRY_LABEL,
   REMOTE_STARTER_PRODUCT_CATALOG_ENABLED,
 } from "@/lib/constants/remote-starter-page";
@@ -71,10 +72,8 @@ export default function RemoteStarterConsultation() {
   );
 
   useEffect(() => {
-    if (!systemId && !interest && window.location.hash !== "#consultation") {
-      return;
-    }
-    scheduleScrollToRemoteStarterConsultation();
+    if (!systemId && !interest) return;
+    requestAnimationFrame(() => scrollToPageHash(REMOTE_STARTER_CONTACT_HASH));
   }, [systemId, interest]);
 
   return (
@@ -85,10 +84,7 @@ export default function RemoteStarterConsultation() {
             <p className="label-mono mb-4 text-white/40">
               {REMOTE_STARTER_INQUIRY_LABEL}
             </p>
-            <h2
-              data-consultation-scroll-target
-              className="scroll-mt-[4.5rem] text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight"
-            >
+            <h2 className="text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight">
               Send us a message
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-white/45">
@@ -100,10 +96,7 @@ export default function RemoteStarterConsultation() {
         ) : (
           <>
             <p className="label-mono mb-4 text-white/40">Get a quote</p>
-            <h2
-              data-consultation-scroll-target
-              className="scroll-mt-[4.5rem] text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight"
-            >
+            <h2 className="text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight">
               Send us your vehicle info
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-white/45">
