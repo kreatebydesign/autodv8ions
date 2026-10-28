@@ -268,6 +268,41 @@ body {
   }
 }
 
+/* Homepage hero */
+.home-hero-media {
+  object-position: 58% 42%;
+}
+
+.home-hero-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, rgba(5, 5, 5, 0.82) 0%, rgba(5, 5, 5, 0.15) 42%, transparent 62%),
+    linear-gradient(to right, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.22) 48%, transparent 72%);
+  pointer-events: none;
+}
+
+.home-hero-title {
+  font-size: clamp(1.85rem, 4.1vw, 3.25rem);
+  line-height: 1.04;
+  letter-spacing: 0.06em;
+}
+
+.home-hero-lede {
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 639px) {
+  .home-hero-media {
+    object-position: 52% 38%;
+  }
+
+  .home-hero-title {
+    max-width: 16ch;
+    letter-spacing: 0.04em;
+  }
+}
+
 /* Luxury horizontal recent-work gallery */
 .home-gallery-section {
   overflow: hidden;
@@ -879,6 +914,14 @@ body {
   transition: transform 1.2s var(--ease-out);
 }
 
+.service-editorial-image--primary {
+  object-position: center 38%;
+}
+
+.service-editorial-card-media .service-editorial-image {
+  object-position: center 45%;
+}
+
 .service-editorial-primary:hover .service-editorial-image,
 .service-editorial-card:hover .service-editorial-image {
   transform: scale(1.04);
@@ -1219,5 +1262,64 @@ body {
     transition: none;
     transform: none;
     opacity: 1;
+  }
+}
+
+.site-footer-studio-signature {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  opacity: 0.92;
+  transition: opacity 160ms ease;
+}
+
+.site-footer-studio-mark {
+  display: block;
+  width: auto;
+  height: 1.55rem;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.site-footer-studio-credit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  line-height: 1.22;
+  padding-top: 0.05rem;
+}
+
+.site-footer-studio-credit-line {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+}
+
+.site-footer-studio-credit-name {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.site-footer-studio-signature:hover {
+  opacity: 1;
+}
+
+.site-footer-studio-signature:focus-visible {
+  outline: 2px solid rgba(201, 0, 0, 0.55);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@media (max-width: 639px) {
+  .site-footer-bar {
+    align-items: flex-start;
+  }
+
+  .site-footer-studio-mark {
+    height: 1.35rem;
   }
 }
