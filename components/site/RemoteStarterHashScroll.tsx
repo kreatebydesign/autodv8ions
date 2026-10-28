@@ -3,16 +3,17 @@
 import { useEffect } from "react";
 import {
   isRemoteStarterConsultationHref,
-  scrollToRemoteStarterConsultation,
+  isRemoteStarterPagePath,
+  normalizeSitePathname,
+  parseRemoteStarterConsultationHref,
+  scheduleScrollToRemoteStarterConsultation,
 } from "@/components/site/remote-starter-scroll";
 
 export default function RemoteStarterHashScroll() {
   useEffect(() => {
     function scrollIfNeeded() {
       if (window.location.hash !== "#consultation") return;
-      requestAnimationFrame(() => {
-        scrollToRemoteStarterConsultation();
-      });
+      scheduleScrollToRemoteStarterConsultation();
     }
 
     scrollIfNeeded();
@@ -30,21 +31,34 @@ export default function RemoteStarterHashScroll() {
       if (!isRemoteStarterConsultationHref(href)) return;
       if (!href) return;
 
-      const url = new URL(href, window.location.origin);
-      const current = new URL(window.location.href);
-      if (url.pathname !== current.pathname) return;
+      const url = parseRemoteStarterConsultationHref(href);
+      const currentPath = normalizeSitePathname(window.location.pathname);
+      const currentSearch = window.location.search;
 
       // Query changes must use Next.js navigation so inquiry prefill re-renders.
-      if (url.search !== current.search) return;
-
-      if (url.hash !== "#consultation") return;
-
-      event.preventDefault();
-      const next = `${url.pathname}${url.search}${url.hash}`;
-      if (`${current.pathname}${current.search}${current.hash}` !== next) {
-        window.history.pushState(null, "", next);
+      if (
+        isRemoteStarterPagePath(currentPath) &&
+        url.pathname === currentPath &&
+        url.search !== currentSearch
+      ) {
+        return;
       }
-      scrollToRemoteStarterConsultation();
+
+      // Same page, same query: handle scroll ourselves (App Router often skips hash scroll).
+      if (
+        isRemoteStarterPagePath(currentPath) &&
+        url.pathname === currentPath &&
+        url.search === currentSearch &&
+        url.hash === "#consultation"
+      ) {
+        event.preventDefault();
+        const next = `${url.pathname}${url.search}${url.hash}`;
+        const current = `${currentPath}${currentSearch}${window.location.hash}`;
+        if (current !== next) {
+          window.history.pushState(null, "", next);
+        }
+        scheduleScrollToRemoteStarterConsultation();
+      }
     }
 
     window.addEventListener("hashchange", onHashChange);

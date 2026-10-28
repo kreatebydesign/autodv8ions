@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import InquiryForm from "@/components/site/InquiryForm";
-import { scrollToRemoteStarterConsultation } from "@/components/site/remote-starter-scroll";
+import { scheduleScrollToRemoteStarterConsultation } from "@/components/site/remote-starter-scroll";
 import {
   COMPUSTAR_REMOTE_STARTER_PRODUCTS,
   getEnabledCompustarProducts,
@@ -74,7 +74,7 @@ export default function RemoteStarterConsultation() {
     if (!systemId && !interest && window.location.hash !== "#consultation") {
       return;
     }
-    requestAnimationFrame(() => scrollToRemoteStarterConsultation());
+    scheduleScrollToRemoteStarterConsultation();
   }, [systemId, interest]);
 
   return (
@@ -85,7 +85,10 @@ export default function RemoteStarterConsultation() {
             <p className="label-mono mb-4 text-white/40">
               {REMOTE_STARTER_INQUIRY_LABEL}
             </p>
-            <h2 className="text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight">
+            <h2
+              data-consultation-scroll-target
+              className="scroll-mt-[4.5rem] text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight"
+            >
               Send us a message
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-white/45">
@@ -97,7 +100,10 @@ export default function RemoteStarterConsultation() {
         ) : (
           <>
             <p className="label-mono mb-4 text-white/40">Get a quote</p>
-            <h2 className="text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight">
+            <h2
+              data-consultation-scroll-target
+              className="scroll-mt-[4.5rem] text-[clamp(1.5rem,3vw,2.1rem)] font-light tracking-tight"
+            >
               Send us your vehicle info
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-white/45">

@@ -154,7 +154,11 @@ export default function RemoteStartersPage() {
                 ? "Ready to talk install? Send your vehicle details — we'll check compatibility and follow up with a quote."
                 : "Questions about timing, fitment, or what remote start can do on your vehicle? Use the form below and we will follow up."}
             </p>
-            <Link href={REMOTE_STARTER_CONSULTATION_HREF} className={quoteCtaClass}>
+            <Link
+              href={REMOTE_STARTER_CONSULTATION_HREF}
+              scroll={false}
+              className={quoteCtaClass}
+            >
               {primaryCtaLabel}
               <span aria-hidden>→</span>
             </Link>
@@ -224,7 +228,11 @@ export default function RemoteStartersPage() {
               ))}
             </div>
             <div className="mt-8 text-center">
-              <Link href={REMOTE_STARTER_CONSULTATION_HREF} className={quoteCtaClass}>
+              <Link
+                href={REMOTE_STARTER_CONSULTATION_HREF}
+                scroll={false}
+                className={quoteCtaClass}
+              >
                 {primaryCtaLabel}
                 <span aria-hidden>→</span>
               </Link>
@@ -235,6 +243,8 @@ export default function RemoteStartersPage() {
 
       <section
         id="consultation"
+        tabIndex={-1}
+        aria-label="Remote starter inquiry form"
         className="atmosphere atmosphere-dark relative scroll-mt-[4.5rem] border-t border-white/[0.04] py-14 sm:py-20"
       >
         <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-12 lg:px-12">

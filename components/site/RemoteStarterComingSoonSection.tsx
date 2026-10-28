@@ -26,7 +26,11 @@ export default function RemoteStarterComingSoonSection() {
               we&apos;ll help you figure out the best option for your vehicle.
             </p>
             <div className="mt-8">
-              <Link href={REMOTE_STARTER_CONSULTATION_HREF} className={primaryCtaClass}>
+              <Link
+                href={REMOTE_STARTER_CONSULTATION_HREF}
+                scroll={false}
+                className={primaryCtaClass}
+              >
                 Ask About Remote Starters
                 <span aria-hidden>→</span>
               </Link>

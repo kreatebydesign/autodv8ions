@@ -80,6 +80,7 @@ export default function ServicePageShell({
             {ctaHref && ctaLabel ? (
               <Link
                 href={ctaHref}
+                scroll={ctaHref.includes("#") ? false : undefined}
                 className="mt-8 inline-flex items-center gap-3 border border-white/15 bg-white/[0.05] px-6 py-3 text-xs uppercase tracking-[0.15em] text-white transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.08]"
               >
                 {ctaLabel}
