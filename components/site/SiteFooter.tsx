@@ -6,6 +6,8 @@ import {
 } from "@/components/analytics/TrackedContactLink";
 
 const LOGO = "/images/logos/dv8-logo.png";
+const KXD_STUDIO_URL = "https://www.kreatebydesign.com";
+const KXD_STUDIO_MARK = "/brand/kxd-logo-transparent.png";
 
 export default function SiteFooter() {
   return (
@@ -120,21 +122,34 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/[0.04] pt-8 sm:flex-row">
+        <div className="site-footer-bar mt-12 flex flex-col items-center justify-between gap-6 border-t border-white/[0.04] pt-8 sm:flex-row sm:items-center">
           <p className="label-mono text-white/20">
             © {new Date().getFullYear()} AutoDV8ions. All rights reserved.
           </p>
-          <p className="label-mono text-white/15">
-            Design by{" "}
-            <a
-              href="https://kreatebydesign.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-white/25 transition-colors duration-500 hover:text-white/50"
-            >
-              KXD
-            </a>
-          </p>
+          <a
+            href={KXD_STUDIO_URL}
+            className="site-footer-studio-signature"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Designed and Developed by Kreate by Design (opens in new tab)"
+          >
+            <Image
+              src={KXD_STUDIO_MARK}
+              alt=""
+              width={218}
+              height={205}
+              className="site-footer-studio-mark"
+              sizes="56px"
+            />
+            <span className="site-footer-studio-credit">
+              <span className="site-footer-studio-credit-line">
+                Designed &amp; Developed by
+              </span>
+              <span className="site-footer-studio-credit-name">
+                Kreate by Design
+              </span>
+            </span>
+          </a>
         </div>
       </div>
     </footer>

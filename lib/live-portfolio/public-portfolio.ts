@@ -1,4 +1,5 @@
 import { getPortfolioEngineLimits } from "@/lib/portfolio-engine/settings";
+import { curateHomepagePortfolio } from "@/lib/site/homepage-portfolio-curation";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { resolveMediaPathname } from "@/lib/live-portfolio/review-data";
 
@@ -177,7 +178,10 @@ export async function listPublishedPortfolio(
 
 export async function listHomepagePortfolio(): Promise<PublicPortfolioCard[]> {
   const limits = await getPortfolioEngineLimits();
-  return listPublishedPortfolio(limits.homepageLimit);
+  const pool = await listPublishedPortfolio(
+    Math.max(limits.homepageLimit * 4, 16),
+  );
+  return curateHomepagePortfolio(pool, limits.homepageLimit);
 }
 
 export async function getPublishedPortfolioBySlug(

@@ -30,9 +30,7 @@ export default async function RecentWorkIndexPage() {
               Recent Tint Work
             </h1>
             <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/45 sm:mt-6 sm:text-base">
-              Published AutoDV8ions tint installs: real customer work from the
-              shop, separate from the editorial photos used elsewhere on the
-              site.
+              Window tint work from the shop in Altoona, PA.
             </p>
 
             {items.length === 0 ? (

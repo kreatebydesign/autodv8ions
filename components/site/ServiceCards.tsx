@@ -20,7 +20,7 @@ export const CORE_SERVICES: ServiceCardData[] = [
     href: "/services/window-tint",
     cta: "Get a Tint Quote",
     emphasis: "primary",
-    imageSrc: "/images/editorial/service-tint.jpg",
+    imageSrc: "/images/hero/hero-custom-car.jpg",
     imageAlt: "Tinted vehicle finished at AutoDV8ions",
   },
   {
@@ -71,7 +71,7 @@ export default function ServiceCards({
             src={primary.imageSrc}
             alt={primary.imageAlt}
             fill
-            className="service-editorial-image object-cover"
+            className="service-editorial-image service-editorial-image--primary object-cover"
             sizes="(max-width:1024px) 100vw, 60vw"
           />
           <div className="service-editorial-veil" />
