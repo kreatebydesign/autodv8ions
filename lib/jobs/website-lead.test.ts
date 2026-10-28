@@ -40,7 +40,7 @@ describe("website-lead helpers", () => {
       },
       "remote_starter",
     );
-    assert.match(notes, /Inquiry type: remote_starter/);
+    assert.match(notes, /Inquiry type: Remote Starter Inquiry/);
     assert.match(notes, /Need remote start/);
     assert.match(notes, /Timeline: This month/);
     assert.doesNotMatch(notes, /Budget range/);

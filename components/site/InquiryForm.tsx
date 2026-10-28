@@ -58,12 +58,26 @@ export default function InquiryForm({
   inquiryType,
   pageSource,
   initialSystemInterest,
+  lineupRefreshMode = false,
 }: {
   inquiryType: InquiryType;
   pageSource: string;
   initialSystemInterest?: string;
+  /** Hides product-specific fields during remote starter lineup refresh. */
+  lineupRefreshMode?: boolean;
 }) {
-  const config = CONFIG[inquiryType];
+  const baseConfig = CONFIG[inquiryType];
+  const config =
+    inquiryType === "remote_starter" && lineupRefreshMode
+      ? {
+          ...baseConfig,
+          showSystemInterest: false,
+          submitLabel: "Send Message",
+          successTitle: "Inquiry received",
+          successCopy:
+            "AutoDV8ions has your remote starter inquiry. We'll review what you shared and follow up with next steps.",
+        }
+      : baseConfig;
   const leadTrackedRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);

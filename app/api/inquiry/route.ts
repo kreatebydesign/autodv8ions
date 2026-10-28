@@ -5,6 +5,7 @@ import {
   asNullableString,
   buildInquiryCustomerNotes,
   inquiryServiceType,
+  inquiryTypeDisplayLabel,
   syncWebsiteLeadToJob,
   type WebsiteJobCreationResult,
 } from "@/lib/jobs/website-lead";
@@ -26,16 +27,7 @@ function asString(value: unknown) {
 }
 
 function serviceLabel(type: InquiryType) {
-  switch (type) {
-    case "remote_starter":
-      return "Remote Starter Consultation";
-    case "vehicle_security":
-      return "Vehicle Security Consultation";
-    case "audio_custom":
-      return "Audio / Custom Project Review";
-    default:
-      return "General Contact";
-  }
+  return inquiryTypeDisplayLabel(type);
 }
 
 function buildEmailHtml(body: InquiryBody, type: InquiryType) {

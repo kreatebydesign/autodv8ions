@@ -60,12 +60,29 @@ export function buildTintCustomerNotes(body: WebsiteLeadBody) {
     .join("\n");
 }
 
+export function inquiryTypeDisplayLabel(inquiryType: string) {
+  switch (inquiryType) {
+    case "remote_starter":
+      return "Remote Starter Inquiry";
+    case "vehicle_security":
+      return "Vehicle Security Consultation";
+    case "audio_custom":
+      return "Audio / Custom Project Review";
+    case "general_contact":
+      return "General Contact";
+    default:
+      return inquiryType;
+  }
+}
+
 export function buildInquiryCustomerNotes(
   body: WebsiteLeadBody,
   inquiryType: string,
 ) {
   return [
-    inquiryType ? `Inquiry type: ${inquiryType}` : null,
+    inquiryType
+      ? `Inquiry type: ${inquiryTypeDisplayLabel(inquiryType)}`
+      : null,
     asNullableString(body.systemInterest)
       ? `System of interest: ${asString(body.systemInterest)}`
       : null,
