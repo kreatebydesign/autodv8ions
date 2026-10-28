@@ -40,6 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 *.mp4
+!public/videos/remote-starter-hero.mp4
 *.mov
 .next/
 node_modules/

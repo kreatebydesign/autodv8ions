@@ -39,6 +39,37 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Remote starter hero — 16:9 winter footage; protect centered vehicle on narrow viewports */
+.remote-starter-hero-video {
+  object-fit: cover;
+  /* SUV and driveway sit slightly below center in the 16:9 master */
+  object-position: 50% 54%;
+}
+
+.remote-starter-hero-video-backdrop {
+  object-position: 50% 54%;
+}
+
+@media (max-width: 767px) {
+  .remote-starter-hero-video {
+    object-fit: contain;
+    object-position: center center;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .remote-starter-hero-video {
+    object-position: 50% 52%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .remote-starter-hero-video,
+  .remote-starter-hero-video-backdrop {
+    display: none;
+  }
+}
+
 ::selection {
   background: rgba(201, 0, 0, 0.35);
   color: #fff;

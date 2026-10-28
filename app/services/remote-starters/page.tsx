@@ -67,14 +67,18 @@ export default function RemoteStartersPage() {
           ? "We sell and install Compustar remote starters at our Altoona shop. Share what you drive and we'll match the system to your vehicle, then quote the install."
           : "We install Compustar remote starters at our Altoona shop. Our model lineup is updating. Tell us what you drive and we will help you plan the right setup."
       }
-      imageSrc="/images/editorial/night-street.jpg"
-      imageAlt="Vehicle parked at night in winter conditions"
+      heroVideo={{
+        src: "/videos/remote-starter-hero.mp4",
+        posterSrc: "/images/editorial/night-street.jpg",
+        posterAlt: "Vehicle parked at night in winter conditions",
+      }}
       ctaHref={REMOTE_STARTER_CONTACT_HREF}
       ctaLabel={primaryCtaLabel}
       headerCtaHref={REMOTE_STARTER_CONTACT_HREF}
       headerCtaLabel={primaryCtaLabel}
-      heroImageClassName="object-cover object-center opacity-[0.58] sm:opacity-[0.62]"
-      heroOverlayClassName="absolute inset-0 bg-gradient-to-t from-[#050505]/92 via-[#050505]/55 to-black/30"
+      heroVideoForegroundClassName="opacity-[0.58] sm:opacity-[0.62]"
+      heroOverlayClassName="absolute inset-0 bg-gradient-to-t from-[#050505]/88 via-[#050505]/45 to-black/25"
+      heroSectionClassName="remote-starter-hero-section min-h-[clamp(20rem,62vw,34rem)]"
       heroHeadingClassName="max-w-[20rem] text-[clamp(1.75rem,5.5vw,3rem)] font-light leading-[1.12] tracking-[-0.025em] text-balance sm:max-w-lg md:max-w-xl lg:max-w-2xl"
       heroLeadClassName="mt-5 max-w-xl text-sm leading-[1.7] text-white/58 sm:max-w-2xl sm:text-[0.95rem] md:text-base"
       heroContentClassName="relative z-10 mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12 lg:py-28"
