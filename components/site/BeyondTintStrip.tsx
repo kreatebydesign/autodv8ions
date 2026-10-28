@@ -87,7 +87,7 @@ export default function BeyondTintStrip() {
               Beyond tint
             </h2>
             <p className="beyond-tint-support mt-3 max-w-sm text-sm leading-relaxed text-white/50">
-              Remote starters, security, and select custom work — when the job
+              Remote starters, security, and select custom work when the job
               makes sense.
             </p>
           </div>

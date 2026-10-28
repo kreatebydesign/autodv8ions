@@ -43,7 +43,7 @@ export default function LocalBusinessJsonLd() {
     image: absoluteUrl("/images/autodv8ions-og.jpg"),
     logo: absoluteUrl("/images/logos/dv8-logo.png"),
     description:
-      "AutoDV8ions in Altoona, PA — window tint, remote starters, vehicle security, and select custom work. Serving Altoona and Central Pennsylvania since 1998.",
+      "AutoDV8ions in Altoona, PA: window tint, remote starters, vehicle security, and select custom work. Serving Altoona and Central Pennsylvania since 1998.",
     address: {
       "@type": "PostalAddress",
       addressLocality: SITE_LOCALITY,

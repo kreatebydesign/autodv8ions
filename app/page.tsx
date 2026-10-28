@@ -10,6 +10,10 @@ import ShopShowcase from "@/components/site/ShopShowcase";
 import SiteFooter from "@/components/site/SiteFooter";
 import SiteHeader from "@/components/site/SiteHeader";
 import { listHomepagePortfolio } from "@/lib/live-portfolio/public-portfolio";
+import {
+  TINT_QUOTE_HEADER_CTA_LABEL,
+  TINT_QUOTE_HREF,
+} from "@/lib/site/tint-quote-cta";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +24,7 @@ export const metadata: Metadata = {
   title:
     "AutoDV8ions | Window Tint, Remote Starters & Vehicle Upgrades in Altoona, PA",
   description:
-    "AutoDV8ions in Altoona, PA — window tint, remote starters, vehicle security, and select custom work for Altoona and Central Pennsylvania since 1998.",
+    "AutoDV8ions in Altoona, PA: window tint, remote starters, vehicle security, and select custom work for Altoona and Central Pennsylvania since 1998.",
   alternates: { canonical: "/" },
 };
 
@@ -55,22 +59,22 @@ export default async function Home() {
             </span>
 
             <h1 className="max-w-3xl animate-fade-up text-[clamp(2rem,6vw,4.5rem)] font-light leading-[1.05] tracking-[-0.02em] text-white [animation-delay:0.1s]">
-              Elevate the ride.
+              Built in the bay.
               <br />
-              <span className="text-white/60">Not just modify it.</span>
+              <span className="text-white/60">Tint first. Done right.</span>
             </h1>
 
             <p className="mt-5 max-w-sm animate-fade-up text-sm leading-relaxed text-white/50 [animation-delay:0.2s] sm:text-base">
-              Window tint, remote starters, security, and select custom work —
+              Window tint, remote starters, security, and select custom work in
               Altoona since 1998.
             </p>
 
             <div className="mt-9 flex flex-wrap items-center gap-6 animate-fade-up [animation-delay:0.3s]">
               <Link
-                href="/tint-quote"
+                href={TINT_QUOTE_HREF}
                 className="group inline-flex items-center gap-3 border border-white/15 bg-white/[0.05] px-6 py-3 text-xs uppercase tracking-[0.15em] text-white transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.08] hover:shadow-[0_0_32px_var(--accent-glow)]"
               >
-                Get Tint Quote
+                {TINT_QUOTE_HEADER_CTA_LABEL}
                 <span className="inline-block transition-transform duration-500 group-hover:translate-x-1">
                   →
                 </span>
@@ -106,7 +110,8 @@ export default async function Home() {
               <div className="lg:col-span-6 lg:col-start-7">
                 <p className="text-base leading-[1.75] text-white/55 sm:text-[1.05rem]">
                   Chris has been doing this for 27 years. Tint is still the
-                  focus — clean work, straight answers, respect for the vehicle.
+                  focus: clean work, straight answers, and respect for the
+                  vehicle.
                 </p>
                 <p className="mt-4 text-sm leading-[1.75] text-white/40">
                   Remote starters, security, and select custom jobs when they

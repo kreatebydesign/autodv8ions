@@ -9,6 +9,10 @@ import {
   getPublishedPortfolioBySlug,
   listRelatedPublished,
 } from "@/lib/live-portfolio/public-portfolio";
+import {
+  TINT_QUOTE_HEADER_CTA_LABEL,
+  TINT_QUOTE_HREF,
+} from "@/lib/site/tint-quote-cta";
 import { formatDate } from "@/lib/utils/format";
 
 export const dynamic = "force-dynamic";
@@ -102,10 +106,10 @@ export default async function RecentWorkDetailPage({ params }: PageProps) {
 
                 <div className="mt-12 flex flex-wrap gap-5">
                   <Link
-                    href="/tint-quote"
+                    href={TINT_QUOTE_HREF}
                     className="inline-flex items-center gap-3 border border-white/12 bg-white/[0.04] px-6 py-3 text-xs uppercase tracking-[0.15em] text-white transition-all duration-500 hover:border-[var(--accent-dim)] hover:bg-white/[0.07]"
                   >
-                    Get Tint Quote
+                    {TINT_QUOTE_HEADER_CTA_LABEL}
                   </Link>
                   <Link
                     href="/recent-work"

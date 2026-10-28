@@ -36,7 +36,7 @@ export default function RemoteStarterProductCatalog() {
                 Pick a starting point
               </h2>
               <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/45">
-                Four Compustar setups we quote most often around Altoona — from
+                Four Compustar setups we quote most often around Altoona, from
                 a full bundle to long-range PRO remotes. Stock and kit choice
                 vary; we confirm what works on your vehicle before we price it.
               </p>
@@ -54,7 +54,7 @@ export default function RemoteStarterProductCatalog() {
           </div>
 
           <p className="mt-8 max-w-3xl text-xs leading-relaxed text-white/32">
-            Range numbers are manufacturer maximums — buildings, hills, and
+            Range numbers are manufacturer maximums. Buildings, hills, and
             interference cut into real-world distance. Compustar and DroneMobile
             are trademarks of their owners; AutoDV8ions is an independent
             installer.
@@ -73,7 +73,7 @@ export default function RemoteStarterProductCatalog() {
           </h2>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/45">
             Besides the Compustar cards above, these are the packages customers
-            ask for by name. Hardware and labor still depend on your vehicle —
+            ask for by name. Hardware and labor still depend on your vehicle;
             the form below is how we price it.
           </p>
 
@@ -138,7 +138,7 @@ export default function RemoteStarterProductCatalog() {
                 <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/45">
                   Start, lock, and check status from the DroneMobile app when
                   your Compustar hardware supports it. Requires their LTE module
-                  and a paid plan — we quote module and install with your remote
+                  and a paid plan. We quote module and install with your remote
                   start job.
                 </p>
               </div>

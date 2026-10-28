@@ -20,6 +20,9 @@ export default function ContentClient({
   const [discovering, setDiscovering] = useState(false);
   const [planning, setPlanning] = useState(false);
   const [importingPending, setImportingPending] = useState(false);
+  const [syncingNewWork, setSyncingNewWork] = useState(false);
+  const [curatedOctoberPublishing, setCuratedOctoberPublishing] =
+    useState(false);
 
   async function checkDriveConnection() {
     setChecking(true);
@@ -42,7 +45,7 @@ export default function ContentClient({
           : "";
 
       setStatus(
-        `Connected${data.authMode === "wif" ? " (OIDC / WIF)" : data.authMode === "oauth_legacy" ? " (legacy OAuth)" : ""}. Folder: ${data.rootFolderName || "—"}. Immediate folders: ${data.immediateFolderCount ?? 0}.${samples}`,
+        `Connected${data.authMode === "wif" ? " (OIDC / WIF)" : data.authMode === "oauth_legacy" ? " (legacy OAuth)" : ""}. Folder: ${data.rootFolderName || "(unknown)"}. Immediate folders: ${data.immediateFolderCount ?? 0}.${samples}`,
       );
     } catch {
       setStatus("Drive check failed: network or server error.");
@@ -158,6 +161,128 @@ export default function ContentClient({
     }
   }
 
+  async function syncNewWork() {
+    const confirmed = window.confirm(
+      [
+        "Sync New Work",
+        "",
+        "This will:",
+        "1. Import missing tint jobs from the current month in Google Drive",
+        "2. Download and process new photos into private storage",
+        "",
+        "Nothing will publish to the public website.",
+        "When finished, open Review to approve and publish.",
+        "",
+        "Continue?",
+      ].join("\n"),
+    );
+
+    if (!confirmed) {
+      setStatus("Sync cancelled. No changes were made.");
+      return;
+    }
+
+    setSyncingNewWork(true);
+    setStatus("");
+    try {
+      const res = await fetch("/api/content/sync-new-work", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        const detail =
+          data.error?.message || data.message || "Sync New Work failed.";
+        setStatus(`Sync New Work failed: ${detail}`);
+        return;
+      }
+
+      const discovery =
+        data.discovery?.octoberJobFolders != null
+          ? ` October Drive preview: ${data.discovery.octoberJobFolders} job folder(s), ${data.discovery.octoberMediaFiles ?? 0} media file(s).`
+          : "";
+
+      setStatus(`${data.message || "Sync complete."}${discovery}`);
+
+      try {
+        const listRes = await fetch("/api/content", { credentials: "include" });
+        const listData = await listRes.json();
+        if (listRes.ok && Array.isArray(listData.items)) {
+          setItems(listData.items);
+        }
+      } catch {
+        // Status already shows success; list refresh is best-effort.
+      }
+    } catch {
+      setStatus("Sync New Work failed: network or server error.");
+    } finally {
+      setSyncingNewWork(false);
+    }
+  }
+
+  async function publishCuratedOctober() {
+    const confirmed = window.confirm(
+      [
+        "Publish curated October 2026 tint jobs",
+        "",
+        "This publishes up to 8 of the strongest October jobs that already have processed media.",
+        "Jobs without processed photos stay pending.",
+        "",
+        "Continue?",
+      ].join("\n"),
+    );
+
+    if (!confirmed) {
+      setStatus("Curated October publish cancelled. Nothing was published.");
+      return;
+    }
+
+    setCuratedOctoberPublishing(true);
+    setStatus("");
+    try {
+      const res = await fetch("/api/content/october-curated-publish", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmCuratedPublish: true }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        const detail =
+          data.error?.message ||
+          (Array.isArray(data.errors) && data.errors[0]?.error) ||
+          "Curated publish failed.";
+        setStatus(`Curated October publish failed: ${detail}`);
+        return;
+      }
+
+      const published =
+        Array.isArray(data.published) && data.published.length
+          ? ` Published: ${data.published.join(", ")}.`
+          : " No jobs were published (check media processing first).";
+
+      setStatus(
+        `October: ${data.discovered ?? 0} discovered, ${data.selected ?? 0} selected.${published}`,
+      );
+
+      try {
+        const listRes = await fetch("/api/content", { credentials: "include" });
+        const listData = await listRes.json();
+        if (listRes.ok && Array.isArray(listData.items)) {
+          setItems(listData.items);
+        }
+      } catch {
+        // Best-effort list refresh.
+      }
+    } catch {
+      setStatus("Curated October publish failed: network or server error.");
+    } finally {
+      setCuratedOctoberPublishing(false);
+    }
+  }
+
   async function importRecentAsPending() {
     const confirmed = window.confirm(
       [
@@ -175,7 +300,7 @@ export default function ContentClient({
     );
 
     if (!confirmed) {
-      setStatus("Pending import cancelled — no records were written.");
+      setStatus("Pending import cancelled. No records were written.");
       return;
     }
 
@@ -247,7 +372,7 @@ export default function ContentClient({
     );
 
     if (!confirmed) {
-      setStatus("Current-month import cancelled — no records were written.");
+      setStatus("Current-month import cancelled. No records were written.");
       return;
     }
 
@@ -276,7 +401,7 @@ export default function ContentClient({
       }
 
       const trimNote = data.reviewQueueTrim?.skipped
-        ? " Review queue trim skipped — existing pending items left intact."
+        ? " Review queue trim skipped; existing pending items left intact."
         : "";
 
       const withheld = Array.isArray(data.skips)
@@ -335,7 +460,13 @@ export default function ContentClient({
   }
 
   const busy =
-    loading || checking || discovering || planning || importingPending;
+    loading ||
+    checking ||
+    discovering ||
+    planning ||
+    importingPending ||
+    syncingNewWork ||
+    curatedOctoberPublishing;
 
   return (
     <div className="space-y-6">
@@ -350,89 +481,121 @@ export default function ContentClient({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          className="admin-btn"
-          disabled={busy}
-          onClick={checkDriveConnection}
-        >
-          {checking ? "Checking..." : "Check Drive Connection"}
-        </button>
-        <button
-          type="button"
-          className="admin-btn"
-          disabled={busy || !connected}
-          onClick={previewDriveDiscovery}
-        >
-          {discovering ? "Discovering..." : "Preview Drive Discovery"}
-        </button>
-        <button
-          type="button"
-          className="admin-btn"
-          disabled={busy || !connected}
-          onClick={previewImportPlan}
-        >
-          {planning ? "Planning..." : "Preview Import Plan"}
-        </button>
-        <button
-          type="button"
-          className="admin-btn"
-          disabled={busy || !connected}
-          onClick={() => syncDrive()}
-          title="Legacy metadata sync for current + previous month. Preserves published/curated status. Prefer Import Current Month as Pending for new photo drops."
-        >
-          {loading ? "Syncing..." : "Sync Recent Tint Jobs (legacy)"}
-        </button>
-        <button
-          type="button"
-          className="admin-btn"
-          disabled={busy || !connected}
-          onClick={() => syncDrive("historical-backfill")}
-          title="Explicit historical backfill — still pending review, never auto-published"
-        >
-          Historical Backfill (Pending Only)
-        </button>
+      <div className="admin-panel space-y-4 px-4 py-5">
+        <div>
+          <p className="text-sm font-medium text-[var(--dv8-ink)]">Sync New Work</p>
+          <p className="mt-2 text-sm text-[var(--dv8-muted)]">
+            One step for a new photo drop: import current-month Tint Jobs from
+            Drive, then process photos for Review. Does not publish to the
+            website.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            className="admin-btn admin-btn-primary"
+            disabled={busy || !connected}
+            onClick={syncNewWork}
+          >
+            {syncingNewWork ? "Syncing..." : "Sync New Work"}
+          </button>
+          <Link href="/admin/review" className="admin-btn">
+            Open Review
+          </Link>
+          <Link href="/admin/media" className="admin-btn">
+            Processing queue
+          </Link>
+        </div>
       </div>
 
-      <div className="admin-panel space-y-3 px-4 py-4">
-        <div className="text-sm font-medium text-[var(--dv8-ink)]">
-          Preferred — Current month pending import
-        </div>
-        <p className="text-sm text-[var(--dv8-muted)]">
-          Day-to-day path for new Tint Jobs photo drops. Imports the newest
-          current-month Drive folders only as pending_review (unpublished). Does
-          not publish, download files, upload to Blob, or trim/archive the
-          existing Review queue.
-        </p>
-        <button
-          type="button"
-          className="admin-btn admin-btn-primary"
-          disabled={busy || !connected}
-          onClick={importCurrentMonthAsPending}
-        >
-          {importingPending ? "Importing..." : "Import Current Month as Pending"}
-        </button>
-      </div>
+      <details className="admin-panel px-4 py-3 text-sm text-[var(--dv8-muted)]">
+        <summary className="cursor-pointer font-medium text-[var(--dv8-ink)]">
+          Advanced Drive tools
+        </summary>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            className="admin-btn"
+            disabled={busy}
+            onClick={checkDriveConnection}
+          >
+            {checking ? "Checking..." : "Check Drive Connection"}
+          </button>
+          <button
+            type="button"
+            className="admin-btn"
+            disabled={busy || !connected}
+            onClick={previewDriveDiscovery}
+          >
+            {discovering ? "Discovering..." : "Preview Drive Discovery"}
+          </button>
+          <button
+            type="button"
+            className="admin-btn"
+            disabled={busy || !connected}
+            onClick={previewImportPlan}
+          >
+            {planning ? "Planning..." : "Preview Import Plan"}
+          </button>
+          <button
+            type="button"
+            className="admin-btn"
+            disabled={busy || !connected}
+            onClick={() => syncDrive()}
+            title="Legacy metadata sync for current + previous month."
+          >
+            {loading ? "Syncing..." : "Sync Recent Tint Jobs (legacy)"}
+          </button>
+          <button
+            type="button"
+            className="admin-btn"
+            disabled={busy || !connected}
+            onClick={() => syncDrive("historical-backfill")}
+            title="Explicit historical backfill, pending review only."
+          >
+            Historical Backfill (Pending Only)
+          </button>
+            <button
+              type="button"
+              className="admin-btn"
+              disabled={busy || !connected}
+              onClick={publishCuratedOctober}
+              title="After Sync New Work and media processing, publish the strongest October 2026 jobs."
+            >
+              {curatedOctoberPublishing
+                ? "Publishing..."
+                : "Publish Curated October (2026)"}
+            </button>
+          </div>
 
-      <div className="admin-panel space-y-3 px-4 py-4">
-        <div className="text-sm font-medium text-[var(--dv8-ink)]">
-          Broader pending import (3 months)
+        <div className="mt-6 space-y-3 border-t border-[var(--dv8-border)] pt-4">
+          <p className="font-medium text-[var(--dv8-ink)]">
+            Manual pending import
+          </p>
+          <p>
+            Use only when Sync New Work is not enough (for example, a capped
+            batch or a specific month import).
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              className="admin-btn"
+              disabled={busy || !connected}
+              onClick={importCurrentMonthAsPending}
+            >
+              {importingPending ? "Importing..." : "Import Current Month as Pending"}
+            </button>
+            <button
+              type="button"
+              className="admin-btn"
+              disabled={busy || !connected}
+              onClick={importRecentAsPending}
+            >
+              {importingPending ? "Importing..." : "Import Recent as Pending (3 months)"}
+            </button>
+          </div>
         </div>
-        <p className="text-sm text-[var(--dv8-muted)]">
-          Creates pending gallery items for up to 3 newest months (max 60 jobs /
-          150 media). May trim the Review queue afterward. Prefer Current Month
-          for routine September-style drops.
-        </p>
-        <button
-          type="button"
-          className="admin-btn"
-          disabled={busy || !connected}
-          onClick={importRecentAsPending}
-        >
-          {importingPending ? "Importing..." : "Import Recent as Pending"}
-        </button>
-      </div>
+      </details>
 
       {status && (
         <div className="admin-panel px-4 py-3 text-sm text-[var(--dv8-muted)]">

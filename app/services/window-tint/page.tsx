@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Window Tint in Altoona, PA",
   description:
-    "Automotive window tint in Altoona, PA from AutoDV8ions — comfort, privacy, glare control, and a clean finish for Central Pennsylvania drivers.",
+    "Automotive window tint in Altoona, PA from AutoDV8ions: comfort, privacy, glare control, and a clean finish for Central Pennsylvania drivers.",
   alternates: { canonical: "/services/window-tint" },
 };
 
@@ -23,7 +23,7 @@ export default async function WindowTintPage() {
       activeHref="/services"
       eyebrow="Window Tint"
       title="Clean tint. Done right."
-      lead="Comfort, privacy, and a sharper look — installed carefully around glass, trim, and how the vehicle leaves the bay."
+      lead="Comfort, privacy, and a clean finish, installed carefully around glass, trim, and how the vehicle leaves the bay."
       imageSrc="/images/editorial/interior-night.jpg"
       imageAlt="Vehicle cabin in low light"
       ctaHref="/tint-quote"
@@ -38,7 +38,7 @@ export default async function WindowTintPage() {
                 How it looks. How it feels.
               </h2>
               <p className="mt-5 text-sm leading-relaxed text-white/45">
-                We keep the conversation on the vehicle — not film charts or
+                We keep the conversation on the vehicle, not film charts or
                 marketing percentages.
               </p>
             </div>
@@ -93,8 +93,8 @@ export default async function WindowTintPage() {
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/45">
               Share what you want from the tint. We&apos;ll recommend what makes
-              sense for appearance, comfort, and how you use the vehicle — then
-              schedule when you&apos;re ready.
+              sense for appearance, comfort, and how you use the vehicle. Then
+              we schedule when you&apos;re ready.
             </p>
             <Link
               href="/tint-quote"

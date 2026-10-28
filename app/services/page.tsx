@@ -31,7 +31,7 @@ export default function ServicesPage() {
               <p className="label-mono mb-3 text-white/35">Primary focus</p>
               <h2 className="text-xl font-light tracking-tight">Window Tint</h2>
               <p className="mt-3 text-sm leading-relaxed text-white/45">
-                Comfort, privacy, glare control, and a clean finish — installed
+                Comfort, privacy, glare control, and a clean finish, installed
                 with care for the vehicle in front of us.
               </p>
               <Link

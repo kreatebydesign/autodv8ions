@@ -9,7 +9,7 @@ import SiteFooter from "@/components/site/SiteFooter";
 import SiteHeader from "@/components/site/SiteHeader";
 
 export const metadata: Metadata = {
-  title: "Contact — Altoona, PA",
+  title: "Contact Altoona, PA",
   description:
     "Contact AutoDV8ions in Altoona, PA for window tint quotes, remote starter installation info, vehicle security, or select custom project reviews.",
   alternates: { canonical: "/contact" },
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <>
-      <SiteHeader activeHref="/contact" ctaLabel="Get Tint Quote" ctaHref="/tint-quote" />
+      <SiteHeader activeHref="/contact" />
       <main className="pt-[4.5rem]">
         <section className="atmosphere relative border-b border-white/[0.05] py-14 sm:py-20">
           <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">

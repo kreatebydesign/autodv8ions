@@ -1,6 +1,6 @@
 const ITEMS = [
   "27 years in Altoona",
-  "Same shop since 1998",
+  "Same work since 1998",
   "Tint-first focus",
   "Clean installs",
   "Select custom work",

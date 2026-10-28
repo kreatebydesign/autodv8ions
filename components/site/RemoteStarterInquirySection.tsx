@@ -71,7 +71,7 @@ export default function RemoteStarterInquirySection() {
           <>
             {" "}
             You picked{" "}
-            <span className="text-white/60">{systemInterest}</span> — we&apos;ll
+            <span className="text-white/60">{systemInterest}</span>. We&apos;ll
             start there when we call you back.
           </>
         ) : (

@@ -49,8 +49,7 @@ export default function ShopShowcase() {
           </div>
           <div className="lg:col-span-5 lg:pb-1">
             <p className="max-w-md text-sm leading-[1.75] text-white/45">
-              AutoDV8ions has served Altoona and Central Pennsylvania from the
-              same shop for nearly three decades.
+              AutoDV8ions has served Altoona and Central Pennsylvania from the same professionals for nearly three decades.
             </p>
           </div>
         </div>

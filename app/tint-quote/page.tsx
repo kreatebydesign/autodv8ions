@@ -431,7 +431,7 @@ export default function TintQuotePage() {
               Get your tint quote.
             </h1>
             <p className="mt-4 max-w-lg text-sm leading-relaxed text-white/45 sm:text-base">
-              A few details about you and your vehicle — we&apos;ll follow up
+              A few details about you and your vehicle. We&apos;ll follow up
               with a personalized quote. No obligation.
             </p>
             <span className="accent-line mt-6" />

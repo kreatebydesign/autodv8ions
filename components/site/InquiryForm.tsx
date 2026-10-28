@@ -42,7 +42,7 @@ const CONFIG: Record<InquiryType, FieldConfig> = {
     submitLabel: "Submit Project for Review",
     successTitle: "Project submitted for review",
     successCopy:
-      "AutoDV8ions received your project details. Submitting does not guarantee acceptance — we'll review the scope, vehicle, and schedule, then follow up.",
+      "AutoDV8ions received your project details. Submitting does not guarantee acceptance. We'll review the scope, vehicle, and schedule, then follow up.",
     disclaimer:
       "Select audio and custom upgrade projects are accepted based on scope, vehicle, and schedule. Submitting this form does not guarantee acceptance.",
   },

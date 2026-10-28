@@ -27,7 +27,7 @@ export default function SiteFooter() {
             </p>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/35">
               Window tint, remote starters, vehicle security, and select audio
-              and custom work — Altoona, PA since 1998.
+              and custom work in Altoona, PA since 1998.
             </p>
           </div>
 

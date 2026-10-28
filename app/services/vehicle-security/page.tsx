@@ -6,7 +6,7 @@ import ServicePageShell from "@/components/site/ServicePageShell";
 export const metadata: Metadata = {
   title: "Vehicle Security in Altoona, PA",
   description:
-    "Vehicle security installation in Altoona, PA from AutoDV8ions — deterrents and alerts recommended for your vehicle and how you use it.",
+    "Vehicle security installation in Altoona, PA from AutoDV8ions: deterrents and alerts recommended for your vehicle and how you use it.",
   alternates: { canonical: "/services/vehicle-security" },
 };
 
@@ -16,7 +16,7 @@ export default function VehicleSecurityPage() {
       activeHref="/services"
       eyebrow="Vehicle Security"
       title="Protection without the sales pitch."
-      lead="Deterrence, alerts, and a clean install — recommended for the vehicle, not sold with fear."
+      lead="Deterrence, alerts, and a clean install, recommended for the vehicle, not sold with fear."
       imageSrc="/images/editorial/night-vehicle.jpg"
       imageAlt="Dark vehicle at night"
       ctaHref="#consultation"
@@ -35,7 +35,7 @@ export default function VehicleSecurityPage() {
                   },
                   {
                     title: "Alerts",
-                    copy: "Clear feedback when something is wrong — without overselling.",
+                    copy: "Clear feedback when something is wrong, without overselling.",
                   },
                   {
                     title: "Clean install",

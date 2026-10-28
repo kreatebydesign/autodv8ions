@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { PublicPortfolioCard } from "@/lib/live-portfolio/public-portfolio";
 import { publicMediaUrl } from "@/lib/live-portfolio/public-media-url";
+import PortfolioFramedImage from "@/components/portfolio/PortfolioFramedImage";
 import { formatDate } from "@/lib/utils/format";
 
 export function PortfolioCard({
@@ -21,11 +22,9 @@ export function PortfolioCard({
       <Link href={`/recent-work/${item.slug}`} className="portfolio-card-link">
         <div className="portfolio-card-media">
           {cover ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <PortfolioFramedImage
               src={cover}
               alt={item.vehicle}
-              className="portfolio-card-image"
               loading={featured ? "eager" : "lazy"}
             />
           ) : (

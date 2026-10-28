@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef } from "react";
+import PortfolioFramedImage from "@/components/portfolio/PortfolioFramedImage";
 import type { PublicPortfolioCard } from "@/lib/live-portfolio/public-portfolio";
 import { publicMediaUrl } from "@/lib/live-portfolio/public-media-url";
 import { formatDate } from "@/lib/utils/format";
@@ -188,11 +189,9 @@ export default function HomeShowcaseSlider({
               >
                 <div className="home-gallery-media">
                   {src ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <PortfolioFramedImage
                       src={src}
                       alt={item.vehicle}
-                      className="home-gallery-image"
                       loading="lazy"
                       draggable={false}
                     />

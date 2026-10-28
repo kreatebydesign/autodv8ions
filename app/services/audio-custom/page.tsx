@@ -6,7 +6,7 @@ import ServicePageShell from "@/components/site/ServicePageShell";
 export const metadata: Metadata = {
   title: "Audio & Select Custom Upgrades in Altoona, PA",
   description:
-    "Select audio and custom automotive upgrade projects from AutoDV8ions in Altoona, PA — accepted based on scope, vehicle, and schedule.",
+    "Select audio and custom automotive upgrade projects from AutoDV8ions in Altoona, PA, accepted based on scope, vehicle, and schedule.",
   alternates: { canonical: "/services/audio-custom" },
 };
 
@@ -42,7 +42,7 @@ export default function AudioCustomPage() {
               },
               {
                 title: "Clean component installs",
-                copy: "Hardware that looks like it belongs — not bolted on as an afterthought.",
+                copy: "Hardware that looks like it belongs, not bolted on as an afterthought.",
               },
               {
                 title: "Lighting and appearance",
@@ -103,8 +103,8 @@ export default function AudioCustomPage() {
               Submit Project for Review
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-white/45">
-              Include as much detail as you can. Photos can come later if needed
-              — this form keeps the first step simple.
+              Include as much detail as you can. Photos can come later if needed.
+              This form keeps the first step simple.
             </p>
           </div>
           <div className="lg:col-span-7">

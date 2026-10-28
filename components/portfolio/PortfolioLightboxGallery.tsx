@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import PortfolioFramedImage from "@/components/portfolio/PortfolioFramedImage";
 import { publicMediaUrl } from "@/lib/live-portfolio/public-media-url";
 
 export default function PortfolioLightboxGallery({
@@ -61,10 +62,9 @@ export default function PortfolioLightboxGallery({
             className={`portfolio-detail-shot ${index === 0 ? "is-hero" : ""}`}
             onClick={() => setActive(index)}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <PortfolioFramedImage
               src={publicMediaUrl(img.id, index === 0 ? "large" : "medium")}
-              alt={`${vehicle} — ${img.filename}`}
+              alt={`${vehicle}, ${img.filename}`}
               loading={index === 0 ? "eager" : "lazy"}
             />
           </button>

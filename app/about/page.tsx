@@ -6,9 +6,9 @@ import SiteFooter from "@/components/site/SiteFooter";
 import SiteHeader from "@/components/site/SiteHeader";
 
 export const metadata: Metadata = {
-  title: "About — Altoona, PA Since 1998",
+  title: "About Altoona, PA Since 1998",
   description:
-    "AutoDV8ions in Altoona, PA — nearly three decades of window tint, remote starters, vehicle security, and select custom work for Central Pennsylvania.",
+    "AutoDV8ions in Altoona, PA: nearly three decades of window tint, remote starters, vehicle security, and select custom work for Central Pennsylvania.",
   alternates: { canonical: "/about" },
 };
 
@@ -35,8 +35,8 @@ export default function AboutPage() {
               Same shop. Same focus.
             </h1>
             <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/55 sm:text-base">
-              AutoDV8ions has been in Altoona for nearly three decades — tint
-              first, with the rest handled when the job is a fit.
+              AutoDV8ions has been in Altoona for nearly three decades. Tint
+              comes first, with the rest handled when the job is a fit.
             </p>
           </div>
         </section>
@@ -80,7 +80,7 @@ export default function AboutPage() {
             <div className="flex flex-col justify-center">
               <p className="label-mono mb-4 text-white/40">How we work</p>
               <ul className="space-y-4 text-sm leading-relaxed text-white/50">
-                <li>Tell you what fits the vehicle — and what doesn&apos;t</li>
+                <li>Tell you what fits the vehicle and what doesn&apos;t</li>
                 <li>Careful with glass, trim, and factory systems</li>
                 <li>Selective about custom work</li>
                 <li>Published tint projects are real customer installs</li>
